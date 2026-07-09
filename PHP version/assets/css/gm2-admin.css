@@ -1,0 +1,779 @@
+/* ==================================================
+   GRAPHICS MANAGER 2.0 — ADMIN PAGE
+================================================== */
+
+/* ==================================================
+   LOGIN PAGE
+================================================== */
+
+body.login-page {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(rgba(2,6,23,0.6), rgba(2,6,23,0.6)),
+        url("../../bg-lines.png") repeat,
+        radial-gradient(circle at top left, #020717, transparent 15%),
+        radial-gradient(circle at bottom right, #020717, transparent 35%),
+        var(--gm-bg);
+    background-size: 1000px;
+    color: var(--gm-text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.login-page .wrapper {
+    width: auto;
+    max-width: none;
+    padding: 0;
+}
+
+.login-card {
+    background: #1D293B;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 5px;
+    padding: 40px;
+    width: 380px;
+    box-shadow: 0 25px 60px rgba(0,0,0,.35);
+    text-align: center;
+}
+
+.admin-login-logo {
+    width: 250px;
+    margin-bottom: 20px;
+}
+
+body.login-page h1 {
+    font-size: 32px;
+    color: #16B8A6;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 10px 0;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: .75;
+}
+
+body.login-page p {
+    color: #94a3b8;
+    margin-bottom: 25px;
+}
+
+body.login-page input,
+body.login-page select {
+    width: 100%;
+    padding: 14px;
+    background: #020617;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: white;
+    border-radius: 7px;
+    font-size: 20px;
+    text-align: center;
+    letter-spacing: 6px;
+    outline: none;
+}
+
+body.login-page input:focus,
+body.login-page select:focus {
+    border-color: #16B8A6;
+    box-shadow: 0 0 0 3px rgba(56,189,248,.15);
+}
+
+body.login-page button {
+    width: 100%;
+    margin-top: 18px;
+    padding: 14px;
+    border: none;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #16B8A6, #16B8A6);
+    color: #ececec;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+body.login-page button:hover {
+    filter: brightness(1.1);
+}
+
+.public-link {
+    display: inline-block;
+    margin-top: 18px;
+    color: #94a3b8;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.public-link:hover {
+    color: #16B8A6;
+}
+
+/* ==================================================
+   ADMIN PAGE
+================================================== */
+
+.admin-links {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+}
+
+.admin-links a {
+    color: #94a3b8;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.admin-links a:hover {
+    color: #16B8A6;
+}
+
+.repair-import-box {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.backup-card {
+    margin-top: auto;
+}
+
+.mini-dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0 14px;
+}
+
+.mini-stat {
+    background: rgba(2,6,23,.35);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.mini-value {
+    display: block;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.backup-download-link {
+    color: #86efac;
+    font-weight: bold;
+}
+
+.repair-heading {
+    font-size: 22px;
+    margin-bottom: 6px;
+}
+
+.latest-backup {
+    margin-top: 0;
+    word-break: break-word;
+}
+
+.admin-action-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.admin-section-gap {
+    margin-top: 24px;
+}
+
+/* ==================================================
+   ADMIN PAGE — MANAGER SECTION LAYOUT
+   Groups Graphics, Vendor Art, and System tools into
+   separate horizontal manager rows.
+================================================== */
+
+body.admin-page .admin-manager-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+body.admin-page .admin-manager-row {
+    display: grid;
+    grid-template-columns: minmax(320px, 360px) minmax(940px, 1fr);
+    gap: 24px;
+    align-items: stretch;
+}
+
+body.admin-page .admin-manager-sidebar,
+body.admin-page .admin-manager-main {
+    min-width: 0;
+    display: flex;
+}
+
+body.admin-page .admin-manager-row .gm-card,
+body.admin-page .admin-manager-row .card {
+    width: 100%;
+    height: 100%;
+}
+
+body.admin-page .admin-graphics-table-card,
+body.admin-page .admin-vendor-table-card {
+    display: flex;
+    flex-direction: column;
+}
+
+body.admin-page .admin-graphics-table-card .gm-table-wrap,
+body.admin-page .admin-vendor-table-card .gm-table-wrap {
+    flex: 1;
+}
+
+body.admin-page .admin-system-row {
+    display: block;
+}
+
+body.admin-page .admin-system-card {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(260px, .9fr) minmax(520px, 1.7fr) minmax(260px, .8fr);
+    gap: 20px;
+    align-items: center;
+}
+
+body.admin-page .admin-system-card h2,
+body.admin-page .admin-system-card p {
+    margin-top: 0;
+}
+
+body.admin-page .admin-system-copy .muted {
+    margin-bottom: 0;
+}
+
+body.admin-page .admin-system-stats {
+    margin: 0;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+}
+
+body.admin-page .admin-system-action {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+}
+
+body.admin-page .admin-system-action .latest-backup {
+    margin: 0;
+    font-size: 12px;
+}
+
+body.admin-page .admin-system-action form {
+    margin: 0;
+}
+
+body.admin-page .admin-system-action button {
+    margin-top: 0;
+}
+
+@media (max-width: 1200px) {
+    body.admin-page .admin-manager-row,
+    body.admin-page .admin-system-card {
+        grid-template-columns: 1fr;
+    }
+
+    body.admin-page .admin-system-stats {
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    body.admin-page .admin-manager-layout {
+        gap: 18px;
+    }
+
+    body.admin-page .admin-system-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================================================
+   ADMIN PAGE — VENDOR ART TABLE + PREVIEW MODAL FIXES
+   Keeps vendor rows aligned with the Graphics table and restores
+   full-size PDF/image previews after the CSS split.
+================================================== */
+
+body.admin-page .admin-vendor-table-card .gm-table th,
+body.admin-page .admin-vendor-table-card .gm-table td {
+    padding: 6px 14px;
+    vertical-align: middle;
+}
+
+body.admin-page .admin-vendor-table-card .gm-table td:last-child {
+    white-space: nowrap;
+}
+
+body.admin-page .vendor-preview-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+body.admin-page .vendor-preview-actions form,
+body.admin-page .admin-vendor-table-card .gm-table td form {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    vertical-align: middle;
+}
+
+body.admin-page .vendor-preview-actions .icon-btn,
+body.admin-page .vendor-preview-actions .gm2-icon-action,
+body.admin-page .admin-vendor-table-card .gm-table td .icon-btn,
+body.admin-page .admin-vendor-table-card .gm-table td .gm2-icon-action {
+    flex: 0 0 auto;
+    vertical-align: middle;
+}
+
+body.admin-page .preview-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(2, 6, 23, .90);
+}
+
+body.admin-page .preview-modal.active {
+    display: flex !important;
+}
+
+body.admin-page .preview-box {
+    width: min(1400px, 95vw);
+    max-width: 95vw;
+    max-height: 95vh;
+    overflow: auto;
+    position: relative;
+    background: #1D293B;
+    border: 1px solid rgba(148, 163, 184, .24);
+    border-radius: 14px;
+    box-shadow: 0 28px 80px rgba(0,0,0,.55);
+    padding: 18px;
+}
+
+body.admin-page .preview-box img,
+body.admin-page .preview-image {
+    max-width: 100%;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 7px;
+}
+
+body.admin-page .preview-pdf,
+body.admin-page #previewPDF {
+    width: min(1400px, 90vw);
+    height: 85vh;
+    border: none;
+    border-radius: 7px;
+    background: #ffffff;
+}
+
+body.admin-page .close-preview {
+    z-index: 10;
+}
+
+/* ==================================================
+   ADMIN PAGE — FINAL VENDOR PREVIEW FIX
+   The preview elements use .is-hidden from base.css, so these rules
+   only size visible iframe/image content after JS removes that class.
+================================================== */
+
+body.admin-page .preview-modal.active {
+    display: flex !important;
+}
+
+body.admin-page .preview-box {
+    width: min(1400px, 95vw);
+    max-width: 95vw;
+    max-height: 95vh;
+    overflow: auto;
+}
+
+body.admin-page #previewImage:not(.is-hidden),
+body.admin-page #previewPDF:not(.is-hidden) {
+    display: block !important;
+}
+
+body.admin-page #previewImage:not(.is-hidden) {
+    max-width: 100%;
+    max-height: 85vh;
+    object-fit: contain;
+}
+
+body.admin-page #previewPDF:not(.is-hidden) {
+    width: min(1400px, 90vw);
+    height: 85vh;
+    border: none;
+    border-radius: 7px;
+    background: #ffffff;
+}
+
+body.admin-page #deleteApprovalPreviewBtn:not(.is-hidden) {
+    display: block !important;
+}
+
+body.admin-page .admin-vendor-table-card .gm-table th,
+body.admin-page .admin-vendor-table-card .gm-table td {
+    padding: 6px 14px;
+    vertical-align: middle;
+}
+
+body.admin-page .vendor-preview-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+body.admin-page .vendor-preview-actions form {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+}
+
+body.admin-page .vendor-preview-actions .icon-btn,
+body.admin-page .vendor-preview-actions .gm2-icon-action {
+    flex: 0 0 auto;
+}
+
+/* ==================================================
+   ADMIN PAGE — URL TAB LAYOUT
+   Separates Graphics Manager, Vendor Art, and System Tools
+   into focused admin sections without changing page logic.
+================================================== */
+
+body.admin-page .admin-tab-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 auto 24px;
+}
+
+body.admin-page .admin-tab-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.26);
+    background: rgba(15, 23, 42, 0.70);
+    color: #cbd5e1;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 900;
+    text-decoration: none;
+    box-shadow: 0 8px 20px rgba(0,0,0,.18);
+    transition: transform .15s ease, border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+body.admin-page .admin-tab-link span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 18px;
+    padding: 0 6px;
+    border-radius: 5px;
+    background: rgba(2, 6, 23, .50);
+    color: #f8fafc;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+body.admin-page .admin-tab-link:hover {
+    transform: translateY(-1px);
+    border-color: rgba(22, 184, 166, 0.70);
+    color: #ffffff;
+    background: rgba(22, 184, 166, 0.14);
+}
+
+body.admin-page .admin-tab-link.active {
+    border-color: rgba(22, 184, 166, 0.88);
+    background: rgba(22, 184, 166, 0.20);
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(22,184,166,.20), 0 8px 20px rgba(0,0,0,.18);
+}
+
+body.admin-page .admin-tab-link.active span {
+    background: rgba(22,184,166,.22);
+}
+
+body.admin-page .admin-tab-layout {
+    display: block;
+}
+
+body.admin-page .admin-tab-panel {
+    display: none;
+}
+
+body.admin-page .admin-tab-panel.active {
+    display: block;
+}
+
+body.admin-page .admin-tab-panel .admin-manager-row,
+body.admin-page .admin-tab-panel .admin-system-row {
+    margin: 0;
+}
+
+body.admin-page .admin-tab-panel .admin-system-card {
+    min-height: 180px;
+}
+
+/* ==================================================
+   ADMIN PAGE — DATABASE HEADER INLINE STATS
+================================================== */
+
+body.admin-page .admin-card-header-with-stats {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin: -4px -6px 16px 0;
+}
+
+body.admin-page .admin-card-heading-copy {
+    min-width: 0;
+}
+
+body.admin-page .admin-card-heading-copy h2 {
+    margin-bottom: 0;
+}
+
+body.admin-page .admin-inline-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    margin: -8px -8px 0 0;
+    padding: 6px;
+    border-radius: 0 12px 0 10px;
+    background: rgba(2, 6, 23, .44);
+    border: 1px solid rgba(148, 163, 184, .16);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.015);
+}
+
+body.admin-page .admin-inline-stat {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 5px;
+    min-height: 24px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    background: rgba(15, 23, 42, .62);
+    border: 1px solid rgba(148, 163, 184, .10);
+    white-space: nowrap;
+}
+
+body.admin-page .admin-inline-stat span {
+    color: #94a3b8;
+    font-size: 9px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+body.admin-page .admin-inline-stat strong {
+    color: #f8fafc;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 900;
+}
+
+@media (max-width: 900px) {
+    body.admin-page .admin-card-header-with-stats {
+        flex-direction: column;
+        gap: 10px;
+        margin-right: 0;
+    }
+
+    body.admin-page .admin-inline-stats {
+        margin: 0;
+        flex-wrap: wrap;
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 700px) {
+    body.admin-page .admin-tab-nav {
+        align-items: stretch;
+        margin-bottom: 18px;
+    }
+
+    body.admin-page .admin-tab-link {
+        width: 100%;
+        max-width: 310px;
+    }
+}
+
+
+/* ==================================================
+   ADMIN PAGE — IMPORT EXISTING APPROVAL TOOL
+================================================== */
+
+body.admin-page .admin-import-approval-row {
+    margin-bottom: 24px;
+}
+
+body.admin-page .admin-import-approval-card {
+    display: grid;
+    grid-template-columns: minmax(280px, .9fr) minmax(520px, 1.4fr);
+    gap: 24px;
+    align-items: start;
+}
+
+body.admin-page .admin-import-approval-card h2,
+body.admin-page .admin-import-approval-card p {
+    margin-top: 0;
+}
+
+body.admin-page .admin-import-approval-form {
+    margin: 0;
+}
+
+body.admin-page .admin-import-approval-form label:first-of-type {
+    margin-top: 0;
+}
+
+body.admin-page .admin-import-approval-form button {
+    margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+    body.admin-page .admin-import-approval-card {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================================================
+   ADMIN PAGE — DATABASE HEALTH / MAINTENANCE TOOLS
+================================================== */
+
+body.admin-page .admin-health-row {
+    margin-bottom: 24px;
+}
+
+body.admin-page .admin-health-card {
+    display: grid;
+    grid-template-columns: minmax(260px, .75fr) minmax(520px, 1.35fr) minmax(220px, .55fr);
+    gap: 20px;
+    align-items: start;
+}
+
+body.admin-page .admin-health-copy h2,
+body.admin-page .admin-health-copy p {
+    margin-top: 0;
+}
+
+body.admin-page .admin-health-stats {
+    margin: 0;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+}
+
+body.admin-page .admin-health-action {
+    display: flex;
+    align-items: stretch;
+}
+
+body.admin-page .admin-health-action form {
+    width: 100%;
+    margin: 0;
+}
+
+body.admin-page .admin-health-action button {
+    margin-top: 0;
+}
+
+body.admin-page .admin-health-details {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(260px, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+}
+
+body.admin-page .admin-health-detail {
+    background: rgba(2,6,23,.25);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+}
+
+body.admin-page .admin-health-detail summary {
+    cursor: pointer;
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+body.admin-page .admin-health-detail summary span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    min-height: 18px;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 5px;
+    background: rgba(22,184,166,.18);
+    color: #f8fafc;
+    font-size: 10px;
+}
+
+body.admin-page .admin-health-detail ul {
+    margin: 10px 0 0;
+    padding-left: 18px;
+    color: #cbd5e1;
+    font-size: 12px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+body.admin-page .admin-health-detail p {
+    margin: 10px 0 0;
+}
+
+@media (max-width: 1200px) {
+    body.admin-page .admin-health-card {
+        grid-template-columns: 1fr;
+    }
+
+    body.admin-page .admin-health-stats,
+    body.admin-page .admin-health-details {
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    body.admin-page .admin-health-stats,
+    body.admin-page .admin-health-details {
+        grid-template-columns: 1fr;
+    }
+}

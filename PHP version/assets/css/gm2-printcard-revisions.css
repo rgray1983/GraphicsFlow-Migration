@@ -1,0 +1,732 @@
+/* ==================================================
+   GRAPHICS MANAGER 2.0 — PRINT CARD REVISIONS PAGE
+================================================== */
+
+/* ==================================================
+   PRINT CARD REVISIONS PAGE
+================================================== */
+
+body.index-page .preview-modal,
+body.index-page .printcard-modal,
+body.index-page .result-modal,
+body.index-page .latest-card-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.9);
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 30px;
+}
+
+body.index-page .preview-modal.active,
+body.index-page .printcard-modal.active,
+body.index-page .result-modal.active,
+body.index-page .latest-card-modal.active {
+    display: flex;
+}
+
+body.index-page .preview-box,
+body.index-page .printcard-box,
+body.index-page .result-box,
+body.index-page .latest-card-box {
+    background: #1D293B;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 18px;
+    max-width: 90vw;
+    max-height: 90vh;
+    position: relative;
+    overflow: auto;
+    overflow-x: hidden;
+}
+
+body.index-page .printcard-box {
+    width: 560px;
+}
+
+body.printcard-revisions-page * {
+    box-sizing: border-box;
+}
+
+body.printcard-revisions-page {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(rgba(2,6,23,0.75), rgba(2,6,23,0.75)),
+            radial-gradient(circle at top left, #0f172a, transparent 35%),
+            radial-gradient(circle at bottom right, #0f172a, transparent 35%),
+            var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+body.printcard-revisions-page h1 {
+    color: var(--blue);
+    font-size: clamp(34px, 4vw, 52px);
+    margin: 0 0 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+body.printcard-revisions-page .subtitle {
+    color: var(--muted);
+    margin: 0;
+}
+
+body.printcard-revisions-page .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 16px 18px;
+    box-shadow: 0 18px 42px rgba(0,0,0,.28);
+    margin-bottom: 14px;
+}
+
+body.printcard-revisions-page h2 {
+    margin: 0 0 10px;
+    font-size: 18px;
+    line-height: 1.2;
+}
+
+body.printcard-revisions-page label {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+body.printcard-revisions-page .admin-corner-link {
+    pointer-events: auto;
+    display: inline-block;
+    position: absolute;
+    right: 2%;
+    z-index: 10;
+    color: #94a3b8;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: underline;
+    opacity: .75;
+}
+
+body.printcard-revisions-page .admin-corner-link:hover {
+    color: #16B8A6;
+    opacity: 1;
+}
+
+body.printcard-revisions-page input,
+body.printcard-revisions-page textarea {
+    width: 100%;
+    padding: 7px 9px;
+    background: #020617;
+    border: 1px solid var(--border);
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.25;
+    outline: none;
+    text-transform: uppercase;
+}
+
+body.printcard-revisions-page textarea {
+    min-height: 44px;
+    resize: vertical;
+}
+
+body.printcard-revisions-page input:focus,
+body.printcard-revisions-page textarea:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(22,184,166,.15);
+}
+
+body.printcard-revisions-page button:not(.gm-btn),
+body.printcard-revisions-page .button-link:not(.gm-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 82px;
+    margin-top: 0;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    background: linear-gradient(135deg, var(--blue), var(--blue));
+    color: #111827;
+    font-weight: 800;
+    font-size: 11px;
+    line-height: 1.2;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    white-space: nowrap;
+}
+
+body.printcard-revisions-page .danger {
+    background: linear-gradient(135deg, #991b1b, #7f1d1d);
+}
+
+body.printcard-revisions-page .secondary {
+    background: #334155;
+}
+
+body.printcard-revisions-page button:hover,
+body.printcard-revisions-page .button-link:hover {
+    filter: brightness(1.1);
+}
+
+body.printcard-revisions-page .message {
+    padding: 10px 12px;
+    border-radius: 5px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+}
+
+body.printcard-revisions-page .message.success {
+    background: rgba(22,184,166,.14);
+    border-color: rgba(22,184,166,.45);
+    color: #d1fae5;
+}
+
+body.printcard-revisions-page .message.error {
+    background: rgba(153,27,27,.22);
+    border-color: rgba(153,27,27,.55);
+    color: #fee2e2;
+}
+
+body.printcard-revisions-page .count {
+    color: var(--blue);
+    font-weight: 800;
+}
+
+body.printcard-revisions-page .muted {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+body.printcard-revisions-page .top-links {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+body.printcard-revisions-page .search-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 8px;
+    align-items: end;
+}
+
+body.printcard-revisions-page .tree-item.open .arrow {
+    transform: rotate(90deg);
+}
+
+body.printcard-revisions-page .tree-item.open .tree-details {
+    display: block;
+}
+
+body.printcard-revisions-page .revision-desc {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body.printcard-revisions-page .revision-actions {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-end;
+}
+
+body.printcard-revisions-page .edit-panel {
+    display: none;
+    margin-top: 6px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--panel-dark);
+}
+
+body.printcard-revisions-page .edit-panel.active {
+    display: block;
+}
+
+body.printcard-revisions-page .add-previous-panel.active {
+    display: block;
+}
+
+body.printcard-revisions-page .edit-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+body.printcard-revisions-page .view-modal.active {
+    display: flex;
+}
+
+body.printcard-revisions-page .view-field.wide {
+    grid-column: 1 / -1;
+}
+
+body.printcard-revisions-page .view-label {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+body.printcard-revisions-page .view-value {
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+body.printcard-revisions-page
+    header {
+    text-align: center;
+    margin-bottom: 35px;
+    position: relative;
+}
+
+body.printcard-revisions-page header img.app-logo {
+    width: 400px;
+    max-width: 80vw;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+body.printcard-revisions-page header h1 {
+    font-size: clamp(36px, 4vw, 56px);
+    color: #16B8A6;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 10px 0;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: .75;
+    text-shadow: none;
+}
+
+body.printcard-revisions-page header .subtitle {
+    color: var(--muted);
+    font-size: 18px;
+    margin: 0;
+}
+
+body.printcard-revisions-page .page-nav {
+    margin: 20px auto 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+body.printcard-revisions-page .page-nav a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(15, 23, 42, 0.82);
+    color: #cbd5e1;
+    font-family: "Inter", Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: 0 10px 28px rgba(0,0,0,.22);
+    transition: transform .15s ease, border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+body.printcard-revisions-page .page-nav a:hover {
+    transform: translateY(-1px);
+    border-color: rgba(22, 184, 166, 0.75);
+    color: #ffffff;
+    background: rgba(22, 184, 166, 0.18);
+}
+
+body.printcard-revisions-page .page-nav a.active {
+    border-color: rgba(22, 184, 166, 0.85);
+    background: linear-gradient(135deg, rgba(22,184,166,.95), rgba(14,116,144,.95));
+    color: #ffffff;
+}
+
+body.printcard-revisions-page .page-nav a.logout-link {
+    border-color: rgba(153, 27, 27, 0.55);
+    background: rgba(153, 27, 27, 0.24);
+}
+
+body.printcard-revisions-page .page-nav a.logout-link:hover {
+    border-color: rgba(248, 113, 113, 0.85);
+    background: rgba(153, 27, 27, 0.42);
+}
+
+body.printcard-revisions-page .gm-no-margin-bottom {
+    margin-bottom: 0;
+}
+
+body.printcard-revisions-page .gm-hidden {
+    display: none;
+}
+
+body.printcard-revisions-page .wrapper {
+    margin: 0 auto;
+    width: min(1800px, calc(100vw - 48px));
+    max-width: 1800px;
+    padding: 32px 0 48px;
+}
+
+body.printcard-revisions-page header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+body.printcard-revisions-page .printcard-stat-strip {
+    margin: 18px auto 0;
+}
+
+body.printcard-revisions-page .printcard-search-card,
+body.printcard-revisions-page .printcard-results-card {
+    border-radius: 14px;
+    padding: 18px 26px;
+    background: rgba(29, 41, 59, .96);
+    border: 1px solid rgba(148, 163, 184, .20);
+    box-shadow: 0 22px 55px rgba(0,0,0,.30);
+}
+
+body.printcard-revisions-page .printcard-search-card {
+    margin-bottom: 18px;
+}
+
+body.printcard-revisions-page .printcard-card-header-row,
+body.printcard-revisions-page .printcard-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+body.printcard-revisions-page .printcard-card-header-row h2,
+body.printcard-revisions-page .printcard-results-header h2 {
+    font-size: 24px;
+    margin: 0 0 6px;
+    line-height: 1.15;
+}
+
+body.printcard-revisions-page .printcard-results-help {
+    max-width: 430px;
+    margin: 2px 0 0;
+    text-align: right;
+}
+
+body.printcard-revisions-page .printcard-search-row {
+    display: grid;
+    grid-template-columns: minmax(520px, 1fr) auto auto auto;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 0;
+}
+
+body.printcard-revisions-page .printcard-search-field input {
+    height: 46px;
+    font-size: 14px;
+}
+
+body.printcard-revisions-page .printcard-search-row .gm-btn,
+body.printcard-revisions-page .printcard-search-row .button-link {
+    height: 46px;
+    min-width: 118px;
+    margin: 0;
+    border-radius: 10px;
+}
+
+body.printcard-revisions-page .gm-btn,
+body.printcard-revisions-page button.gm-btn,
+body.printcard-revisions-page a.gm-btn,
+body.printcard-revisions-page .button-link.gm-btn {
+    min-height: 46px;
+    padding: 0 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+body.printcard-revisions-page .revision-actions .gm-btn,
+body.printcard-revisions-page .edit-actions .gm-btn,
+body.printcard-revisions-page .section-actions .gm-btn {
+    min-height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
+}
+
+body.printcard-revisions-page .printcard-search-row .gm-btn,
+body.printcard-revisions-page .printcard-search-row .button-link.gm-btn {
+    min-height: 46px;
+    font-size: 14px;
+}
+
+body.printcard-revisions-page .tree {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+body.printcard-revisions-page .tree-item {
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 12px;
+    background: rgba(2, 6, 23, .20);
+    overflow: hidden;
+    box-shadow: 0 10px 26px rgba(0,0,0,.16);
+}
+
+body.printcard-revisions-page .tree-summary {
+    display: grid;
+    align-items: center;
+    cursor: pointer;
+    grid-template-columns: 26px 130px 140px 140px 110px minmax(220px, 1fr) auto;
+    gap: 12px;
+    min-height: 0;
+    background: rgba(15, 23, 42, .35);
+    padding: 6px 14px;
+}
+
+body.printcard-revisions-page .tree-summary:hover {
+    background: rgba(22,184,166,.08);
+}
+
+body.printcard-revisions-page .tree-item.open .tree-summary {
+    background: rgba(22,184,166,.10);
+    border-bottom: 1px solid rgba(148, 163, 184, .16);
+}
+
+body.printcard-revisions-page .arrow {
+    font-weight: 900;
+    transition: transform .2s ease;
+    color: #22d3c5;
+    font-size: 12px;
+}
+
+body.printcard-revisions-page .summary-label {
+    display: block;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    color: #94a3b8;
+}
+
+body.printcard-revisions-page .summary-value {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    font-weight: 800;
+    color: #e2e8f0;
+}
+
+body.printcard-revisions-page .summary-value.highlight {
+    color: #22d3c5;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+body.printcard-revisions-page .tree-details {
+    display: none;
+    border-top: 1px solid var(--border);
+    background: rgba(15, 23, 42, .38);
+    padding: 6px 14px;
+}
+
+body.printcard-revisions-page .section-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+body.printcard-revisions-page .revision-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+body.printcard-revisions-page .revision-line {
+    display: grid;
+    align-items: center;
+    grid-template-columns: 82px 115px minmax(280px, 1fr) 78px 78px auto;
+    gap: 10px;
+    min-height: 0;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, .16);
+    background: rgba(2,6,23,.30);
+    padding: 6px 14px;
+}
+
+body.printcard-revisions-page .revision-line:hover {
+    background: rgba(22,184,166,.055);
+}
+
+body.printcard-revisions-page .revision-line span {
+    color: #e2e8f0;
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+body.printcard-revisions-page .revision-line strong {
+    color: #94a3b8;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+body.printcard-revisions-page .revision-actions,
+body.printcard-revisions-page .edit-actions {
+    align-items: center;
+}
+
+body.printcard-revisions-page .revision-actions .gm-btn,
+body.printcard-revisions-page .edit-actions .gm-btn,
+body.printcard-revisions-page .section-actions .gm-btn {
+    min-width: 74px;
+    height: 32px;
+    padding: 0 12px;
+    font-size: 11px;
+    border-radius: 8px;
+}
+
+body.printcard-revisions-page .edit-panel,
+body.printcard-revisions-page .add-previous-panel {
+    margin-top: 8px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, .20);
+    background: rgba(2, 6, 23, .42);
+}
+
+body.printcard-revisions-page .add-previous-panel {
+    display: none;
+    padding: 10px;
+    border: 1px solid rgba(22,184,166,.35);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    border-color: rgba(22,184,166,.36);
+    background: rgba(22,184,166,.075);
+}
+
+body.printcard-revisions-page .edit-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(90px, 1fr));
+    gap: 10px;
+}
+
+body.printcard-revisions-page .edit-grid .wide {
+    grid-column: 1 / -1;
+}
+
+body.printcard-revisions-page .edit-grid input,
+body.printcard-revisions-page .edit-grid textarea {
+    min-height: 38px;
+    border-radius: 9px;
+    font-size: 12px;
+}
+
+body.printcard-revisions-page .edit-grid textarea {
+    min-height: 0;
+}
+
+body.printcard-revisions-page .gm2-message,
+body.printcard-revisions-page .message {
+    width: min(100%, 1800px);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 0 0 18px;
+}
+
+body.printcard-revisions-page .view-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 24px;
+    background: rgba(2, 6, 23, .94);
+}
+
+body.printcard-revisions-page .view-box {
+    overflow: auto;
+    border: 1px solid var(--border);
+    position: relative;
+    width: min(1180px, 94vw);
+    max-height: 92vh;
+    padding: 22px;
+    border-radius: 14px;
+    background: rgba(29, 41, 59, .98);
+    box-shadow: 0 30px 90px rgba(0,0,0,.62);
+}
+
+body.printcard-revisions-page .view-box h2 {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+body.printcard-revisions-page .view-image-wrap {
+    margin-top: 18px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: rgba(2, 6, 23, .38);
+    border-radius: 12px;
+    padding: 14px;
+    margin: 16px 0;
+}
+
+body.printcard-revisions-page .view-image {
+    display: block;
+    width: 100%;
+    object-fit: contain;
+    background: white;
+    max-height: 58vh;
+    border-radius: 10px;
+}
+
+body.printcard-revisions-page .view-grid {
+    display: grid;
+    margin-top: 12px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+body.printcard-revisions-page .view-field {
+    border-radius: 10px;
+    padding: 11px 12px;
+    background: rgba(2,6,23,.34);
+    border: 1px solid rgba(148,163,184,.16);
+}
+
+body.printcard-revisions-page .close-modal {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 0;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 999px;
+    background: rgba(15,23,42,.85);
+    color: #f8fafc;
+}

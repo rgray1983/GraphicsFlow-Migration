@@ -1,0 +1,452 @@
+/* ==================================================
+   GRAPHICS MANAGER 2.0 — CREATE APPROVAL PAGE
+================================================== */
+
+/* ==================================================
+   CREATE APPROVAL PAGE
+================================================== */
+
+body.create-approval-page .wrapper {
+    width: min(1700px, calc(100vw - 48px));
+}
+
+body.create-approval-page label {
+    margin: 8px 0 4px;
+    font-size: 13px;
+}
+
+body.create-approval-page input,
+body.create-approval-page textarea {
+    padding: 10px 12px;
+    min-height: 42px;
+    font-size: 14px;
+}
+
+body.create-approval-page textarea {
+    min-height: 56px;
+}
+
+body.create-approval-page .gm-card {
+    padding: 20px 26px;
+}
+
+body.create-approval-page .gm-card h2 {
+    margin-bottom: 6px;
+}
+
+body.create-approval-page .gm2-section-kicker {
+    margin-bottom: 4px;
+}
+
+.create-lookup-card,
+.create-approval-main-card,
+.create-result-card,
+.current-preview-card {
+    margin-bottom: 16px;
+}
+
+.create-lookup-form {
+    display: grid;
+    grid-template-columns: minmax(420px, 1fr) 180px;
+    gap: 14px;
+    align-items: end;
+}
+
+.create-lookup-form .gm-btn {
+    width: 100%;
+}
+
+.create-approval-header-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.create-approval-two-col {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+.create-subcard {
+    background: rgba(2, 6, 23, .28);
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-top: 10px;
+}
+
+.create-subcard:first-of-type {
+    margin-top: 0;
+}
+
+.create-subcard h3 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.2;
+}
+
+.create-form-grid {
+    display: grid;
+    gap: 9px 12px;
+}
+
+.create-form-grid.four-col {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.create-form-grid.five-col {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.create-form-grid.three-col {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.create-post-description-grid {
+    margin-top: 8px;
+}
+
+.approval-detail-grid {
+    grid-template-columns: minmax(95px, .8fr) minmax(120px, 1fr) minmax(260px, 2.2fr) minmax(95px, .8fr) minmax(95px, .8fr);
+}
+
+.label-hint {
+    color: var(--gm-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.create-field-stack {
+    margin-top: 8px;
+}
+
+.create-rev-note {
+    margin: 8px 0 0;
+}
+
+.create-check-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.production-options-card {
+    padding: 8px 16px;
+}
+
+.production-options-grid {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 14px;
+}
+
+.production-option-group {
+    min-width: 0;
+}
+
+.create-check-grid.compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.create-check-grid.compact.label-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.create-approval-page .check-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 28px;
+    margin: 0;
+    padding: 3px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, .16);
+    background: rgba(15, 23, 42, .45);
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.create-approval-page .check-row input {
+    width: auto;
+    min-width: 14px;
+    margin: 0;
+    padding: 0;
+}
+
+.approval-history-title-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.approval-history-card {
+    padding: 10px 16px;
+}
+
+.approval-history-card h3 {
+    font-size: 15px;
+}
+
+.approval-history-list {
+    display: grid;
+    gap: 6px;
+}
+
+.approval-history-row {
+    display: grid;
+    grid-template-columns: 90px 110px minmax(220px, 1fr) 110px 110px;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 10px;
+    border: 1px solid rgba(148, 163, 184, .14);
+    border-radius: 9px;
+    background: rgba(15, 23, 42, .55);
+    color: #e2e8f0;
+    font-size: 13px;
+}
+
+.approval-history-row strong {
+    color: #22d3c5;
+}
+
+.approval-history-empty {
+    margin: 0;
+}
+
+.artwork-upload-card label {
+    margin-top: 0;
+}
+
+.artwork-upload-shell {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    align-items: start;
+}
+
+.artwork-upload-shell input[type="file"] {
+    width: min(100%, 420px);
+    min-height: 54px;
+    align-self: start;
+}
+
+.artwork-upload-preview {
+    width: min(100%, 420px);
+    min-height: 96px;
+    border: 1px dashed rgba(148, 163, 184, .36);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, .62);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-weight: 800;
+    text-align: center;
+    overflow: hidden;
+}
+
+.artwork-upload-preview.has-preview {
+    width: min(100%, 900px);
+    max-width: 900px;
+    min-height: 0;
+    aspect-ratio: var(--artwork-preview-ratio, 9 / 4);
+    align-items: stretch;
+    justify-content: stretch;
+    background: #ffffff;
+}
+
+.artwork-upload-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #fff;
+}
+
+.artwork-upload-preview iframe,
+.artwork-upload-preview object,
+.artwork-upload-preview embed {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #fff;
+    overflow: hidden;
+}
+
+.create-form-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 12px;
+}
+
+.create-form-actions .gm-btn,
+.create-form-actions .button-link {
+    width: 100%;
+}
+
+.current-preview-wrap {
+    background: #020617;
+    border: 1px solid rgba(148, 163, 184, .22);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.current-preview-wrap iframe {
+    width: 100%;
+    height: 70vh;
+    border: none;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.current-preview-wrap .approval-preview {
+    display: block;
+    width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 8px;
+}
+
+.approval-popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(2, 6, 23, .88);
+    padding: 26px;
+    align-items: center;
+    justify-content: center;
+}
+
+.approval-popup.active {
+    display: flex;
+}
+
+.approval-popup-box {
+    width: min(1280px, 96vw);
+    height: 92vh;
+    background: #1D293B;
+    border: 1px solid rgba(148, 163, 184, .28);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 28px 80px rgba(0,0,0,.55);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.approval-popup-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.approval-popup-top h2 {
+    margin: 0 0 4px;
+}
+
+.approval-popup-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.approval-popup-actions .gm-btn,
+.approval-popup-actions .button-link {
+    width: auto;
+}
+
+.approval-popup iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.gm-no-margin-bottom {
+    margin-bottom: 0;
+}
+
+@media (max-width: 1100px) {
+    .create-form-grid.four-col,
+    .create-form-grid.five-col,
+    .create-form-grid.three-col,
+    .approval-detail-grid,
+    .create-check-grid,
+    .create-check-grid.compact,
+    .create-check-grid.compact.label-options,
+    .production-options-grid,
+    .approval-history-row,
+    .artwork-upload-shell,
+    .create-form-actions,
+    .create-lookup-form {
+        grid-template-columns: 1fr;
+    }
+
+    .approval-popup-top {
+        flex-direction: column;
+    }
+}
+
+/* ==================================================
+   CREATE APPROVAL HEADER/SPACING FIX
+   Keeps the nav and stat strip from visually colliding.
+================================================== */
+
+body.create-approval-page header {
+    margin-bottom: 34px;
+}
+
+body.create-approval-page .page-nav {
+    margin-bottom: 0;
+}
+
+body.create-approval-page .gm2-stat-strip {
+    margin: 14px auto 0;
+    position: relative;
+    z-index: 1;
+}
+
+body.create-approval-page .gm2-stat-item {
+    height: 42px;
+}
+
+
+/* ==================================================
+   APPROVALS HUB EMBED MODE
+================================================== */
+
+body.create-approval-page.embedded-approval-tab {
+    background: transparent;
+    min-height: auto;
+}
+
+body.create-approval-page.embedded-approval-tab .wrapper {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+}
+
+body.create-approval-page.embedded-approval-tab header {
+    display: none;
+}
+
+body.create-approval-page.embedded-approval-tab .create-lookup-card,
+body.create-approval-page.embedded-approval-tab .create-approval-main-card,
+body.create-approval-page.embedded-approval-tab .create-result-card,
+body.create-approval-page.embedded-approval-tab .current-preview-card {
+    margin-bottom: 16px;
+}

@@ -1,0 +1,96 @@
+/* ==================================================
+   GRAPHICS MANAGER 2.0 — APPROVALS HUB PAGE
+================================================== */
+
+body.approvals-page .wrapper {
+    width: min(1800px, calc(100vw - 48px));
+    max-width: 1800px;
+}
+
+body.approvals-page .approvals-tab-nav {
+    margin: 22px auto 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+body.approvals-page .approvals-tab-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(148, 163, 184, .26);
+    background: rgba(15, 23, 42, .82);
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 10px 24px rgba(0,0,0,.20);
+    transition: transform .15s ease, border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+body.approvals-page .approvals-tab-link:hover {
+    transform: translateY(-1px);
+    border-color: rgba(22, 184, 166, .70);
+    background: rgba(22, 184, 166, .14);
+    color: #ffffff;
+}
+
+body.approvals-page .approvals-tab-link.active {
+    border-color: rgba(22, 184, 166, .90);
+    background: rgba(22, 184, 166, .16);
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(22,184,166,.35), 0 10px 24px rgba(0,0,0,.20);
+}
+
+body.approvals-page .approvals-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 4px;
+    background: rgba(2, 6, 23, .55);
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+body.approvals-page .approvals-hub-card {
+    padding: 18px;
+    overflow: hidden;
+}
+
+body.approvals-page .approvals-frame {
+    display: block;
+    width: 100%;
+    height: 900px;
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    overflow: hidden;
+}
+
+body.approvals-page .approvals-hub-note {
+    margin: -6px 0 16px;
+    text-align: center;
+    color: var(--gm-muted);
+    font-size: 13px;
+}
+
+@media (max-width: 800px) {
+    body.approvals-page .approvals-tab-link {
+        width: 100%;
+    }
+
+    body.approvals-page .approvals-hub-card {
+        padding: 12px;
+    }
+}

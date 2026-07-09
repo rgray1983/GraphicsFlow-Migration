@@ -1,0 +1,925 @@
+/* ==================================================
+   GRAPHICS MANAGER 2.0 — G# LIST / INDEX PAGE
+================================================== */
+
+/* ==================================================
+   INDEX PAGE
+================================================== */
+
+.vendor-preview-actions {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.vendor-preview-actions form {
+    display: inline-flex;
+    margin: 0;
+    padding: 0;
+}
+
+body.index-page * {
+    box-sizing: border-box;
+}
+
+body.index-page {
+    --bg: #020617;
+    --panel: #0f172a;
+    --panel-light: #1e293b;
+    --blue: #16B8A6;
+    --blue-dark: #16B8A6;
+    --red: #991b1b;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --border: rgba(148, 163, 184, 0.25);
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(rgba(2,6,23,0.6), rgba(2,6,23,0.6)),
+            url("../../bg-lines.png") repeat,
+            radial-gradient(circle at top left, #020717, transparent 15%),
+            radial-gradient(circle at bottom right, #020717, transparent 35%),
+            var(--bg);
+    background-size: 1000px;
+    color: var(--text);
+    min-height: 100vh;
+}
+
+body.index-page header {
+    text-align: center;
+    margin-bottom: 35px;
+    position: relative;
+}
+
+body.index-page h1 {
+    font-size: clamp(36px, 4vw, 56px);
+    color: #16B8A6;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 10px 0;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: .75;
+}
+
+body.index-page .subtitle {
+    color: var(--muted);
+    font-size: 18px;
+}
+
+body.index-page .card {
+    background: #1D293B;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 24px;
+    box-shadow: 0 25px 60px rgba(0,0,0,.35);
+}
+
+body.index-page h2 {
+    margin-top: 0;
+    color: var(--text);
+}
+
+body.index-page input,
+body.index-page textarea {
+    width: 100%;
+    padding: 14px;
+    background: #020617;
+    border: 1px solid var(--border);
+    color: white;
+    border-radius: 7px;
+    font-size: 16px;
+    outline: none;
+}
+
+body.index-page .uppercase-input {
+    text-transform: uppercase;
+}
+
+body.index-page textarea {
+    min-height: 75px;
+    resize: vertical;
+}
+
+body.index-page input:focus,
+body.index-page textarea:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(56,189,248,.15);
+}
+
+body.index-page label {
+    display: block;
+    color: var(--muted);
+    font-size: 13px;
+    margin: 10px 0 5px;
+}
+
+body.index-page button,
+body.index-page .button-link {
+    width: 100%;
+    margin-top: 18px;
+    padding: 14px;
+    border: none;
+    border-radius: 7px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: #020617;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+body.index-page button:hover,
+body.index-page .button-link:hover {
+    filter: brightness(1.1);
+}
+
+body.index-page .search-form button {
+    width: auto;
+    margin-top: 0;
+    height: 30px;
+    padding: 0 18px;
+    white-space: nowrap;
+}
+
+body.index-page table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+    border-radius: 7px;
+    table-layout: auto;
+}
+
+body.index-page td {
+    padding: 6px 14px;
+    border-bottom: 1px solid var(--border);
+    color: #e2e8f0;
+    white-space: nowrap;
+}
+
+body.index-page th {
+    background: #16B8A6;
+    color: #020617;
+    text-align: left;
+    padding: 14px;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+body.index-page tr:hover td {
+    background: rgba(56,189,248,.06);
+}
+
+body.index-page .muted {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+body.index-page .admin-link {
+    display: inline-block;
+    margin-top: 12px;
+    color: #94a3b8;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+body.index-page .admin-link:hover {
+    color: #16B8A6;
+}
+
+body.index-page .result-box,
+body.index-page .latest-card-box {
+    width: min(1200px, 92vw);
+}
+
+body.index-page .print-card-preview-img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    max-height: 68vh;
+    object-fit: contain;
+    background: white;
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 7px;
+}
+
+body.index-page .result-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 14px;
+}
+
+body.index-page .result-actions .button-link,
+body.index-page .result-actions button {
+    margin-top: 0;
+}
+
+body.index-page .preview-box img {
+    max-width: 100%;
+    max-height: 75vh;
+    display: block;
+    border-radius: 7px;
+}
+
+body.index-page .close-preview {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    padding: 0;
+    border-radius: 7px;
+    z-index: 5;
+}
+
+body.index-page .download-link {
+    color: #16B8A6;
+    font-weight: 800;
+}
+
+body.index-page .page-nav {
+    margin: 20px auto 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+body.index-page .page-nav a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(15, 23, 42, 0.82);
+    color: #cbd5e1;
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: 0 10px 28px rgba(0,0,0,.22);
+    transition: transform .15s ease, border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+body.index-page .page-nav a:hover {
+    transform: translateY(-1px);
+    border-color: rgba(22, 184, 166, 0.75);
+    color: #ffffff;
+    background: rgba(22, 184, 166, 0.18);
+}
+
+body.index-page .page-nav a.active {
+    border-color: rgba(22, 184, 166, 0.85);
+    background: linear-gradient(135deg, rgba(22,184,166,.95), rgba(14,116,144,.95));
+    color: #ffffff;
+}
+
+body.index-page .page-nav a.logout-link {
+    border-color: rgba(153, 27, 27, 0.55);
+    background: rgba(153, 27, 27, 0.24);
+}
+
+body.index-page .page-nav a.logout-link:hover {
+    border-color: rgba(248, 113, 113, 0.85);
+    background: rgba(153, 27, 27, 0.42);
+}
+
+body.index-page .approval-compare-toggle {
+    display: none;
+    margin-top: 12px;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+body.index-page .approval-compare-panel {
+    display: none;
+    width: min(1120px, 88vw);
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: rgba(15, 23, 42, 0.92);
+}
+
+body.index-page .approval-compare-panel.active {
+    display: block;
+}
+
+body.index-page .compare-top {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 10px;
+}
+
+body.index-page .compare-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+body.index-page .compare-summary-card {
+    background: rgba(2,6,23,.45);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 9px;
+}
+
+body.index-page .compare-summary-card strong {
+    display: block;
+    color: var(--blue);
+    font-size: 12px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+body.index-page .compare-summary-card span {
+    color: #e2e8f0;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+body.index-page .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: stretch;
+}
+
+body.index-page .compare-view {
+    background: white;
+    border-radius: 5px;
+    overflow: hidden;
+    min-height: 420px;
+    border: 1px solid var(--border);
+}
+
+body.index-page .compare-view h3 {
+    margin: 0;
+    padding: 8px 10px;
+    background: #020617;
+    color: var(--blue);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+body.index-page .compare-view img,
+body.index-page .compare-view iframe {
+    display: block;
+    width: 100%;
+    height: 520px;
+    border: none;
+    object-fit: contain;
+    background: white;
+}
+
+body.index-page .vendor-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+body.index-page .vendor-form-grid .wide {
+    grid-column: 1 / -1;
+}
+
+body.index-page .vendor-actions-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+body.index-page select {
+    width: 100%;
+    padding: 14px;
+    background: #020617;
+    border: 1px solid var(--border);
+    color: white;
+    border-radius: 7px;
+    font-size: 16px;
+    outline: none;
+}
+
+.index-logo {
+    width: 400px;
+    margin-bottom: 10px;
+}
+
+.preview-pdf-frame {
+    display: none;
+    width: 80vw;
+    height: 80vh;
+    border: none;
+    border-radius: 7px;
+}
+
+#deleteApprovalPreviewBtn {
+    margin-top: 12px;
+}
+
+.compare-select {
+    width: 100%;
+    padding: 8px;
+    background: #020617;
+    color: white;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+}
+
+.replace-art-button {
+    background: #64748b !important;
+    color: #f8fafc !important;
+    margin-top: 10px;
+}
+
+body.index-page .wrapper {
+    position: relative;
+    width: min(1800px, calc(100vw - 48px));
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 32px 0 48px;
+}
+
+body.index-page .app-header {
+    text-align: center;
+    margin-bottom: 35px;
+    position: relative;
+}
+
+body.index-page .app-logo {
+    width: 400px;
+    max-width: 80vw;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+body.index-page .app-header h1 {
+    font-size: clamp(36px, 4vw, 56px);
+    color: #16B8A6;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 10px 0;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: .75;
+    text-shadow: none;
+}
+
+body.index-page .app-header .subtitle {
+    color: var(--muted);
+    font-size: 18px;
+    margin: 0;
+}
+
+body.index-page .admin-corner-link {
+    pointer-events: auto;
+    display: inline-block;
+    position: absolute;
+    right: 2%;
+    z-index: 10;
+    color: #94a3b8;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: underline;
+    opacity: .75;
+}
+
+body.index-page .admin-corner-link:hover {
+    color: #16B8A6;
+    opacity: 1;
+}
+
+body.index-page .index-data-card,
+body.index-page .vendor-section {
+    width: 100%;
+}
+
+body.index-page .card,
+body.index-page .gm-card {
+    border-radius: 14px;
+    padding: 26px;
+    background: rgba(29, 41, 59, .96);
+    border: 1px solid rgba(148, 163, 184, .20);
+    box-shadow: 0 22px 55px rgba(0,0,0,.30);
+}
+
+body.index-page .card h2,
+body.index-page .gm-card h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    line-height: 1.15;
+}
+
+body.index-page .card .muted,
+body.index-page .gm-card .muted {
+    line-height: 1.45;
+}
+
+body.index-page .search-form {
+    display: grid;
+    grid-template-columns: minmax(420px, 1fr) auto auto;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+body.index-page .search-form input {
+    flex: 1;
+    padding: 8px 14px;
+    min-width: 0;
+    height: 46px;
+}
+
+body.index-page .search-form button,
+body.index-page .search-form .action-btn,
+body.index-page .search-form .compact-link {
+    height: 46px;
+    margin: 0;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+body.index-page .gm-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, .18);
+    background: rgba(2, 6, 23, .18);
+}
+
+body.index-page .gm-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 980px;
+    table-layout: auto;
+}
+
+body.index-page .gm-table th {
+    background: #16B8A6;
+    color: #ffffff;
+    font-size: 13px;
+    letter-spacing: .02em;
+    padding: 6px 14px;
+    border-bottom: 0;
+    white-space: nowrap;
+    text-align: left;
+}
+
+body.index-page .gm-table td {
+    padding: 6px 14px;
+    border-bottom: 1px solid rgba(148,163,184,.16);
+    color: #e2e8f0;
+    background: transparent;
+    white-space: nowrap;
+}
+
+body.index-page .gm-table tbody tr:nth-child(even) td {
+    background: rgba(255,255,255,.018);
+}
+
+body.index-page .gm-table tbody tr:hover td {
+    background: rgba(22,184,166,.075);
+}
+
+body.index-page .gnum {
+    color: #22d3c5;
+    font-weight: 800;
+}
+
+body.index-page .action-btn,
+body.index-page .button-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #16B8A6, #0F8F82);
+    color: #ececec;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+}
+
+body.index-page .action-btn:hover,
+body.index-page .button-link:hover {
+    filter: brightness(1.1);
+}
+
+body.index-page .icon-btn {
+    font-weight: 800;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    margin: 0 4px 0 0 !important;
+    padding: 0 !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: #cbd5e1 !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    vertical-align: middle;
+    text-decoration: none;
+    line-height: 1 !important;
+    font-size: 0 !important;
+}
+
+body.index-page .icon-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+}
+
+body.index-page .icon-btn:hover {
+    color: #16B8A6 !important;
+    background: rgba(22,184,166,.10) !important;
+    transform: none !important;
+    filter: none !important;
+}
+
+body.index-page .icon-btn.is-disabled,
+body.index-page button.is-disabled {
+    background: transparent !important;
+    color: #64748b !important;
+    cursor: not-allowed !important;
+    opacity: .65 !important;
+}
+
+body.index-page .message {
+    background: rgba(22,184,166,.12);
+    border: 1px solid rgba(22,184,166,.4);
+    color: #d1fae5;
+    padding: 14px;
+    border-radius: 7px;
+    margin-bottom: 18px;
+}
+
+body.index-page .vendor-section {
+    margin-top: 22px;
+}
+
+
+/* ==================================================
+   INDEX PAGE MODALS
+================================================== */
+
+body.index-page .preview-modal,
+body.index-page .printcard-modal,
+body.index-page .result-modal,
+body.index-page .latest-card-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.9);
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 30px;
+}
+
+body.index-page .preview-modal.active,
+body.index-page .printcard-modal.active,
+body.index-page .result-modal.active,
+body.index-page .latest-card-modal.active {
+    display: flex;
+}
+
+body.index-page .preview-box,
+body.index-page .printcard-box,
+body.index-page .result-box,
+body.index-page .latest-card-box {
+    background: #1D293B;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 18px;
+    max-width: 90vw;
+    max-height: 90vh;
+    position: relative;
+    overflow: auto;
+    overflow-x: hidden;
+}
+
+body.index-page .printcard-box {
+    width: 560px;
+}
+
+
+/* ==================================================
+   SHARED PRINT CARD PREVIEW MODAL
+   Used by Print Card Revisions now, and intended for Index preview next.
+================================================== */
+
+.printcard-preview-modal {
+    padding: 18px;
+}
+
+.printcard-preview-box {
+    width: min(1320px, 96vw) !important;
+    max-height: 92vh !important;
+    overflow: auto !important;
+    padding: 22px !important;
+}
+
+.printcard-preview-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-right: 46px;
+    margin-bottom: 14px;
+}
+
+.printcard-preview-header h2 {
+    margin: 0 0 4px !important;
+}
+
+.printcard-preview-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    gap: 16px;
+    align-items: stretch;
+}
+
+.printcard-preview-image-panel {
+    margin: 0 !important;
+    padding: 10px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+}
+
+.printcard-preview-image {
+    width: 100% !important;
+    max-height: 72vh !important;
+    object-fit: contain;
+}
+
+.printcard-preview-info-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.printcard-preview-info-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin: 0 !important;
+}
+
+.printcard-preview-info-grid .view-field {
+    padding: 6px 10px !important;
+    border-radius: 9px !important;
+}
+
+.printcard-preview-info-grid .view-field.wide {
+    grid-column: 1 / -1;
+}
+
+.printcard-preview-info-grid .view-label {
+    margin-bottom: 3px !important;
+    font-size: 10px !important;
+    line-height: 1.1;
+}
+
+.printcard-preview-info-grid .view-value {
+    font-size: 13px !important;
+    line-height: 1.25;
+}
+
+.printcard-preview-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.printcard-preview-actions .gm-btn {
+    width: 100%;
+    min-height: 38px;
+    margin: 0 !important;
+}
+
+@media (max-width: 1050px) {
+    .printcard-preview-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .printcard-preview-info-panel {
+        display: block;
+    }
+
+    .printcard-preview-actions {
+        margin-top: 10px;
+    }
+
+    .printcard-preview-image {
+        max-height: 56vh !important;
+    }
+}
+
+@media (max-width: 700px) {
+    .printcard-preview-box {
+        padding: 16px !important;
+    }
+
+    .printcard-preview-info-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ==================================================
+   SHARED PRINT CARD PREVIEW MODAL — INDEX FIELD FIX
+   Keeps Index modal info boxes visually identical to Print Card Revisions.
+================================================== */
+
+.printcard-preview-info-grid .view-field {
+    background: rgba(2, 6, 23, .34) !important;
+    border: 1px solid rgba(148, 163, 184, .16) !important;
+    border-radius: 10px !important;
+    padding: 6px 10px !important;
+}
+
+.printcard-preview-info-grid .view-label {
+    display: block !important;
+    color: var(--muted) !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .04em !important;
+    margin: 0 0 3px !important;
+}
+
+.printcard-preview-info-grid .view-value {
+    display: block !important;
+    color: #f8fafc !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+    font-weight: 800 !important;
+}
+
+body.index-page .printcard-preview-info-grid .view-field,
+body.printcard-revisions-page .printcard-preview-info-grid .view-field {
+    background: rgba(2, 6, 23, .34) !important;
+    border: 1px solid rgba(148, 163, 184, .16) !important;
+}
+
+
+/* ==================================================
+   INDEX MODAL SAFETY FIXES
+   Keeps modal shells hidden until opened and prevents
+   page-level button styles from stretching modal controls.
+================================================== */
+
+body.index-page .printcard-modal:not(.active),
+body.index-page .result-modal:not(.active),
+body.index-page .latest-card-modal:not(.active),
+body.index-page .preview-modal:not(.active) {
+    display: none !important;
+}
+
+body.index-page .printcard-modal.active,
+body.index-page .result-modal.active,
+body.index-page .latest-card-modal.active,
+body.index-page .preview-modal.active {
+    display: flex !important;
+}
+
+body.index-page .printcard-box .gm-btn,
+body.index-page .result-box .gm-btn,
+body.index-page .latest-card-box .gm-btn,
+body.index-page .preview-box .gm-btn {
+    width: auto;
+}
+
+body.index-page .printcard-preview-actions .gm-btn {
+    width: 100%;
+}
