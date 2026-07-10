@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { GraphicsListResponse } from '@graphicsflow/shared';
+import { formatGNumber, type GraphicsListResponse } from '@graphicsflow/shared';
 import { useEffect, useState } from 'react';
 
 async function fetchGraphics(search: string): Promise<GraphicsListResponse> {
@@ -103,7 +103,7 @@ export function GraphicsPage() {
               <tbody>
                 {records.map((record) => (
                   <tr key={record.id}>
-                    <td><span className="g-number">G#{record.gNumber}</span></td>
+                    <td><span className="g-number">{formatGNumber(record.gNumber)}</span></td>
                     <td>{record.customerNumber || '—'}</td>
                     <td className="customer-name">{record.customerName || '—'}</td>
                     <td>{record.partNumber || '—'}</td>
