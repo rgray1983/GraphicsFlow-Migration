@@ -37,6 +37,71 @@ export const graphicsListResponseSchema = z.object({
   query: z.string(),
 });
 
+const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a six-digit HEX color.');
+
+export const identifierConfigSchema = z.object({
+  label: z.string().trim().min(1).max(40),
+  prefix: z.string().max(20),
+  separator: z.string().max(4),
+});
+
+export const storageSettingsSchema = z.object({
+  aiRoot: z.string().trim(),
+  pdfRoot: z.string().trim(),
+  approvalsRoot: z.string().trim(),
+  printCardsRoot: z.string().trim(),
+  vendorApprovalsRoot: z.string().trim(),
+});
+
+export const companySettingsInputSchema = z.object({
+  company: z.object({
+    name: z.string().trim().min(1).max(120),
+    plantName: z.string().trim().max(120),
+    logoPath: z.string().trim().max(500),
+  }),
+  branding: z.object({
+    primaryColor: hexColorSchema,
+    secondaryColor: hexColorSchema,
+    accentColor: hexColorSchema,
+    theme: z.enum(['dark', 'light', 'system']),
+  }),
+  identifiers: z.object({
+    graphics: identifierConfigSchema,
+    specification: identifierConfigSchema,
+    design: identifierConfigSchema,
+    printCard: identifierConfigSchema,
+    factoryTicketMini: identifierConfigSchema,
+  }),
+  storage: storageSettingsSchema,
+});
+
+export const companySettingsSchema = companySettingsInputSchema.extend({
+  updatedAt: z.string().datetime().nullable(),
+});
+
+export const pathStatusSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  path: z.string(),
+  configured: z.boolean(),
+  exists: z.boolean(),
+  isDirectory: z.boolean(),
+  readable: z.boolean(),
+  writable: z.boolean(),
+  message: z.string(),
+});
+
+export const pathValidationResponseSchema = z.object({
+  items: z.array(pathStatusSchema),
+  checkedAt: z.string().datetime(),
+});
+
 export type GraphicRecord = z.infer<typeof graphicRecordSchema>;
 export type GraphicsQuery = z.infer<typeof graphicsQuerySchema>;
 export type GraphicsListResponse = z.infer<typeof graphicsListResponseSchema>;
+export type IdentifierConfig = z.infer<typeof identifierConfigSchema>;
+export type StorageSettings = z.infer<typeof storageSettingsSchema>;
+export type CompanySettingsInput = z.infer<typeof companySettingsInputSchema>;
+export type CompanySettings = z.infer<typeof companySettingsSchema>;
+export type PathStatus = z.infer<typeof pathStatusSchema>;
+export type PathValidationResponse = z.infer<typeof pathValidationResponseSchema>;
