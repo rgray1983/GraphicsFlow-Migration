@@ -1,4 +1,5 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
+import { GraphicsPage } from './pages/GraphicsPage';
 
 const navigation = [
   ['/', 'Dashboard'],
@@ -65,7 +66,8 @@ export function App() {
         </header>
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          {navigation.slice(1).map(([path, title]) => (
+          <Route path="/graphics" element={<GraphicsPage />} />
+          {navigation.slice(2).map(([path, title]) => (
             <Route key={path} path={path} element={<PlaceholderPage title={title} />} />
           ))}
         </Routes>
