@@ -69,3 +69,15 @@ The browser never receives arbitrary filesystem access. Company Settings defines
 Users, password hashes, roles, and permissions will be implemented in dedicated security PRs rather than bundled into Company Settings foundation work.
 
 **Reason:** Security-sensitive behavior requires focused architecture, testing, and review.
+
+### Live documents remain in their source folders
+
+GraphicsFlow resolves approvals and print cards from the storage roots configured in Company Settings. It records and displays file metadata without uploading or duplicating the production source file.
+
+**Reason:** Keep one authoritative document, eliminate manual revision uploads, and ensure users see the current live file.
+
+### Live folder searches are bounded and cached
+
+G# file matching uses numeric boundaries, a maximum search depth, a maximum inspected-entry count, and a short in-memory cache.
+
+**Reason:** Prevent false matches such as `1290` matching `12901` and avoid repeated unlimited scans of network storage.
