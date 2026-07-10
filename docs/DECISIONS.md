@@ -22,6 +22,18 @@ Selecting a graphics row opens a right-side record drawer. Selecting another row
 
 **Reason:** Support fast record browsing while keeping details anchored in a consistent location.
 
+### Record inspection is a reusable application pattern
+
+The drawer shell and inspector structure are shared components. Feature-specific inspectors provide their own sections and content while reusing the same motion, responsive behavior, close controls, scrolling, and section-heading treatment.
+
+**Reason:** Graphics records, revisions, approvals, print cards, vendor art, and future report records should behave consistently without duplicating interaction code.
+
+### Inspector section headings are concise and consistent
+
+Inspector sections use short titles in the same visual style as the inspector context label. The Graphics inspector uses **Approval Preview**, **Details**, **Documents**, and **Timeline** without redundant kicker labels.
+
+**Reason:** Reduce visual noise and make inspector content faster to scan.
+
 ### Approval preview is the canonical artwork preview
 
 GraphicsFlow will use the artwork area from the approval as the primary record preview when an approval is available. Direct Adobe Illustrator preview generation is not part of the initial architecture.
