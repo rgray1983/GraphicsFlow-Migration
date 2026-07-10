@@ -1,4 +1,5 @@
 import { formatGNumber, type GraphicRecord } from '@graphicsflow/shared';
+import { useRef } from 'react';
 import { RecordInspector, type InspectorSection } from './RecordInspector';
 
 function formatCreatedAt(value: string | null): string {
@@ -20,9 +21,11 @@ type GraphicsRecordInspectorProps = {
 };
 
 export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRecordInspectorProps) {
-  if (!record) {
-    return null;
-  }
+  const lastRecordRef = useRef<GraphicRecord | null>(record);
+  if (record) lastRecordRef.current = record;
+
+  const visibleRecord = record ?? lastRecordRef.current;
+  if (!visibleRecord) return null;
 
   const sections: InspectorSection[] = [
     {
@@ -44,10 +47,10 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
       title: 'Details',
       content: (
         <dl className="record-detail-grid">
-          <div><dt>Customer #</dt><dd>{record.customerNumber || 'Not recorded'}</dd></div>
-          <div><dt>Customer</dt><dd>{record.customerName || 'Not recorded'}</dd></div>
-          <div><dt>Part Number</dt><dd>{record.partNumber || 'Not recorded'}</dd></div>
-          <div><dt>Created</dt><dd>{formatCreatedAt(record.createdAt)}</dd></div>
+          <div><dt>Customer #</dt><dd>{visibleRecord.customerNumber || 'Not recorded'}</dd></div>
+          <div><dt>Customer</dt><dd>{visibleRecord.customerName || 'Not recorded'}</dd></div>
+          <div><dt>Part Number</dt><dd>{visibleRecord.partNumber || 'Not recorded'}</dd></div>
+          <div><dt>Created</dt><dd>{formatCreatedAt(visibleRecord.createdAt)}</dd></div>
         </dl>
       ),
     },
@@ -70,12 +73,12 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
   return (
     <RecordInspector
       closeLabel="Close graphics record inspector"
-      contentKey={record.id}
+      contentKey={visibleRecord.id}
       eyebrow="Graphics Record"
       isOpen={isOpen}
       onClose={onClose}
       sections={sections}
-      title={formatGNumber(record.gNumber)}
+      title={formatGNumber(visibleRecord.gNumber)}
     />
   );
 }
