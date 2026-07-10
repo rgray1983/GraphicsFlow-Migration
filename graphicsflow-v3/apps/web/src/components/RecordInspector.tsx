@@ -48,7 +48,7 @@ export function RecordInspector({
           key={section.title}
         >
           <div className="drawer-section-heading">
-            <h3 className="inspector-section-title">{section.title}</h3>
+            <h3 className="eyebrow">{section.title}</h3>
             {section.badge}
           </div>
           {section.content}
