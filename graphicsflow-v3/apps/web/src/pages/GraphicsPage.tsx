@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { formatGNumber, type GraphicRecord, type GraphicsListResponse } from '@graphicsflow/shared';
 import { useEffect, useState } from 'react';
-import { RecordDrawer } from '../components/RecordDrawer';
+import { GraphicsRecordInspector } from '../components/GraphicsRecordInspector';
 
 async function fetchGraphics(search: string): Promise<GraphicsListResponse> {
   const params = new URLSearchParams();
@@ -139,7 +139,7 @@ export function GraphicsPage() {
           )}
         </div>
 
-        <RecordDrawer
+        <GraphicsRecordInspector
           isOpen={drawerOpen}
           onClose={() => setSelectedRecord(null)}
           record={selectedRecord}
