@@ -57,7 +57,17 @@ export const graphicFilesResponseSchema = z.object({
   gNumber: z.string(),
   approval: graphicFileGroupSchema,
   printCard: graphicFileGroupSchema,
+  indexReady: z.boolean(),
+  indexedAt: z.string().datetime().nullable(),
   checkedAt: z.string().datetime(),
+});
+
+export const fileIndexRefreshResponseSchema = z.object({
+  approvalCount: z.number().int().nonnegative(),
+  printCardCount: z.number().int().nonnegative(),
+  totalCount: z.number().int().nonnegative(),
+  durationMs: z.number().int().nonnegative(),
+  indexedAt: z.string().datetime(),
 });
 
 const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a six-digit HEX color.');
@@ -125,6 +135,7 @@ export type GraphicsListResponse = z.infer<typeof graphicsListResponseSchema>;
 export type GraphicFileKind = z.infer<typeof graphicFileKindSchema>;
 export type GraphicFileMatch = z.infer<typeof graphicFileMatchSchema>;
 export type GraphicFilesResponse = z.infer<typeof graphicFilesResponseSchema>;
+export type FileIndexRefreshResponse = z.infer<typeof fileIndexRefreshResponseSchema>;
 export type IdentifierConfig = z.infer<typeof identifierConfigSchema>;
 export type StorageSettings = z.infer<typeof storageSettingsSchema>;
 export type CompanySettingsInput = z.infer<typeof companySettingsInputSchema>;
