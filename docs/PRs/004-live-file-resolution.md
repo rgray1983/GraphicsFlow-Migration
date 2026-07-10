@@ -1,24 +1,42 @@
 # PR 004 — Live File Resolution
 
-> **Objective:** Resolve current approval and print-card files directly from the storage roots configured in Company Settings and surface their live metadata in the Graphics inspector.
+> **Objective:** Resolve current approval and print-card files directly from configured storage roots, index their metadata for fast lookup, and establish the preview-cache foundation used by future document viewers.
 
 ## Scope
 
 ### Backend
 
 - Add `GET /api/graphics/:id/files`.
-- Add `POST /api/settings/file-index/refresh`.
+- Add server-owned background file-index jobs.
+- Add index start and status endpoints.
 - Build a persistent live-file index in the V3 SQLite database.
 - Scan configured Approvals and Print Cards roots only when the index is refreshed.
 - Extract normalized numeric identifiers from file names.
 - Query indexed files by exact normalized G#.
 - Return the latest match and all matches by modified date.
 - Bound indexing to five directory levels and 100,000 entries per root.
+- Report current phase, entries examined, files discovered, elapsed time, percentage when an estimate exists, and estimated remaining time.
+- Allow only one index job to run at a time.
 
-### Frontend
+### File Index experience
 
-- Add **Refresh File Index** under Company Settings → Storage & Files.
-- Report indexed file count and indexing duration.
+- Give File Index its own Company Settings section.
+- Show a dedicated status card and progress bar.
+- Continue indexing when the user leaves Settings or closes the browser.
+- Poll job status only while a background job is active.
+- Show approval count, print-card count, last update, duration, and failure details.
+- Use a previous completed run as the estimate for later progress calculations.
+- Use an indeterminate progress state on the first run because the final file count is not yet known.
+
+### Preview-cache foundation
+
+- Create a managed `preview-cache` directory beside the V3 settings database.
+- Add preview-cache metadata storage for source fingerprints, cache state, and generated asset paths.
+- Invalidate stale cache records when indexed source files are removed or change size/modified time.
+- Keep actual PDF rendering and artwork cropping deferred to the Approval Viewer PR.
+
+### Graphics inspector
+
 - Resolve inspector file states through fast SQLite queries instead of network crawling.
 - Show loading, index-needed, connected, not-found, and error states.
 - Display the latest file name, relative path, size, modified date, and match count.
@@ -30,18 +48,20 @@
 - Do not expose absolute server paths to the browser.
 - Return relative paths and metadata only.
 - Keep all filesystem access inside configured server roots.
-- Store only searchable metadata in the V3 database.
+- Store searchable metadata and disposable preview assets separately from source documents.
 
 ## Acceptance criteria
 
-- The initial index can be built from Company Settings.
+- The index starts from Company Settings and continues after navigating away.
+- Returning to File Index shows the current or completed job state.
+- Only one background index job can run at a time.
+- Progress visibly updates while indexing.
+- First-run progress is honest when no reliable total exists.
+- Later runs can show percentage and ETA based on prior results.
 - After indexing, switching between G# records resolves files without rescanning the network share.
-- A G# with a matching approval shows the latest live approval metadata.
-- A G# with a matching print card shows the latest live print-card metadata.
-- A record without matching files reports no match.
+- Records with and without matching files return the correct state.
 - Similar G# values do not collide.
-- Missing, unreadable, or unmounted roots fail safely during indexing.
-- Changing configured roots requires saving settings before rebuilding the index.
+- Missing, unreadable, or unmounted roots fail safely.
 - No source file is copied, moved, renamed, or modified.
 
 ## Local testing
@@ -55,19 +75,20 @@ npm run dev
 ```
 
 1. Open `http://localhost:5173/settings`.
-2. Open **Storage & Files**.
-3. Click **Refresh File Index** and wait for the indexed-file summary.
-4. Open `http://localhost:5173/graphics`.
-5. Test several records with and without approvals and print cards.
-6. Switch rapidly between records and confirm lookups are fast.
+2. Open **File Index**.
+3. Start a refresh and watch phase, counts, elapsed time, and progress.
+4. Navigate to another GraphicsFlow page while indexing.
+5. Return to **File Index** and confirm the job continued.
+6. After completion, rapidly open several G# records with and without files.
+7. Run the index a second time and confirm estimated percentage and remaining time appear.
 
 ## Deferred work
 
-- Automatic scheduled/background index refresh
+- Scheduled refreshes
 - Incremental filesystem watching
 - Secure inline file streaming
-- Approval PDF viewer modal
-- Approval artwork crop preview
-- Print-card viewer modal
+- PDF-to-image preview generation
+- Approval artwork crop detection
+- Approval and print-card viewer modals
 - Download and print actions
 - Revision classification and timeline
