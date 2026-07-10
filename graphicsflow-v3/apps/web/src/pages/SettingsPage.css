@@ -37,7 +37,7 @@
 .identifier-row { display: grid; grid-template-columns: minmax(160px,1.2fr) repeat(3,minmax(120px,1fr)); gap: 14px; align-items: end; padding: 16px; border: 1px solid rgba(148,163,184,.11); border-radius: 12px; background: rgba(2,6,23,.22); }
 .identifier-name { display: grid; gap: 5px; align-self: center; }
 .identifier-name span { color: #64748b; font-size: 11px; }
-.storage-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.storage-heading, .file-index-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .storage-row { grid-template-columns: minmax(220px,.85fr) minmax(280px,1.6fr) 175px; align-items: center; gap: 16px; padding: 16px; border: 1px solid rgba(148,163,184,.11); border-radius: 12px; background: rgba(2,6,23,.22); }
 .storage-row > div { display: grid; gap: 5px; }
 .storage-row > div span { color: #64748b; line-height: 1.4; font-size: 11px; }
@@ -45,9 +45,39 @@
 .path-status.is-connected { color: #5eead4; }
 .path-status.is-error { color: #fca5a5; }
 .storage-note { margin: 18px 2px 0; color: #64748b; line-height: 1.6; font-size: 11px; }
+.file-index-panel { display: grid; align-content: start; }
+.file-index-status-card, .preview-cache-card { border: 1px solid rgba(148,163,184,.12); border-radius: 15px; background: rgba(2,6,23,.28); }
+.file-index-status-card { padding: 22px; }
+.file-index-status-top { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+.file-index-status-top > div { display: flex; align-items: center; gap: 10px; }
+.file-index-status-top > span { color: #99f6e4; font-size: 13px; font-weight: 800; }
+.file-index-status-dot { width: 9px; height: 9px; border-radius: 50%; background: #64748b; box-shadow: 0 0 0 5px rgba(100,116,139,.09); }
+.status-running .file-index-status-dot { background: #2dd4bf; box-shadow: 0 0 0 5px rgba(45,212,191,.1); animation: indexPulse 1.6s ease-in-out infinite; }
+.status-completed .file-index-status-dot { background: #5eead4; }
+.status-failed .file-index-status-dot { background: #f87171; box-shadow: 0 0 0 5px rgba(248,113,113,.1); }
+.file-index-progress { position: relative; height: 8px; overflow: hidden; border-radius: 999px; background: rgba(148,163,184,.1); }
+.file-index-progress > span { display: block; height: 100%; min-width: 3px; border-radius: inherit; background: linear-gradient(90deg,#0f766e,#2dd4bf,#99f6e4); transition: width .45s ease; }
+.file-index-progress.is-indeterminate > span { width: 36%; animation: indexSweep 1.5s ease-in-out infinite; }
+.file-index-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-top: 20px; }
+.file-index-metrics > div { display: grid; gap: 6px; padding: 13px; border-radius: 11px; background: rgba(15,23,42,.55); }
+.file-index-metrics span { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: .07em; font-weight: 800; }
+.file-index-metrics strong { color: #e5eef7; font-size: 16px; }
+.file-index-breakdown { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(148,163,184,.1); color: #64748b; font-size: 11px; }
+.file-index-breakdown strong { margin-left: 5px; color: #cbd5e1; }
+.file-index-note, .file-index-error { margin: 16px 0 0; font-size: 11px; line-height: 1.6; }
+.file-index-note { color: #64748b; }
+.file-index-error { color: #fca5a5; }
+.preview-cache-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; margin-top: 16px; padding: 20px 22px; }
+.preview-cache-card h4 { margin: 5px 0 7px; font-size: 17px; }
+.preview-cache-card p { max-width: 760px; margin: 0; color: #64748b; font-size: 11px; line-height: 1.65; }
+.availability-badge { flex: 0 0 auto; border: 1px solid rgba(148,163,184,.15); border-radius: 999px; padding: 5px 9px; color: #94a3b8; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.availability-badge.is-connected { border-color: rgba(45,212,191,.22); background: rgba(20,184,166,.08); color: #99f6e4; }
 .settings-state { padding: 40px; color: #94a3b8; }
 .settings-state-error, .settings-error { color: #fecaca; }
 .settings-error { margin-top: 16px; padding: 12px 14px; border: 1px solid rgba(248,113,113,.2); border-radius: 10px; background: rgba(127,29,29,.14); }
-@media (max-width: 1180px) { .identifier-row { grid-template-columns: 1fr 1fr 1fr; } .identifier-name { grid-column: 1/-1; } .storage-row { grid-template-columns: 1fr; } }
+@keyframes indexSweep { 0% { transform: translateX(-110%); } 100% { transform: translateX(290%); } }
+@keyframes indexPulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .file-index-progress > span, .file-index-status-dot { animation: none !important; transition: none; } }
+@media (max-width: 1180px) { .identifier-row { grid-template-columns: 1fr 1fr 1fr; } .identifier-name { grid-column: 1/-1; } .storage-row { grid-template-columns: 1fr; } .file-index-metrics { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 980px) { .settings-page { display: block; } .settings-heading { align-items: flex-start; flex-direction: column; margin-bottom: 20px; } .settings-workspace { grid-template-columns: 1fr; } .settings-nav { display: flex; overflow-x: auto; margin-bottom: 16px; } .settings-nav button { width: auto; white-space: nowrap; } .settings-nav-future { display: none; } .settings-content { overflow: visible; } }
-@media (max-width: 680px) { .settings-save-area { width: 100%; justify-content: space-between; } .settings-panel { padding: 20px; } .settings-form-grid, .color-settings-grid, .identifier-row { grid-template-columns: 1fr; } .full-field, .identifier-name { grid-column: auto; } .storage-heading { flex-direction: column; } }
+@media (max-width: 680px) { .settings-save-area { width: 100%; justify-content: space-between; } .settings-panel { padding: 20px; } .settings-form-grid, .color-settings-grid, .identifier-row, .file-index-metrics { grid-template-columns: 1fr; } .full-field, .identifier-name { grid-column: auto; } .storage-heading, .file-index-heading, .preview-cache-card { flex-direction: column; } }
