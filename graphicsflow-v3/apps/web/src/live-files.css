@@ -1,0 +1,16 @@
+.availability-badge.is-connected { color: #99f6e4; border-color: rgba(45,212,191,.3); background: rgba(20,184,166,.1); }
+.live-file-found { border-style: solid; border-color: rgba(45,212,191,.24); background: rgba(20,184,166,.055); }
+.live-file-found svg { stroke: #5eead4; }
+.live-document-list { display: grid; gap: 12px; }
+.live-document-list article { display: grid; gap: 10px; padding: 13px; border: 1px solid rgba(148,163,184,.12); border-radius: 12px; background: rgba(2,6,23,.28); }
+.live-document-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.live-document-heading > span { color: #e2e8f0; font-size: 13px; font-weight: 750; }
+.live-document-heading small { color: #64748b; font-size: 10px; }
+.live-file-summary { min-width: 0; display: grid; gap: 4px; }
+.live-file-summary strong { overflow: hidden; color: #cbd5e1; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.live-file-summary span, .live-file-summary small, .live-file-empty { color: #64748b; font-size: 10px; }
+.live-file-summary small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-file-empty { margin: 0; line-height: 1.5; }
+.live-document-list button { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid rgba(148,163,184,.13); border-radius: 10px; background: rgba(2,6,23,.35); color: #94a3b8; text-align: left; }
+.live-document-list button span { color: #526176; font-size: 10px; }
+.live-document-list button:disabled { cursor: not-allowed; opacity: .72; }
