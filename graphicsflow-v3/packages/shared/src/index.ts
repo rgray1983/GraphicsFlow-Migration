@@ -13,7 +13,6 @@ export const healthResponseSchema = z.object({
   version: z.string(),
   timestamp: z.string().datetime(),
 });
-
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
 
 export const graphicRecordSchema = z.object({
@@ -38,8 +37,8 @@ export const graphicsListResponseSchema = z.object({
 });
 
 export const graphicFileKindSchema = z.enum(['approval', 'printCard']);
-
 export const graphicFileMatchSchema = z.object({
+  id: z.number().int().positive(),
   kind: graphicFileKindSchema,
   name: z.string(),
   extension: z.string(),
@@ -60,6 +59,19 @@ export const graphicFilesResponseSchema = z.object({
   indexReady: z.boolean(),
   indexedAt: z.string().datetime().nullable(),
   checkedAt: z.string().datetime(),
+});
+
+export const previewVariantSchema = z.enum(['thumb', 'medium']);
+export const previewStatusSchema = z.enum(['ready', 'generating', 'unavailable', 'error']);
+export const previewResponseSchema = z.object({
+  fileId: z.number().int().positive(),
+  status: previewStatusSchema,
+  variant: previewVariantSchema,
+  imageUrl: z.string().nullable(),
+  width: z.number().int().positive().nullable(),
+  height: z.number().int().positive().nullable(),
+  generatedAt: z.string().datetime().nullable(),
+  message: z.string().nullable(),
 });
 
 export const fileIndexRefreshResponseSchema = z.object({
@@ -91,7 +103,6 @@ export const fileIndexJobStatusSchema = z.object({
 });
 
 const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a six-digit HEX color.');
-
 export const identifierConfigSchema = z.object({
   label: z.string().trim().min(1).max(40),
   prefix: z.string().max(20),
@@ -128,26 +139,12 @@ export const companySettingsInputSchema = z.object({
   storage: storageSettingsSchema,
 });
 
-export const companySettingsSchema = companySettingsInputSchema.extend({
-  updatedAt: z.string().datetime().nullable(),
-});
-
+export const companySettingsSchema = companySettingsInputSchema.extend({ updatedAt: z.string().datetime().nullable() });
 export const pathStatusSchema = z.object({
-  key: z.string(),
-  label: z.string(),
-  path: z.string(),
-  configured: z.boolean(),
-  exists: z.boolean(),
-  isDirectory: z.boolean(),
-  readable: z.boolean(),
-  writable: z.boolean(),
-  message: z.string(),
+  key: z.string(), label: z.string(), path: z.string(), configured: z.boolean(), exists: z.boolean(),
+  isDirectory: z.boolean(), readable: z.boolean(), writable: z.boolean(), message: z.string(),
 });
-
-export const pathValidationResponseSchema = z.object({
-  items: z.array(pathStatusSchema),
-  checkedAt: z.string().datetime(),
-});
+export const pathValidationResponseSchema = z.object({ items: z.array(pathStatusSchema), checkedAt: z.string().datetime() });
 
 export type GraphicRecord = z.infer<typeof graphicRecordSchema>;
 export type GraphicsQuery = z.infer<typeof graphicsQuerySchema>;
@@ -155,6 +152,9 @@ export type GraphicsListResponse = z.infer<typeof graphicsListResponseSchema>;
 export type GraphicFileKind = z.infer<typeof graphicFileKindSchema>;
 export type GraphicFileMatch = z.infer<typeof graphicFileMatchSchema>;
 export type GraphicFilesResponse = z.infer<typeof graphicFilesResponseSchema>;
+export type PreviewVariant = z.infer<typeof previewVariantSchema>;
+export type PreviewStatus = z.infer<typeof previewStatusSchema>;
+export type PreviewResponse = z.infer<typeof previewResponseSchema>;
 export type FileIndexRefreshResponse = z.infer<typeof fileIndexRefreshResponseSchema>;
 export type FileIndexProgress = z.infer<typeof fileIndexProgressSchema>;
 export type FileIndexJobStatus = z.infer<typeof fileIndexJobStatusSchema>;
