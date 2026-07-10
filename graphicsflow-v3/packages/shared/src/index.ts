@@ -37,6 +37,29 @@ export const graphicsListResponseSchema = z.object({
   query: z.string(),
 });
 
+export const graphicFileKindSchema = z.enum(['approval', 'printCard']);
+
+export const graphicFileMatchSchema = z.object({
+  kind: graphicFileKindSchema,
+  name: z.string(),
+  extension: z.string(),
+  size: z.number().int().nonnegative(),
+  modifiedAt: z.string().datetime(),
+  relativePath: z.string(),
+});
+
+const graphicFileGroupSchema = z.object({
+  latest: graphicFileMatchSchema.nullable(),
+  matches: z.array(graphicFileMatchSchema),
+});
+
+export const graphicFilesResponseSchema = z.object({
+  gNumber: z.string(),
+  approval: graphicFileGroupSchema,
+  printCard: graphicFileGroupSchema,
+  checkedAt: z.string().datetime(),
+});
+
 const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a six-digit HEX color.');
 
 export const identifierConfigSchema = z.object({
@@ -99,6 +122,9 @@ export const pathValidationResponseSchema = z.object({
 export type GraphicRecord = z.infer<typeof graphicRecordSchema>;
 export type GraphicsQuery = z.infer<typeof graphicsQuerySchema>;
 export type GraphicsListResponse = z.infer<typeof graphicsListResponseSchema>;
+export type GraphicFileKind = z.infer<typeof graphicFileKindSchema>;
+export type GraphicFileMatch = z.infer<typeof graphicFileMatchSchema>;
+export type GraphicFilesResponse = z.infer<typeof graphicFilesResponseSchema>;
 export type IdentifierConfig = z.infer<typeof identifierConfigSchema>;
 export type StorageSettings = z.infer<typeof storageSettingsSchema>;
 export type CompanySettingsInput = z.infer<typeof companySettingsInputSchema>;
