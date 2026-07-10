@@ -37,6 +37,59 @@ export const graphicsListResponseSchema = z.object({
   query: z.string(),
 });
 
+export const graphicFileKindSchema = z.enum(['approval', 'printCard']);
+
+export const graphicFileMatchSchema = z.object({
+  kind: graphicFileKindSchema,
+  name: z.string(),
+  extension: z.string(),
+  size: z.number().int().nonnegative(),
+  modifiedAt: z.string().datetime(),
+  relativePath: z.string(),
+});
+
+const graphicFileGroupSchema = z.object({
+  latest: graphicFileMatchSchema.nullable(),
+  matches: z.array(graphicFileMatchSchema),
+});
+
+export const graphicFilesResponseSchema = z.object({
+  gNumber: z.string(),
+  approval: graphicFileGroupSchema,
+  printCard: graphicFileGroupSchema,
+  indexReady: z.boolean(),
+  indexedAt: z.string().datetime().nullable(),
+  checkedAt: z.string().datetime(),
+});
+
+export const fileIndexRefreshResponseSchema = z.object({
+  approvalCount: z.number().int().nonnegative(),
+  printCardCount: z.number().int().nonnegative(),
+  totalCount: z.number().int().nonnegative(),
+  durationMs: z.number().int().nonnegative(),
+  indexedAt: z.string().datetime(),
+});
+
+export const fileIndexProgressSchema = z.object({
+  phase: z.enum(['preparing', 'approvals', 'printCards', 'finalizing']),
+  currentKind: graphicFileKindSchema.nullable(),
+  scannedEntries: z.number().int().nonnegative(),
+  discoveredFiles: z.number().int().nonnegative(),
+  estimatedTotalFiles: z.number().int().nonnegative().nullable(),
+  progressPercent: z.number().min(0).max(100).nullable(),
+  elapsedMs: z.number().int().nonnegative(),
+  estimatedRemainingMs: z.number().int().nonnegative().nullable(),
+});
+
+export const fileIndexJobStatusSchema = z.object({
+  status: z.enum(['idle', 'running', 'completed', 'failed']),
+  startedAt: z.string().datetime().nullable(),
+  completedAt: z.string().datetime().nullable(),
+  progress: fileIndexProgressSchema.nullable(),
+  result: fileIndexRefreshResponseSchema.nullable(),
+  error: z.string().nullable(),
+});
+
 const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a six-digit HEX color.');
 
 export const identifierConfigSchema = z.object({
@@ -99,6 +152,12 @@ export const pathValidationResponseSchema = z.object({
 export type GraphicRecord = z.infer<typeof graphicRecordSchema>;
 export type GraphicsQuery = z.infer<typeof graphicsQuerySchema>;
 export type GraphicsListResponse = z.infer<typeof graphicsListResponseSchema>;
+export type GraphicFileKind = z.infer<typeof graphicFileKindSchema>;
+export type GraphicFileMatch = z.infer<typeof graphicFileMatchSchema>;
+export type GraphicFilesResponse = z.infer<typeof graphicFilesResponseSchema>;
+export type FileIndexRefreshResponse = z.infer<typeof fileIndexRefreshResponseSchema>;
+export type FileIndexProgress = z.infer<typeof fileIndexProgressSchema>;
+export type FileIndexJobStatus = z.infer<typeof fileIndexJobStatusSchema>;
 export type IdentifierConfig = z.infer<typeof identifierConfigSchema>;
 export type StorageSettings = z.infer<typeof storageSettingsSchema>;
 export type CompanySettingsInput = z.infer<typeof companySettingsInputSchema>;

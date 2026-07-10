@@ -23,6 +23,16 @@ function mapGraphic(row: GraphicRow): GraphicRecord {
   };
 }
 
+export function getGraphicById(id: number): GraphicRecord | null {
+  const row = database.prepare(`
+    SELECT id, g_number, customer_number, customer_name, part_number, preview_image, created_at
+    FROM graphics
+    WHERE id = ?
+  `).get(id) as GraphicRow | undefined;
+
+  return row ? mapGraphic(row) : null;
+}
+
 export function listGraphics(query: GraphicsQuery): GraphicsListResponse {
   const search = query.search.trim();
   const pattern = `%${search}%`;

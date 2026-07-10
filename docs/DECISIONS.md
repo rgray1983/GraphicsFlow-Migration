@@ -69,3 +69,33 @@ The browser never receives arbitrary filesystem access. Company Settings defines
 Users, password hashes, roles, and permissions will be implemented in dedicated security PRs rather than bundled into Company Settings foundation work.
 
 **Reason:** Security-sensitive behavior requires focused architecture, testing, and review.
+
+### Live documents remain in their source folders
+
+GraphicsFlow resolves approvals and print cards from the storage roots configured in Company Settings. It records and displays file metadata without uploading or duplicating the production source file.
+
+**Reason:** Keep one authoritative document, eliminate manual revision uploads, and ensure users see the current live file.
+
+### Live-file lookup uses a persistent index
+
+Configured approval and print-card roots are scanned by a server-owned background job. Searchable metadata is stored in the V3 database, and G# inspectors query that index instead of crawling network storage on every click. Matching uses exact normalized numeric identifiers.
+
+**Reason:** Pay the network cost during a controlled refresh so the daily record-browsing workflow remains fast and similar G# values cannot collide.
+
+### Long-running jobs belong to the server
+
+File indexing continues independently of the Settings page. The browser starts the job and polls its status, but navigating away or closing the tab does not cancel server work. Only one index job may run at a time.
+
+**Reason:** Administrative maintenance should not depend on keeping one browser view open.
+
+### Progress reporting must be honest
+
+The first file-index run uses indeterminate progress because the final file count is unknown. Later runs may estimate percentage and remaining time from the prior completed index while still showing current phase, scanned entries, discovered files, and elapsed time.
+
+**Reason:** Visible progress builds trust, but invented precision is worse than an honest unknown state.
+
+### Preview assets are disposable cache, not source documents
+
+Future approval thumbnails and artwork previews will be generated into a managed preview cache. Source fingerprints determine whether a cached asset is current, and stale cache records are invalidated when indexed files change. Production PDFs remain the source of truth.
+
+**Reason:** Deliver fast browser previews without duplicating or replacing authoritative production files.

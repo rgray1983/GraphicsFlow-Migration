@@ -2,6 +2,8 @@ import Fastify from 'fastify';
 import {
   companySettingsInputSchema,
   companySettingsSchema,
+  fileIndexJobStatusSchema,
+  graphicFilesResponseSchema,
   graphicsListResponseSchema,
   graphicsQuerySchema,
   healthResponseSchema,
@@ -10,7 +12,12 @@ import {
 } from '@graphicsflow/shared';
 import { config } from './config.js';
 import { resolvedDatabasePath } from './database.js';
-import { listGraphics } from './graphics-repository.js';
+import { getGraphicById, listGraphics } from './graphics-repository.js';
+import {
+  getFileIndexJobStatus,
+  resolveGraphicFiles,
+  startLiveFileIndexJob,
+} from './live-file-service.js';
 import {
   getCompanySettings,
   saveCompanySettings,
@@ -39,6 +46,21 @@ app.get('/api/graphics', async (request, reply) => {
   } catch (error) {
     request.log.error({ error, databasePath: resolvedDatabasePath }, 'Could not load graphics records');
     return reply.status(500).send({ error: 'Graphics records could not be loaded.' });
+  }
+});
+
+app.get('/api/graphics/:id/files', async (request, reply) => {
+  const id = Number((request.params as { id?: string }).id);
+  if (!Number.isInteger(id) || id <= 0) return reply.status(400).send({ error: 'Invalid graphics record id.' });
+
+  const graphic = getGraphicById(id);
+  if (!graphic) return reply.status(404).send({ error: 'Graphics record not found.' });
+
+  try {
+    return graphicFilesResponseSchema.parse(await resolveGraphicFiles(graphic.gNumber));
+  } catch (error) {
+    request.log.error({ error, graphicId: id, gNumber: graphic.gNumber }, 'Could not resolve live graphic files');
+    return reply.status(500).send({ error: 'Live files could not be resolved.' });
   }
 });
 
@@ -78,6 +100,14 @@ app.post('/api/settings/validate-paths', async (request, reply) => {
     return reply.status(500).send({ error: 'Storage paths could not be checked.' });
   }
 });
+
+app.post('/api/settings/file-index/refresh', async () => (
+  fileIndexJobStatusSchema.parse(startLiveFileIndexJob())
+));
+
+app.get('/api/settings/file-index/status', async () => (
+  fileIndexJobStatusSchema.parse(getFileIndexJobStatus())
+));
 
 const start = async () => {
   try {
