@@ -2,8 +2,10 @@ import { readdir, stat } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import {
+  fileIndexJobStatusSchema,
   fileIndexRefreshResponseSchema,
   graphicFilesResponseSchema,
+  type FileIndexJobStatus,
   type FileIndexRefreshResponse,
   type GraphicFileKind,
   type GraphicFileMatch,
@@ -46,6 +48,15 @@ indexDatabase.exec(`
     PRIMARY KEY(root, kind)
   );
 `);
+
+let indexJob: FileIndexJobStatus = {
+  status: 'idle',
+  startedAt: null,
+  completedAt: null,
+  result: null,
+  error: null,
+};
+let activeIndexPromise: Promise<void> | null = null;
 
 function normalizeNumber(value: string): string {
   return value.replace(/^0+/, '') || value;
@@ -158,6 +169,47 @@ export async function refreshLiveFileIndex(): Promise<FileIndexRefreshResponse> 
     durationMs: Date.now() - startedAt,
     indexedAt: new Date().toISOString(),
   });
+}
+
+export function getFileIndexJobStatus(): FileIndexJobStatus {
+  return fileIndexJobStatusSchema.parse(indexJob);
+}
+
+export function startLiveFileIndexJob(): FileIndexJobStatus {
+  if (activeIndexPromise) return getFileIndexJobStatus();
+
+  indexJob = {
+    status: 'running',
+    startedAt: new Date().toISOString(),
+    completedAt: null,
+    result: null,
+    error: null,
+  };
+
+  activeIndexPromise = refreshLiveFileIndex()
+    .then((result) => {
+      indexJob = {
+        status: 'completed',
+        startedAt: indexJob.startedAt,
+        completedAt: new Date().toISOString(),
+        result,
+        error: null,
+      };
+    })
+    .catch((error: unknown) => {
+      indexJob = {
+        status: 'failed',
+        startedAt: indexJob.startedAt,
+        completedAt: new Date().toISOString(),
+        result: null,
+        error: error instanceof Error ? error.message : 'Live file indexing failed.',
+      };
+    })
+    .finally(() => {
+      activeIndexPromise = null;
+    });
+
+  return getFileIndexJobStatus();
 }
 
 function readMatches(root: string, kind: GraphicFileKind, gNumber: string): GraphicFileMatch[] {
