@@ -1,0 +1,20 @@
+{
+  "name": "graphicsflow-v3",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build --workspace @graphicsflow/shared && concurrently -k -n shared,server,web \"npm run dev --workspace @graphicsflow/shared\" \"npm run dev --workspace @graphicsflow/server\" \"npm run dev --workspace @graphicsflow/web\"",
+    "build": "npm run build --workspace @graphicsflow/shared && npm run build --workspace @graphicsflow/server && npm run build --workspace @graphicsflow/web",
+    "typecheck": "npm run typecheck --workspace @graphicsflow/shared && npm run typecheck --workspace @graphicsflow/server && npm run typecheck --workspace @graphicsflow/web"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

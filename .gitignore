@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+coverage/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Runtime data
+storage/*
+!storage/.gitkeep
+
+# Local databases
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
