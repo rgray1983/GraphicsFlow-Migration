@@ -20,21 +20,30 @@ Transform the Graphics list into a record workspace by allowing users to select 
 - Preserve one selected record at a time.
 - Add keyboard activation with Enter and Space.
 
+### Reusable inspection components
+
+- Keep `RecordDrawer` responsible for motion, Escape handling, responsive behavior, and scrolling.
+- Add a reusable `RecordInspector` responsible for the shared header and section structure.
+- Add a feature-specific `GraphicsRecordInspector` responsible only for graphics-record content.
+- Allow future revision, approval, print-card, vendor-art, and report inspectors to reuse the same interaction pattern.
+
 ### Record drawer
 
-- Add a reusable `RecordDrawer` component.
 - Slide the drawer in from the right.
+- Use a responsive width with safe minimum and maximum limits.
 - Keep the drawer open while another row is selected.
-- Update drawer content without replaying the open animation.
+- Update drawer content without closing the drawer.
 - Close with the close button or Escape.
-- Do not close when selecting another record.
+- Preserve the smooth close animation.
+- Add a delayed fade and subtle shimmer when inspector content changes.
 
-### Drawer content
+### Inspector content
 
 - Display G#, customer number, customer name, part number, and created date.
 - Add an Approval Preview section with an honest unavailable state.
 - Add disabled View Approval and View Print Card buttons until file services exist.
-- Add a future History placeholder.
+- Add a future Timeline placeholder.
+- Use concise, consistent section headings: **Approval Preview**, **Details**, **Documents**, and **Timeline**.
 - Do not invent approval, S#, designer, revision, or status values that are not available from the current graphics record.
 
 ### Modal foundation
@@ -44,18 +53,19 @@ Transform the Graphics list into a record workspace by allowing users to select 
 
 ### Documentation
 
-- Add `docs/DECISIONS.md`.
+- Add and maintain `docs/DECISIONS.md`.
 - Add this numbered PR document.
 
 ## Acceptance criteria
 
-- Clicking a graphics row opens the right-side drawer.
+- Clicking a graphics row opens the right-side inspector.
 - The selected row is visually distinct.
-- Selecting a different row updates the drawer while it remains open.
-- Escape closes the drawer.
+- Selecting a different row updates the inspector while it remains open.
+- Escape closes the inspector.
 - The table remains internally scrollable.
-- The drawer has its own subtle internal scrollbar when needed.
-- Mobile and narrow layouts present the drawer as an overlay instead of crushing the table.
+- The inspector has its own subtle internal scrollbar when needed.
+- Mobile and narrow layouts present the inspector as an overlay instead of crushing the table.
+- Inspector headings are concise and share the same visual treatment.
 - Approval and print-card buttons are visibly unavailable and cannot perform an action.
 - No backend, database, PHP, file lookup, edit, create, or delete behavior is added.
 
@@ -78,11 +88,12 @@ http://localhost:5173/graphics
 Test:
 
 1. Select several rows in succession.
-2. Confirm the drawer stays open and its content updates.
-3. Press Escape and confirm it closes.
-4. Reopen it and test table scrolling.
-5. Narrow the browser window and confirm the drawer overlays safely.
-6. Confirm disabled document actions do nothing.
+2. Confirm the inspector stays open and its content updates.
+3. Confirm the headings read Approval Preview, Details, Documents, and Timeline.
+4. Press Escape and confirm it closes smoothly.
+5. Reopen it and test table and inspector scrolling.
+6. Narrow the browser window and confirm the inspector overlays safely.
+7. Confirm disabled document actions do nothing.
 
 ## Deferred work
 
