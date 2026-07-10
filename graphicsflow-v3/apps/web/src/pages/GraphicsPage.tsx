@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { formatGNumber, type GraphicsListResponse } from '@graphicsflow/shared';
+import { formatGNumber, type GraphicRecord, type GraphicsListResponse } from '@graphicsflow/shared';
 import { useEffect, useState } from 'react';
+import { RecordDrawer } from '../components/RecordDrawer';
 
 async function fetchGraphics(search: string): Promise<GraphicsListResponse> {
   const params = new URLSearchParams();
@@ -25,6 +26,7 @@ function formatCreatedAt(value: string | null): string {
 export function GraphicsPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [selectedRecord, setSelectedRecord] = useState<GraphicRecord | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
@@ -38,14 +40,19 @@ export function GraphicsPage() {
 
   const records = graphicsQuery.data?.items ?? [];
   const total = graphicsQuery.data?.total ?? 0;
+  const drawerOpen = selectedRecord !== null;
+
+  const selectRecord = (record: GraphicRecord) => {
+    setSelectedRecord(record);
+  };
 
   return (
-    <section className="graphics-page">
+    <section className={`graphics-page${drawerOpen ? ' has-drawer' : ''}`}>
       <div className="page-heading-row">
         <div>
           <p className="eyebrow">Graphics database</p>
           <h2>Graphics</h2>
-          <p className="page-description">Find existing G# records by graphics number, customer, or part number.</p>
+          <p className="page-description">Find a G# and keep its connected information in one workspace.</p>
         </div>
         <div className="record-count" aria-live="polite">
           <strong>{graphicsQuery.isPending ? '—' : total.toLocaleString()}</strong>
@@ -70,50 +77,73 @@ export function GraphicsPage() {
         </label>
       </div>
 
-      <div className="graphics-table-card">
-        {graphicsQuery.isPending && <div className="table-state">Loading graphics records…</div>}
+      <div className="graphics-workspace">
+        <div className="graphics-table-card">
+          {graphicsQuery.isPending && <div className="table-state">Loading graphics records…</div>}
 
-        {graphicsQuery.isError && (
-          <div className="table-state table-state-error">
-            <strong>Graphics could not be loaded.</strong>
-            <span>Confirm that the copied PHP database exists at the configured database path, then try again.</span>
-            <button onClick={() => graphicsQuery.refetch()} type="button">Try again</button>
-          </div>
-        )}
+          {graphicsQuery.isError && (
+            <div className="table-state table-state-error">
+              <strong>Graphics could not be loaded.</strong>
+              <span>Confirm that the copied PHP database exists at the configured database path, then try again.</span>
+              <button onClick={() => graphicsQuery.refetch()} type="button">Try again</button>
+            </div>
+          )}
 
-        {!graphicsQuery.isPending && !graphicsQuery.isError && records.length === 0 && (
-          <div className="table-state">
-            <strong>No graphics records found.</strong>
-            <span>{search ? `Nothing matched “${search}”.` : 'The graphics database is empty.'}</span>
-          </div>
-        )}
+          {!graphicsQuery.isPending && !graphicsQuery.isError && records.length === 0 && (
+            <div className="table-state">
+              <strong>No graphics records found.</strong>
+              <span>{search ? `Nothing matched “${search}”.` : 'The graphics database is empty.'}</span>
+            </div>
+          )}
 
-        {!graphicsQuery.isPending && !graphicsQuery.isError && records.length > 0 && (
-          <div className="table-scroll">
-            <table className="graphics-table">
-              <thead>
-                <tr>
-                  <th>G#</th>
-                  <th>Customer #</th>
-                  <th>Customer</th>
-                  <th>Part Number</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((record) => (
-                  <tr key={record.id}>
-                    <td><span className="g-number">{formatGNumber(record.gNumber)}</span></td>
-                    <td>{record.customerNumber || '—'}</td>
-                    <td className="customer-name">{record.customerName || '—'}</td>
-                    <td>{record.partNumber || '—'}</td>
-                    <td className="created-date">{formatCreatedAt(record.createdAt)}</td>
+          {!graphicsQuery.isPending && !graphicsQuery.isError && records.length > 0 && (
+            <div className="table-scroll">
+              <table className="graphics-table">
+                <thead>
+                  <tr>
+                    <th>G#</th>
+                    <th>Customer #</th>
+                    <th>Customer</th>
+                    <th>Part Number</th>
+                    <th>Created</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {records.map((record) => {
+                    const selected = selectedRecord?.id === record.id;
+                    return (
+                      <tr
+                        aria-selected={selected}
+                        className={selected ? 'is-selected' : undefined}
+                        key={record.id}
+                        onClick={() => selectRecord(record)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            selectRecord(record);
+                          }
+                        }}
+                        tabIndex={0}
+                      >
+                        <td><span className="g-number">{formatGNumber(record.gNumber)}</span></td>
+                        <td>{record.customerNumber || '—'}</td>
+                        <td className="customer-name">{record.customerName || '—'}</td>
+                        <td>{record.partNumber || '—'}</td>
+                        <td className="created-date">{formatCreatedAt(record.createdAt)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <RecordDrawer
+          isOpen={drawerOpen}
+          onClose={() => setSelectedRecord(null)}
+          record={selectedRecord}
+        />
       </div>
 
       {!graphicsQuery.isPending && !graphicsQuery.isError && records.length < total && (
