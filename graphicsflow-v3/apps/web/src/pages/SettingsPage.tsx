@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CompanySettings,
   CompanySettingsInput,
-  FileIndexRefreshResponse,
+  FileIndexJobStatus,
   IdentifierConfig,
   PathValidationResponse,
   StorageSettings,
@@ -32,10 +32,16 @@ async function validatePaths(storage: StorageSettings): Promise<PathValidationRe
   return response.json() as Promise<PathValidationResponse>;
 }
 
-async function refreshFileIndex(): Promise<FileIndexRefreshResponse> {
+async function startFileIndex(): Promise<FileIndexJobStatus> {
   const response = await fetch('/api/settings/file-index/refresh', { method: 'POST' });
-  if (!response.ok) throw new Error('Live file index could not be refreshed.');
-  return response.json() as Promise<FileIndexRefreshResponse>;
+  if (!response.ok) throw new Error('Live file index could not be started.');
+  return response.json() as Promise<FileIndexJobStatus>;
+}
+
+async function loadFileIndexStatus(): Promise<FileIndexJobStatus> {
+  const response = await fetch('/api/settings/file-index/status');
+  if (!response.ok) throw new Error('Live file index status could not be loaded.');
+  return response.json() as Promise<FileIndexJobStatus>;
 }
 
 const identifierRows = [
@@ -59,6 +65,11 @@ type SettingsSection = 'company' | 'branding' | 'identifiers' | 'storage';
 export function SettingsPage() {
   const queryClient = useQueryClient();
   const settingsQuery = useQuery({ queryKey: ['company-settings'], queryFn: loadSettings });
+  const indexStatusQuery = useQuery({
+    queryKey: ['file-index-status'],
+    queryFn: loadFileIndexStatus,
+    refetchInterval: (query) => query.state.data?.status === 'running' ? 1500 : false,
+  });
   const [draft, setDraft] = useState<CompanySettingsInput | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>('company');
   const [notice, setNotice] = useState('');
@@ -70,6 +81,13 @@ export function SettingsPage() {
     }
   }, [settingsQuery.data]);
 
+  useEffect(() => {
+    const status = indexStatusQuery.data;
+    if (status?.status === 'completed' && status.result) {
+      queryClient.invalidateQueries({ queryKey: ['graphic-files'] });
+    }
+  }, [indexStatusQuery.data, queryClient]);
+
   const saveMutation = useMutation({
     mutationFn: saveSettings,
     onSuccess: (saved) => {
@@ -80,10 +98,11 @@ export function SettingsPage() {
   });
   const pathMutation = useMutation({ mutationFn: validatePaths });
   const indexMutation = useMutation({
-    mutationFn: refreshFileIndex,
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['graphic-files'] });
-      setNotice(`Indexed ${result.totalCount.toLocaleString()} files in ${(result.durationMs / 1000).toFixed(1)}s.`);
+    mutationFn: startFileIndex,
+    onSuccess: (status) => {
+      queryClient.setQueryData(['file-index-status'], status);
+      setNotice(status.status === 'running' ? 'File indexing started in the background.' : 'File index is already running.');
+      window.setTimeout(() => setNotice(''), 3000);
     },
   });
 
@@ -102,6 +121,16 @@ export function SettingsPage() {
   const setStorageValue = (key: keyof StorageSettings, value: string) => {
     setDraft((current) => current ? { ...current, storage: { ...current.storage, [key]: value } } : current);
   };
+
+  const indexStatus = indexStatusQuery.data;
+  const indexRunning = indexStatus?.status === 'running';
+  const indexSummary = indexStatus?.status === 'completed' && indexStatus.result
+    ? `Indexed ${indexStatus.result.totalCount.toLocaleString()} files in ${(indexStatus.result.durationMs / 1000).toFixed(1)}s.`
+    : indexStatus?.status === 'failed'
+      ? indexStatus.error || 'File indexing failed.'
+      : indexRunning
+        ? 'Indexing continues on the server. You can leave this page.'
+        : 'No background index job is running.';
 
   return (
     <section className="settings-page">
@@ -130,13 +159,14 @@ export function SettingsPage() {
 
           {activeSection === 'storage' && (
             <div className="settings-panel">
-              <div className="settings-panel-heading storage-heading"><div><h3>Storage & Files</h3><p>GraphicsFlow will only search within these approved server locations.</p></div><div className="settings-heading-actions"><button className="secondary-button" disabled={pathMutation.isPending} onClick={() => pathMutation.mutate(draft.storage)} type="button">{pathMutation.isPending ? 'Checking…' : 'Check Connections'}</button><button className="secondary-button" disabled={dirty || indexMutation.isPending} onClick={() => indexMutation.mutate()} type="button">{indexMutation.isPending ? 'Building Index…' : 'Refresh File Index'}</button></div></div>
+              <div className="settings-panel-heading storage-heading"><div><h3>Storage & Files</h3><p>GraphicsFlow will only search within these approved server locations.</p></div><div className="settings-heading-actions"><button className="secondary-button" disabled={pathMutation.isPending} onClick={() => pathMutation.mutate(draft.storage)} type="button">{pathMutation.isPending ? 'Checking…' : 'Check Connections'}</button><button className="secondary-button" disabled={dirty || indexRunning || indexMutation.isPending} onClick={() => indexMutation.mutate()} type="button">{indexRunning ? 'Indexing in Background…' : 'Refresh File Index'}</button></div></div>
               <div className="storage-list">{storageRows.map(([key, label, description]) => { const status = pathMutation.data?.items.find((item) => item.key === key); return <label className="storage-row" key={key}><div><strong>{label}</strong><span>{description}</span></div><input placeholder="Not configured" value={draft.storage[key]} onChange={(event) => setStorageValue(key, event.target.value)} /><span className={`path-status ${status ? (status.readable ? 'is-connected' : 'is-error') : ''}`}>{status?.message || 'Not checked'}</span></label>; })}</div>
+              <p className="storage-note">{indexSummary}</p>
               <p className="storage-note">Refresh the file index after changing paths or when new approval and print-card files are added. Record lookups use the index and do not crawl the network share on every click.</p>
             </div>
           )}
 
-          {(saveMutation.isError || pathMutation.isError || indexMutation.isError) && <div className="settings-error">{saveMutation.error?.message || pathMutation.error?.message || indexMutation.error?.message}</div>}
+          {(saveMutation.isError || pathMutation.isError || indexMutation.isError || indexStatusQuery.isError) && <div className="settings-error">{saveMutation.error?.message || pathMutation.error?.message || indexMutation.error?.message || indexStatusQuery.error?.message}</div>}
         </div>
       </div>
     </section>
