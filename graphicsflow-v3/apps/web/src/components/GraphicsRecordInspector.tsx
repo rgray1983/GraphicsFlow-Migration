@@ -30,26 +30,14 @@ async function fetchGraphicFiles(id: number): Promise<GraphicFilesResponse> {
 
 function FileSummary({ file, emptyMessage }: { file: GraphicFileMatch | null; emptyMessage: string }) {
   if (!file) return <p className="live-file-empty">{emptyMessage}</p>;
-
-  return (
-    <div className="live-file-summary">
-      <strong>{file.name}</strong>
-      <span>{formatFileSize(file.size)} · Modified {formatDate(file.modifiedAt)}</span>
-      <small title={file.relativePath}>{file.relativePath}</small>
-    </div>
-  );
+  return <div className="live-file-summary"><strong>{file.name}</strong><span>{formatFileSize(file.size)} · Modified {formatDate(file.modifiedAt)}</span><small title={file.relativePath}>{file.relativePath}</small></div>;
 }
 
-type GraphicsRecordInspectorProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  record: GraphicRecord | null;
-};
+type GraphicsRecordInspectorProps = { isOpen: boolean; onClose: () => void; record: GraphicRecord | null };
 
 export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRecordInspectorProps) {
   const lastRecordRef = useRef<GraphicRecord | null>(record);
   if (record) lastRecordRef.current = record;
-
   const visibleRecord = record ?? lastRecordRef.current;
   const filesQuery = useQuery({
     queryKey: ['graphic-files', visibleRecord?.id],
@@ -60,80 +48,41 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
 
   if (!visibleRecord) return null;
 
+  const indexReady = filesQuery.data?.indexReady ?? false;
   const approval = filesQuery.data?.approval.latest ?? null;
   const printCard = filesQuery.data?.printCard.latest ?? null;
   const approvalCount = filesQuery.data?.approval.matches.length ?? 0;
   const printCardCount = filesQuery.data?.printCard.matches.length ?? 0;
+  const noIndexMessage = 'Build the live file index from Company Settings → Storage & Files.';
 
   const sections: InspectorSection[] = [
     {
       title: 'Approval Preview',
-      badge: (
-        <span className={`availability-badge${approval ? ' is-connected' : ''}`}>
-          {filesQuery.isPending ? 'Checking…' : approval ? 'Live file found' : 'Not found'}
-        </span>
-      ),
+      badge: <span className={`availability-badge${approval ? ' is-connected' : ''}`}>{filesQuery.isPending ? 'Checking…' : !indexReady ? 'Index needed' : approval ? 'Live file found' : 'Not found'}</span>,
       className: 'approval-preview-section',
       content: filesQuery.isError ? (
-        <div className="approval-preview-empty"><strong>Could not check approvals</strong><span>Confirm the Approvals folder in Company Settings is mounted and readable.</span></div>
+        <div className="approval-preview-empty"><strong>Could not check approvals</strong><span>Confirm the file index and configured folders are available.</span></div>
+      ) : !filesQuery.isPending && !indexReady ? (
+        <div className="approval-preview-empty"><strong>Live file index not built</strong><span>{noIndexMessage}</span></div>
       ) : approval ? (
-        <div className="approval-preview-empty live-file-found">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5M9 13h6M9 17h6" /></svg>
-          <strong>Live approval connected</strong>
-          <span>{approval.name}</span>
-        </div>
+        <div className="approval-preview-empty live-file-found"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5M9 13h6M9 17h6" /></svg><strong>Live approval connected</strong><span>{approval.name}</span></div>
       ) : (
-        <div className="approval-preview-empty">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5M9.5 15l2-2 1.5 1.5 2.5-3 2 2.5" /></svg>
-          <strong>{filesQuery.isPending ? 'Checking live approval folder…' : 'No approval found'}</strong>
-          <span>The configured Approvals folder was searched for this G#.</span>
-        </div>
+        <div className="approval-preview-empty"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5M9.5 15l2-2 1.5 1.5 2.5-3 2 2.5" /></svg><strong>{filesQuery.isPending ? 'Checking file index…' : 'No approval found'}</strong><span>The current live file index has no approval match for this G#.</span></div>
       ),
     },
     {
       title: 'Details',
-      content: (
-        <dl className="record-detail-grid">
-          <div><dt>Customer #</dt><dd>{visibleRecord.customerNumber || 'Not recorded'}</dd></div>
-          <div><dt>Customer</dt><dd>{visibleRecord.customerName || 'Not recorded'}</dd></div>
-          <div><dt>Part Number</dt><dd>{visibleRecord.partNumber || 'Not recorded'}</dd></div>
-          <div><dt>Created</dt><dd>{formatDate(visibleRecord.createdAt)}</dd></div>
-        </dl>
-      ),
+      content: <dl className="record-detail-grid"><div><dt>Customer #</dt><dd>{visibleRecord.customerNumber || 'Not recorded'}</dd></div><div><dt>Customer</dt><dd>{visibleRecord.customerName || 'Not recorded'}</dd></div><div><dt>Part Number</dt><dd>{visibleRecord.partNumber || 'Not recorded'}</dd></div><div><dt>Created</dt><dd>{formatDate(visibleRecord.createdAt)}</dd></div></dl>,
     },
     {
       title: 'Documents',
-      content: (
-        <div className="live-document-list">
-          <article>
-            <div className="live-document-heading"><span>Approval</span><small>{approvalCount ? `${approvalCount} match${approvalCount === 1 ? '' : 'es'}` : 'No matches'}</small></div>
-            <FileSummary file={approval} emptyMessage={filesQuery.isPending ? 'Checking configured folder…' : 'No matching approval file found.'} />
-            <button disabled type="button">View Approval <span>{approval ? 'Viewer next' : 'Unavailable'}</span></button>
-          </article>
-          <article>
-            <div className="live-document-heading"><span>Print Card</span><small>{printCardCount ? `${printCardCount} match${printCardCount === 1 ? '' : 'es'}` : 'No matches'}</small></div>
-            <FileSummary file={printCard} emptyMessage={filesQuery.isPending ? 'Checking configured folder…' : 'No matching print card found.'} />
-            <button disabled type="button">View Print Card <span>{printCard ? 'Viewer next' : 'Unavailable'}</span></button>
-          </article>
-        </div>
-      ),
+      content: <div className="live-document-list">
+        <article><div className="live-document-heading"><span>Approval</span><small>{indexReady ? (approvalCount ? `${approvalCount} match${approvalCount === 1 ? '' : 'es'}` : 'No matches') : 'Index needed'}</small></div><FileSummary file={approval} emptyMessage={filesQuery.isPending ? 'Checking file index…' : indexReady ? 'No matching approval file found.' : noIndexMessage} /><button disabled type="button">View Approval <span>{approval ? 'Viewer next' : 'Unavailable'}</span></button></article>
+        <article><div className="live-document-heading"><span>Print Card</span><small>{indexReady ? (printCardCount ? `${printCardCount} match${printCardCount === 1 ? '' : 'es'}` : 'No matches') : 'Index needed'}</small></div><FileSummary file={printCard} emptyMessage={filesQuery.isPending ? 'Checking file index…' : indexReady ? 'No matching print card found.' : noIndexMessage} /><button disabled type="button">View Print Card <span>{printCard ? 'Viewer next' : 'Unavailable'}</span></button></article>
+      </div>,
     },
-    {
-      title: 'Timeline',
-      className: 'drawer-history-placeholder',
-      content: <p>Revision and document activity will appear here when the history service is added.</p>,
-    },
+    { title: 'Timeline', className: 'drawer-history-placeholder', content: <p>Revision and document activity will appear here when the history service is added.</p> },
   ];
 
-  return (
-    <RecordInspector
-      closeLabel="Close graphics record inspector"
-      contentKey={visibleRecord.id}
-      eyebrow="Graphics Record"
-      isOpen={isOpen}
-      onClose={onClose}
-      sections={sections}
-      title={formatGNumber(visibleRecord.gNumber)}
-    />
-  );
+  return <RecordInspector closeLabel="Close graphics record inspector" contentKey={visibleRecord.id} eyebrow="Graphics Record" isOpen={isOpen} onClose={onClose} sections={sections} title={formatGNumber(visibleRecord.gNumber)} />;
 }
