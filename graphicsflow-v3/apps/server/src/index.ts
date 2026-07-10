@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import {
   companySettingsInputSchema,
   companySettingsSchema,
+  fileIndexRefreshResponseSchema,
   graphicFilesResponseSchema,
   graphicsListResponseSchema,
   graphicsQuerySchema,
@@ -12,7 +13,7 @@ import {
 import { config } from './config.js';
 import { resolvedDatabasePath } from './database.js';
 import { getGraphicById, listGraphics } from './graphics-repository.js';
-import { resolveGraphicFiles } from './live-file-service.js';
+import { refreshLiveFileIndex, resolveGraphicFiles } from './live-file-service.js';
 import {
   getCompanySettings,
   saveCompanySettings,
@@ -93,6 +94,15 @@ app.post('/api/settings/validate-paths', async (request, reply) => {
   } catch (error) {
     request.log.error({ error }, 'Could not validate storage paths');
     return reply.status(500).send({ error: 'Storage paths could not be checked.' });
+  }
+});
+
+app.post('/api/settings/file-index/refresh', async (request, reply) => {
+  try {
+    return fileIndexRefreshResponseSchema.parse(await refreshLiveFileIndex());
+  } catch (error) {
+    request.log.error({ error }, 'Could not refresh live file index');
+    return reply.status(500).send({ error: 'Live file index could not be refreshed.' });
   }
 });
 
