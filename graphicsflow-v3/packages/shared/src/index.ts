@@ -70,6 +70,14 @@ export const fileIndexRefreshResponseSchema = z.object({
   indexedAt: z.string().datetime(),
 });
 
+export const fileIndexJobStatusSchema = z.object({
+  status: z.enum(['idle', 'running', 'completed', 'failed']),
+  startedAt: z.string().datetime().nullable(),
+  completedAt: z.string().datetime().nullable(),
+  result: fileIndexRefreshResponseSchema.nullable(),
+  error: z.string().nullable(),
+});
+
 const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a six-digit HEX color.');
 
 export const identifierConfigSchema = z.object({
@@ -136,6 +144,7 @@ export type GraphicFileKind = z.infer<typeof graphicFileKindSchema>;
 export type GraphicFileMatch = z.infer<typeof graphicFileMatchSchema>;
 export type GraphicFilesResponse = z.infer<typeof graphicFilesResponseSchema>;
 export type FileIndexRefreshResponse = z.infer<typeof fileIndexRefreshResponseSchema>;
+export type FileIndexJobStatus = z.infer<typeof fileIndexJobStatusSchema>;
 export type IdentifierConfig = z.infer<typeof identifierConfigSchema>;
 export type StorageSettings = z.infer<typeof storageSettingsSchema>;
 export type CompanySettingsInput = z.infer<typeof companySettingsInputSchema>;
