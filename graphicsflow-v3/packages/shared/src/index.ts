@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+export {
+  formatDNumber,
+  formatGNumber,
+  formatRevision,
+  formatSpecNumber,
+} from './formatters.js';
+
 export const healthResponseSchema = z.object({
   status: z.literal('ok'),
   service: z.string(),
