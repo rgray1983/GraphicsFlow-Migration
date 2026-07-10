@@ -22,17 +22,11 @@ Selecting a graphics row opens a right-side record drawer. Selecting another row
 
 **Reason:** Support fast record browsing while keeping details anchored in a consistent location.
 
-### Record inspection is a reusable application pattern
+### Reusable record inspector pattern
 
-The drawer shell and inspector structure are shared components. Feature-specific inspectors provide their own sections and content while reusing the same motion, responsive behavior, close controls, scrolling, and section-heading treatment.
+Record inspection uses a shared `RecordDrawer` shell and `RecordInspector` section system. Feature-specific inspectors supply their own fields and content.
 
-**Reason:** Graphics records, revisions, approvals, print cards, vendor art, and future report records should behave consistently without duplicating interaction code.
-
-### Inspector section headings are concise and consistent
-
-Inspector sections use short titles in the same visual style as the inspector context label. The Graphics inspector uses **Approval Preview**, **Details**, **Documents**, and **Timeline** without redundant kicker labels.
-
-**Reason:** Reduce visual noise and make inspector content faster to scan.
+**Reason:** Preserve consistent motion and hierarchy while allowing graphics, revisions, approvals, print cards, vendor art, and other records to use the same interaction pattern.
 
 ### Approval preview is the canonical artwork preview
 
@@ -57,3 +51,21 @@ Large datasets scroll inside the available workspace instead of extending the en
 G#, S#, D#, and revision labels use shared formatting utilities. User-facing terminology uses **S#** for **Spec#**. Legacy F# database fields and file names remain unchanged until those workflows are safely rebuilt.
 
 **Reason:** Keep terminology consistent without prematurely breaking legacy data and file-processing behavior.
+
+### V3 configuration is stored separately from the PHP reference database
+
+Company settings and future V3 application data use a separate writable database in `graphicsflow-v3/storage`. The copied PHP `graphics.db` remains a read-only behavioral and data reference.
+
+**Reason:** V3 must be able to evolve safely without mutating the known-good Graphics Manager 2.0 copy.
+
+### File access is restricted to configured server roots
+
+The browser never receives arbitrary filesystem access. Company Settings defines approved storage roots, and the backend validates and accesses only those locations.
+
+**Reason:** Enable live production-file access while keeping network and local filesystem exposure controlled.
+
+### Authentication is separate from company configuration
+
+Users, password hashes, roles, and permissions will be implemented in dedicated security PRs rather than bundled into Company Settings foundation work.
+
+**Reason:** Security-sensitive behavior requires focused architecture, testing, and review.
