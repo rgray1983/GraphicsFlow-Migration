@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CompanySettings,
   CompanySettingsInput,
+  FileIndexRefreshResponse,
   IdentifierConfig,
   PathValidationResponse,
   StorageSettings,
@@ -17,9 +18,7 @@ async function loadSettings(): Promise<CompanySettings> {
 
 async function saveSettings(settings: CompanySettingsInput): Promise<CompanySettings> {
   const response = await fetch('/api/settings/company', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings),
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings),
   });
   if (!response.ok) throw new Error('Company settings could not be saved.');
   return response.json() as Promise<CompanySettings>;
@@ -27,12 +26,16 @@ async function saveSettings(settings: CompanySettingsInput): Promise<CompanySett
 
 async function validatePaths(storage: StorageSettings): Promise<PathValidationResponse> {
   const response = await fetch('/api/settings/validate-paths', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(storage),
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(storage),
   });
   if (!response.ok) throw new Error('Storage paths could not be checked.');
   return response.json() as Promise<PathValidationResponse>;
+}
+
+async function refreshFileIndex(): Promise<FileIndexRefreshResponse> {
+  const response = await fetch('/api/settings/file-index/refresh', { method: 'POST' });
+  if (!response.ok) throw new Error('Live file index could not be refreshed.');
+  return response.json() as Promise<FileIndexRefreshResponse>;
 }
 
 const identifierRows = [
@@ -75,8 +78,14 @@ export function SettingsPage() {
       window.setTimeout(() => setNotice(''), 2500);
     },
   });
-
   const pathMutation = useMutation({ mutationFn: validatePaths });
+  const indexMutation = useMutation({
+    mutationFn: refreshFileIndex,
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['graphic-files'] });
+      setNotice(`Indexed ${result.totalCount.toLocaleString()} files in ${(result.durationMs / 1000).toFixed(1)}s.`);
+    },
+  });
 
   const dirty = useMemo(() => {
     if (!draft || !settingsQuery.data) return false;
@@ -84,137 +93,50 @@ export function SettingsPage() {
     return JSON.stringify(draft) !== JSON.stringify(saved);
   }, [draft, settingsQuery.data]);
 
-  if (settingsQuery.isPending || !draft) {
-    return <section className="settings-state">Loading company settings…</section>;
-  }
-
-  if (settingsQuery.isError) {
-    return <section className="settings-state settings-state-error">Company settings could not be loaded.</section>;
-  }
+  if (settingsQuery.isPending || !draft) return <section className="settings-state">Loading company settings…</section>;
+  if (settingsQuery.isError) return <section className="settings-state settings-state-error">Company settings could not be loaded.</section>;
 
   const updateIdentifier = (key: keyof CompanySettingsInput['identifiers'], value: IdentifierConfig) => {
-    setDraft((current) => current ? {
-      ...current,
-      identifiers: { ...current.identifiers, [key]: value },
-    } : current);
+    setDraft((current) => current ? { ...current, identifiers: { ...current.identifiers, [key]: value } } : current);
   };
-
   const setStorageValue = (key: keyof StorageSettings, value: string) => {
-    setDraft((current) => current ? {
-      ...current,
-      storage: { ...current.storage, [key]: value },
-    } : current);
+    setDraft((current) => current ? { ...current, storage: { ...current.storage, [key]: value } } : current);
   };
 
   return (
     <section className="settings-page">
       <div className="settings-heading">
-        <div>
-          <p className="eyebrow">Administration</p>
-          <h2>Company Settings</h2>
-          <p>Configure identity, branding, record prefixes, and the live folders GraphicsFlow is allowed to use.</p>
-        </div>
+        <div><p className="eyebrow">Administration</p><h2>Company Settings</h2><p>Configure identity, branding, record prefixes, and the live folders GraphicsFlow is allowed to use.</p></div>
         <div className="settings-save-area">
           <span className={dirty ? 'unsaved-indicator is-dirty' : 'unsaved-indicator'}>{dirty ? 'Unsaved changes' : notice || 'Up to date'}</span>
-          <button
-            className="primary-button"
-            disabled={!dirty || saveMutation.isPending}
-            onClick={() => saveMutation.mutate(draft)}
-            type="button"
-          >
-            {saveMutation.isPending ? 'Saving…' : 'Save Settings'}
-          </button>
+          <button className="primary-button" disabled={!dirty || saveMutation.isPending} onClick={() => saveMutation.mutate(draft)} type="button">{saveMutation.isPending ? 'Saving…' : 'Save Settings'}</button>
         </div>
       </div>
 
       <div className="settings-workspace">
         <nav className="settings-nav" aria-label="Company settings sections">
-          {([
-            ['company', 'Company Profile'],
-            ['branding', 'Branding'],
-            ['identifiers', 'Identifiers'],
-            ['storage', 'Storage & Files'],
-          ] as const).map(([key, label]) => (
+          {([['company', 'Company Profile'], ['branding', 'Branding'], ['identifiers', 'Identifiers'], ['storage', 'Storage & Files']] as const).map(([key, label]) => (
             <button className={activeSection === key ? 'active' : ''} key={key} onClick={() => setActiveSection(key)} type="button">{label}</button>
           ))}
-          <div className="settings-nav-future">
-            <span>Coming in later PRs</span>
-            <button disabled type="button">Users</button>
-            <button disabled type="button">Roles & Permissions</button>
-          </div>
+          <div className="settings-nav-future"><span>Coming in later PRs</span><button disabled type="button">Users</button><button disabled type="button">Roles & Permissions</button></div>
         </nav>
 
         <div className="settings-content">
-          {activeSection === 'company' && (
-            <div className="settings-panel">
-              <div className="settings-panel-heading"><h3>Company Profile</h3><p>These values identify the company and plant throughout GraphicsFlow.</p></div>
-              <div className="settings-form-grid">
-                <label><span>Company Name</span><input value={draft.company.name} onChange={(event) => setDraft({ ...draft, company: { ...draft.company, name: event.target.value } })} /></label>
-                <label><span>Plant / Location</span><input value={draft.company.plantName} onChange={(event) => setDraft({ ...draft, company: { ...draft.company, plantName: event.target.value } })} /></label>
-                <label className="full-field"><span>Logo File Path or URL</span><input placeholder="Optional" value={draft.company.logoPath} onChange={(event) => setDraft({ ...draft, company: { ...draft.company, logoPath: event.target.value } })} /><small>Logo upload and asset management will be connected later. This field establishes the stored source now.</small></label>
-              </div>
-            </div>
-          )}
+          {activeSection === 'company' && <div className="settings-panel"><div className="settings-panel-heading"><h3>Company Profile</h3><p>These values identify the company and plant throughout GraphicsFlow.</p></div><div className="settings-form-grid"><label><span>Company Name</span><input value={draft.company.name} onChange={(event) => setDraft({ ...draft, company: { ...draft.company, name: event.target.value } })} /></label><label><span>Plant / Location</span><input value={draft.company.plantName} onChange={(event) => setDraft({ ...draft, company: { ...draft.company, plantName: event.target.value } })} /></label><label className="full-field"><span>Logo File Path or URL</span><input placeholder="Optional" value={draft.company.logoPath} onChange={(event) => setDraft({ ...draft, company: { ...draft.company, logoPath: event.target.value } })} /><small>Logo upload and asset management will be connected later. This field establishes the stored source now.</small></label></div></div>}
 
-          {activeSection === 'branding' && (
-            <div className="settings-panel">
-              <div className="settings-panel-heading"><h3>Branding</h3><p>Set the core colors that future themes and company-branded documents will use.</p></div>
-              <div className="color-settings-grid">
-                {([
-                  ['primaryColor', 'Primary Color'],
-                  ['secondaryColor', 'Secondary Color'],
-                  ['accentColor', 'Accent Color'],
-                ] as const).map(([key, label]) => (
-                  <label className="color-field" key={key}>
-                    <span>{label}</span>
-                    <div><input aria-label={`${label} picker`} type="color" value={draft.branding[key]} onChange={(event) => setDraft({ ...draft, branding: { ...draft.branding, [key]: event.target.value.toUpperCase() } })} /><input value={draft.branding[key]} onChange={(event) => setDraft({ ...draft, branding: { ...draft.branding, [key]: event.target.value.toUpperCase() } })} /></div>
-                  </label>
-                ))}
-              </div>
-              <label className="theme-field"><span>Theme Preference</span><select value={draft.branding.theme} onChange={(event) => setDraft({ ...draft, branding: { ...draft.branding, theme: event.target.value as CompanySettingsInput['branding']['theme'] } })}><option value="dark">Dark</option><option value="light">Light</option><option value="system">Follow System</option></select></label>
-            </div>
-          )}
+          {activeSection === 'branding' && <div className="settings-panel"><div className="settings-panel-heading"><h3>Branding</h3><p>Set the core colors that future themes and company-branded documents will use.</p></div><div className="color-settings-grid">{([['primaryColor', 'Primary Color'], ['secondaryColor', 'Secondary Color'], ['accentColor', 'Accent Color']] as const).map(([key, label]) => <label className="color-field" key={key}><span>{label}</span><div><input aria-label={`${label} picker`} type="color" value={draft.branding[key]} onChange={(event) => setDraft({ ...draft, branding: { ...draft.branding, [key]: event.target.value.toUpperCase() } })} /><input value={draft.branding[key]} onChange={(event) => setDraft({ ...draft, branding: { ...draft.branding, [key]: event.target.value.toUpperCase() } })} /></div></label>)}</div><label className="theme-field"><span>Theme Preference</span><select value={draft.branding.theme} onChange={(event) => setDraft({ ...draft, branding: { ...draft.branding, theme: event.target.value as CompanySettingsInput['branding']['theme'] } })}><option value="dark">Dark</option><option value="light">Light</option><option value="system">Follow System</option></select></label></div>}
 
-          {activeSection === 'identifiers' && (
-            <div className="settings-panel">
-              <div className="settings-panel-heading"><h3>Identifiers</h3><p>Labels and prefixes are separate. Leave a prefix blank when a plant uses only the numeric value.</p></div>
-              <div className="identifier-list">
-                {identifierRows.map(([key, name, sample]) => {
-                  const item = draft.identifiers[key];
-                  const example = `${item.prefix}${item.separator}${sample}`;
-                  return (
-                    <div className="identifier-row" key={key}>
-                      <div className="identifier-name"><strong>{name}</strong><span>Example: {example || sample}</span></div>
-                      <label><span>Display Label</span><input value={item.label} onChange={(event) => updateIdentifier(key, { ...item, label: event.target.value })} /></label>
-                      <label><span>Prefix</span><input placeholder="No prefix" value={item.prefix} onChange={(event) => updateIdentifier(key, { ...item, prefix: event.target.value })} /></label>
-                      <label><span>Separator</span><input placeholder="None" value={item.separator} onChange={(event) => updateIdentifier(key, { ...item, separator: event.target.value })} /></label>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {activeSection === 'identifiers' && <div className="settings-panel"><div className="settings-panel-heading"><h3>Identifiers</h3><p>Labels and prefixes are separate. Leave a prefix blank when a plant uses only the numeric value.</p></div><div className="identifier-list">{identifierRows.map(([key, name, sample]) => { const item = draft.identifiers[key]; const example = `${item.prefix}${item.separator}${sample}`; return <div className="identifier-row" key={key}><div className="identifier-name"><strong>{name}</strong><span>Example: {example || sample}</span></div><label><span>Display Label</span><input value={item.label} onChange={(event) => updateIdentifier(key, { ...item, label: event.target.value })} /></label><label><span>Prefix</span><input placeholder="No prefix" value={item.prefix} onChange={(event) => updateIdentifier(key, { ...item, prefix: event.target.value })} /></label><label><span>Separator</span><input placeholder="None" value={item.separator} onChange={(event) => updateIdentifier(key, { ...item, separator: event.target.value })} /></label></div>; })}</div></div>}
 
           {activeSection === 'storage' && (
             <div className="settings-panel">
-              <div className="settings-panel-heading storage-heading"><div><h3>Storage & Files</h3><p>GraphicsFlow will only search within these approved server locations.</p></div><button className="secondary-button" disabled={pathMutation.isPending} onClick={() => pathMutation.mutate(draft.storage)} type="button">{pathMutation.isPending ? 'Checking…' : 'Check Connections'}</button></div>
-              <div className="storage-list">
-                {storageRows.map(([key, label, description]) => {
-                  const status = pathMutation.data?.items.find((item) => item.key === key);
-                  return (
-                    <label className="storage-row" key={key}>
-                      <div><strong>{label}</strong><span>{description}</span></div>
-                      <input placeholder="Not configured" value={draft.storage[key]} onChange={(event) => setStorageValue(key, event.target.value)} />
-                      <span className={`path-status ${status ? (status.readable ? 'is-connected' : 'is-error') : ''}`}>{status?.message || 'Not checked'}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              <p className="storage-note">Folder checks run from the GraphicsFlow server. A folder mounted on another Mac will not be available unless the server can reach that same network location.</p>
+              <div className="settings-panel-heading storage-heading"><div><h3>Storage & Files</h3><p>GraphicsFlow will only search within these approved server locations.</p></div><div className="settings-heading-actions"><button className="secondary-button" disabled={pathMutation.isPending} onClick={() => pathMutation.mutate(draft.storage)} type="button">{pathMutation.isPending ? 'Checking…' : 'Check Connections'}</button><button className="secondary-button" disabled={dirty || indexMutation.isPending} onClick={() => indexMutation.mutate()} type="button">{indexMutation.isPending ? 'Building Index…' : 'Refresh File Index'}</button></div></div>
+              <div className="storage-list">{storageRows.map(([key, label, description]) => { const status = pathMutation.data?.items.find((item) => item.key === key); return <label className="storage-row" key={key}><div><strong>{label}</strong><span>{description}</span></div><input placeholder="Not configured" value={draft.storage[key]} onChange={(event) => setStorageValue(key, event.target.value)} /><span className={`path-status ${status ? (status.readable ? 'is-connected' : 'is-error') : ''}`}>{status?.message || 'Not checked'}</span></label>; })}</div>
+              <p className="storage-note">Refresh the file index after changing paths or when new approval and print-card files are added. Record lookups use the index and do not crawl the network share on every click.</p>
             </div>
           )}
 
-          {(saveMutation.isError || pathMutation.isError) && <div className="settings-error">{saveMutation.error?.message || pathMutation.error?.message}</div>}
+          {(saveMutation.isError || pathMutation.isError || indexMutation.isError) && <div className="settings-error">{saveMutation.error?.message || pathMutation.error?.message || indexMutation.error?.message}</div>}
         </div>
       </div>
     </section>
