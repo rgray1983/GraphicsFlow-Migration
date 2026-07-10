@@ -108,12 +108,12 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
           <article>
             <div className="live-document-heading"><span>Approval</span><small>{approvalCount ? `${approvalCount} match${approvalCount === 1 ? '' : 'es'}` : 'No matches'}</small></div>
             <FileSummary file={approval} emptyMessage={filesQuery.isPending ? 'Checking configured folder…' : 'No matching approval file found.'} />
-            <button disabled={!approval} type="button">View Approval <span>{approval ? 'Viewer next' : 'Unavailable'}</span></button>
+            <button disabled type="button">View Approval <span>{approval ? 'Viewer next' : 'Unavailable'}</span></button>
           </article>
           <article>
             <div className="live-document-heading"><span>Print Card</span><small>{printCardCount ? `${printCardCount} match${printCardCount === 1 ? '' : 'es'}` : 'No matches'}</small></div>
             <FileSummary file={printCard} emptyMessage={filesQuery.isPending ? 'Checking configured folder…' : 'No matching print card found.'} />
-            <button disabled={!printCard} type="button">View Print Card <span>{printCard ? 'Viewer next' : 'Unavailable'}</span></button>
+            <button disabled type="button">View Print Card <span>{printCard ? 'Viewer next' : 'Unavailable'}</span></button>
           </article>
         </div>
       ),
