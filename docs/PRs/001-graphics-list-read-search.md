@@ -39,6 +39,14 @@ The existing `graphics` table contains the core G# record fields used by this fe
 - Display records in a responsive table.
 - Include loading, empty, database-error, and request-error states.
 - Show the number of matching records.
+- Display G# values through the shared identifier formatter so stored prefixes are never duplicated.
+
+### Shared formatting
+
+- Add centralized formatters for G#, S#, D#, and revision labels.
+- GraphicsFlow V3 will use **S#** as the user-facing label for **Spec#**.
+- Legacy F# values may remain in the copied database, PHP code, and file names during migration, but V3 formatters will display them as S#.
+- Database-field renaming is deferred until the related print-card and approval workflows are rebuilt and verified.
 
 ### Documentation
 
@@ -51,6 +59,7 @@ The existing `graphics` table contains the core G# record fields used by this fe
 - Opening `/graphics` loads records from `PHP version/graphics.db`.
 - Search matches G#, customer number, customer name, and part number.
 - Clearing search restores the default record list.
+- G# values display once, whether the stored value is `12905` or `G#12905`.
 - No create, edit, delete, approval, preview, or print-card behavior is added in this PR.
 - `PHP version/` remains unchanged.
 
@@ -85,3 +94,4 @@ http://localhost:3001/api/graphics?search=128
 - Artwork and PDF previews
 - Approval and print-card actions
 - Pagination controls beyond the initial result limit
+- Safe schema and file-naming migration from legacy F# terminology to S# terminology
