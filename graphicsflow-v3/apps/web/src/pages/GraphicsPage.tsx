@@ -1,0 +1,124 @@
+import { useQuery } from '@tanstack/react-query';
+import type { GraphicsListResponse } from '@graphicsflow/shared';
+import { useEffect, useState } from 'react';
+
+async function fetchGraphics(search: string): Promise<GraphicsListResponse> {
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+
+  const response = await fetch(`/api/graphics?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error('The graphics list could not be loaded.');
+  }
+
+  return response.json() as Promise<GraphicsListResponse>;
+}
+
+function formatCreatedAt(value: string | null): string {
+  if (!value) return '—';
+  const date = new Date(value.replace(' ', 'T') + 'Z');
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+}
+
+export function GraphicsPage() {
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const graphicsQuery = useQuery({
+    queryKey: ['graphics', search],
+    queryFn: () => fetchGraphics(search),
+  });
+
+  const records = graphicsQuery.data?.items ?? [];
+  const total = graphicsQuery.data?.total ?? 0;
+
+  return (
+    <section className="graphics-page">
+      <div className="page-heading-row">
+        <div>
+          <p className="eyebrow">Graphics database</p>
+          <h2>Graphics</h2>
+          <p className="page-description">Find existing G# records by graphics number, customer, or part number.</p>
+        </div>
+        <div className="record-count" aria-live="polite">
+          <strong>{graphicsQuery.isPending ? '—' : total.toLocaleString()}</strong>
+          <span>{search ? 'matching records' : 'total records'}</span>
+        </div>
+      </div>
+
+      <div className="graphics-toolbar">
+        <label className="search-field">
+          <span className="sr-only">Search graphics records</span>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" /></svg>
+          <input
+            autoComplete="off"
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search G#, customer number, customer name, or part number…"
+            type="search"
+            value={searchInput}
+          />
+          {searchInput && (
+            <button aria-label="Clear search" onClick={() => setSearchInput('')} type="button">Clear</button>
+          )}
+        </label>
+      </div>
+
+      <div className="graphics-table-card">
+        {graphicsQuery.isPending && <div className="table-state">Loading graphics records…</div>}
+
+        {graphicsQuery.isError && (
+          <div className="table-state table-state-error">
+            <strong>Graphics could not be loaded.</strong>
+            <span>Confirm that the copied PHP database exists at the configured database path, then try again.</span>
+            <button onClick={() => graphicsQuery.refetch()} type="button">Try again</button>
+          </div>
+        )}
+
+        {!graphicsQuery.isPending && !graphicsQuery.isError && records.length === 0 && (
+          <div className="table-state">
+            <strong>No graphics records found.</strong>
+            <span>{search ? `Nothing matched “${search}”.` : 'The graphics database is empty.'}</span>
+          </div>
+        )}
+
+        {!graphicsQuery.isPending && !graphicsQuery.isError && records.length > 0 && (
+          <div className="table-scroll">
+            <table className="graphics-table">
+              <thead>
+                <tr>
+                  <th>G#</th>
+                  <th>Customer #</th>
+                  <th>Customer</th>
+                  <th>Part Number</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((record) => (
+                  <tr key={record.id}>
+                    <td><span className="g-number">G#{record.gNumber}</span></td>
+                    <td>{record.customerNumber || '—'}</td>
+                    <td className="customer-name">{record.customerName || '—'}</td>
+                    <td>{record.partNumber || '—'}</td>
+                    <td className="created-date">{formatCreatedAt(record.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {!graphicsQuery.isPending && !graphicsQuery.isError && records.length < total && (
+        <p className="result-note">Showing the newest {records.length.toLocaleString()} of {total.toLocaleString()} records.</p>
+      )}
+    </section>
+  );
+}
