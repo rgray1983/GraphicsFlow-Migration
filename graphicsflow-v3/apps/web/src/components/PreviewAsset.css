@@ -1,0 +1,12 @@
+.preview-asset { min-height: 220px; border: 1px solid rgba(148,163,184,.12); border-radius: 14px; overflow: hidden; background: rgba(2,6,23,.34); }
+.preview-asset-loading { position: relative; display: grid; place-items: center; }
+.preview-asset-loading::before { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 28%, rgba(153,246,228,.14) 46%, transparent 64%); transform: translateX(-100%); animation: preview-shimmer 1.55s ease-in-out infinite; }
+.preview-asset-loading span { width: 54%; height: 64%; border-radius: 10px; background: rgba(148,163,184,.08); filter: blur(2px); }
+.preview-asset-ready { display: grid; place-items: center; padding: 12px; animation: preview-reveal .45s ease both; }
+.preview-asset-ready img { display: block; width: 100%; max-height: 420px; object-fit: contain; border-radius: 8px; }
+.preview-asset-message { display: grid; place-content: center; gap: 7px; padding: 28px; text-align: center; }
+.preview-asset-message strong { color: #dbeafe; }
+.preview-asset-message span { color: #718096; font-size: 12px; line-height: 1.55; }
+@keyframes preview-shimmer { to { transform: translateX(100%); } }
+@keyframes preview-reveal { from { opacity: 0; transform: translateY(8px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .preview-asset-loading::before, .preview-asset-ready { animation: none; } }
