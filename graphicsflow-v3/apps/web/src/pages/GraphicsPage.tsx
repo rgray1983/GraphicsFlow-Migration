@@ -8,6 +8,7 @@ import {
 } from '@graphicsflow/shared';
 import { useEffect, useState } from 'react';
 import { GraphicsRecordInspector } from '../components/GraphicsRecordInspector';
+import './GraphicsPage.css';
 
 async function fetchGraphics(
   search: string,
