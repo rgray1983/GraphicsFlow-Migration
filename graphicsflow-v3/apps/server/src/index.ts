@@ -12,6 +12,7 @@ import {
   previewVariantSchema,
   storageSettingsSchema,
 } from '@graphicsflow/shared';
+import { resolveApprovalDocument, streamApprovalDocument } from './approval-document-service.js';
 import { config } from './config.js';
 import { resolvedDatabasePath } from './database.js';
 import { getGraphicById, listGraphics } from './graphics-repository.js';
@@ -46,10 +47,7 @@ app.get('/api/health', async () => healthResponseSchema.parse({
 app.get('/api/graphics', async (request, reply) => {
   const parsedQuery = graphicsQuerySchema.safeParse(request.query);
   if (!parsedQuery.success) {
-    return reply.status(400).send({
-      error: 'Invalid graphics query.',
-      details: parsedQuery.error.flatten(),
-    });
+    return reply.status(400).send({ error: 'Invalid graphics query.', details: parsedQuery.error.flatten() });
   }
 
   try {
@@ -62,9 +60,7 @@ app.get('/api/graphics', async (request, reply) => {
 
 app.get('/api/graphics/:id/files', async (request, reply) => {
   const id = Number((request.params as { id?: string }).id);
-  if (!Number.isInteger(id) || id <= 0) {
-    return reply.status(400).send({ error: 'Invalid graphics record id.' });
-  }
+  if (!Number.isInteger(id) || id <= 0) return reply.status(400).send({ error: 'Invalid graphics record id.' });
 
   const graphic = getGraphicById(id);
   if (!graphic) return reply.status(404).send({ error: 'Graphics record not found.' });
@@ -82,6 +78,28 @@ app.get('/api/graphics/:id/files', async (request, reply) => {
   }
 });
 
+app.get('/api/graphics/:id/approval.pdf', async (request, reply) => {
+  const id = Number((request.params as { id?: string }).id);
+  const download = (request.query as { download?: string } | undefined)?.download === '1';
+  if (!Number.isInteger(id) || id <= 0) return reply.status(400).send({ error: 'Invalid graphics record id.' });
+  if (!getGraphicById(id)) return reply.status(404).send({ error: 'Graphics record not found.' });
+
+  try {
+    const document = await resolveApprovalDocument(id);
+    if (!document) return reply.status(404).send({ error: 'Approval PDF is not available.' });
+    const disposition = download ? 'attachment' : 'inline';
+    return reply
+      .header('Content-Type', 'application/pdf')
+      .header('Content-Length', String(document.size))
+      .header('Content-Disposition', `${disposition}; filename="${document.fileName.replace(/"/g, '')}"`)
+      .header('Cache-Control', 'private, no-store')
+      .send(streamApprovalDocument(document));
+  } catch (error) {
+    request.log.error({ error, graphicId: id }, 'Could not stream approval PDF');
+    return reply.status(500).send({ error: 'Approval PDF could not be opened.' });
+  }
+});
+
 app.get('/api/previews/:graphicId/:variant', async (request, reply) => {
   const params = request.params as { graphicId?: string; variant?: string };
   const graphicId = Number(params.graphicId);
@@ -90,9 +108,7 @@ app.get('/api/previews/:graphicId/:variant', async (request, reply) => {
   if (!Number.isInteger(graphicId) || graphicId <= 0 || !variant.success) {
     return reply.status(400).send({ error: 'Invalid preview request.' });
   }
-  if (!getGraphicById(graphicId)) {
-    return reply.status(404).send({ error: 'Graphics record not found.' });
-  }
+  if (!getGraphicById(graphicId)) return reply.status(404).send({ error: 'Graphics record not found.' });
 
   try {
     return previewResponseSchema.parse(await getOrGeneratePreview(graphicId, variant.data));
@@ -106,18 +122,13 @@ app.get('/api/previews/:graphicId/:variant/image', async (request, reply) => {
   const params = request.params as { graphicId?: string; variant?: string };
   const graphicId = Number(params.graphicId);
   const variant = previewVariantSchema.safeParse(params.variant);
-
   if (!Number.isInteger(graphicId) || graphicId <= 0 || !variant.success) {
     return reply.status(400).send({ error: 'Invalid preview request.' });
   }
 
   const image = await readPreviewImage(graphicId, variant.data);
   if (!image) return reply.status(404).send({ error: 'Preview image is not available.' });
-
-  return reply
-    .header('Content-Type', 'image/png')
-    .header('Cache-Control', 'private, max-age=3600')
-    .send(image);
+  return reply.header('Content-Type', 'image/png').header('Cache-Control', 'private, max-age=3600').send(image);
 });
 
 app.get('/api/settings/company', async (_request, reply) => {
@@ -132,10 +143,7 @@ app.get('/api/settings/company', async (_request, reply) => {
 app.put('/api/settings/company', async (request, reply) => {
   const parsed = companySettingsInputSchema.safeParse(request.body);
   if (!parsed.success) {
-    return reply.status(400).send({
-      error: 'Company settings are invalid.',
-      details: parsed.error.flatten(),
-    });
+    return reply.status(400).send({ error: 'Company settings are invalid.', details: parsed.error.flatten() });
   }
 
   try {
@@ -151,10 +159,7 @@ app.put('/api/settings/company', async (request, reply) => {
 app.post('/api/settings/validate-paths', async (request, reply) => {
   const parsed = storageSettingsSchema.safeParse(request.body);
   if (!parsed.success) {
-    return reply.status(400).send({
-      error: 'Storage paths are invalid.',
-      details: parsed.error.flatten(),
-    });
+    return reply.status(400).send({ error: 'Storage paths are invalid.', details: parsed.error.flatten() });
   }
 
   try {
@@ -165,14 +170,8 @@ app.post('/api/settings/validate-paths', async (request, reply) => {
   }
 });
 
-app.post('/api/settings/file-index/refresh', async () => (
-  fileIndexJobStatusSchema.parse(startLiveFileIndexJob())
-));
-
-app.get('/api/settings/file-index/status', async () => (
-  fileIndexJobStatusSchema.parse(getFileIndexJobStatus())
-));
-
+app.post('/api/settings/file-index/refresh', async () => fileIndexJobStatusSchema.parse(startLiveFileIndexJob()));
+app.get('/api/settings/file-index/status', async () => fileIndexJobStatusSchema.parse(getFileIndexJobStatus()));
 app.get('/api/settings/file-sync/status', async () => getLiveFileSyncStatus());
 
 const start = async () => {

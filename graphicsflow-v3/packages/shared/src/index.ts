@@ -7,7 +7,7 @@ export type HealthResponse = z.infer<typeof healthResponseSchema>;
 
 export const graphicRecordSchema = z.object({
   id: z.number().int().positive(), gNumber: z.string(), customerNumber: z.string(), customerName: z.string(),
-  partNumber: z.string(), previewImage: z.string().nullable(), createdAt: z.string().nullable(),
+  specificationNumber: z.string(), partNumber: z.string(), previewImage: z.string().nullable(), createdAt: z.string().nullable(),
 });
 export const graphicsSortFieldSchema = z.enum(['gNumber', 'customerNumber', 'customerName', 'partNumber', 'createdAt']);
 export const sortDirectionSchema = z.enum(['asc', 'desc']);
@@ -30,7 +30,7 @@ export const graphicFilesResponseSchema = z.object({
   indexReady: z.boolean(), indexedAt: z.string().datetime().nullable(), checkedAt: z.string().datetime(),
 });
 
-export const previewVariantSchema = z.enum(['thumb', 'medium']);
+export const previewVariantSchema = z.enum(['thumb', 'medium', 'large']);
 export const previewStatusSchema = z.enum(['ready', 'generating', 'unavailable', 'error']);
 export const previewResponseSchema = z.object({
   graphicId: z.number().int().positive(), status: previewStatusSchema, variant: previewVariantSchema,

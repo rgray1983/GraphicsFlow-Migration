@@ -1,5 +1,6 @@
 import type { GraphicRecord, GraphicsListResponse, GraphicsQuery } from '@graphicsflow/shared';
 import { database } from './database.js';
+import { applyGraphicMetadata } from './graphic-metadata-service.js';
 
 type GraphicRow = {
   id: number;
@@ -39,6 +40,7 @@ function mapGraphic(row: GraphicRow): GraphicRecord {
     gNumber: row.g_number ?? '',
     customerNumber: row.customer_number ?? '',
     customerName: row.customer_name ?? '',
+    specificationNumber: '',
     partNumber: row.part_number ?? '',
     previewImage: row.preview_image,
     createdAt: row.created_at,
@@ -52,7 +54,7 @@ export function getGraphicById(id: number): GraphicRecord | null {
     WHERE id = ?
   `).get(id) as GraphicRow | undefined;
 
-  return row ? mapGraphic(row) : null;
+  return row ? applyGraphicMetadata(mapGraphic(row)) : null;
 }
 
 export function listGraphics(query: GraphicsQuery): GraphicsListResponse {
@@ -82,7 +84,7 @@ export function listGraphics(query: GraphicsQuery): GraphicsListResponse {
   const rows = listStatement.all(...searchParameters, query.limit) as GraphicRow[];
 
   return {
-    items: rows.map(mapGraphic),
+    items: rows.map(mapGraphic).map(applyGraphicMetadata),
     total: Number(countRow.total),
     query: search,
   };

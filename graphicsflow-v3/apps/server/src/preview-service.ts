@@ -85,26 +85,32 @@ async function commandExists(command: string): Promise<boolean> {
 }
 
 async function renderPdf(sourcePath: string, outputPath: string, variant: PreviewVariant): Promise<string | null> {
-  const maxPixels = variant === 'thumb' ? 360 : 1100;
+  const dimensions: Record<PreviewVariant, { maxPixels: number; density: number }> = {
+    thumb: { maxPixels: 360, density: 130 },
+    medium: { maxPixels: 1100, density: 130 },
+    large: { maxPixels: 2600, density: 220 },
+  };
+  const { maxPixels, density } = dimensions[variant];
+
   if (await commandExists('magick')) {
     await execFileAsync('magick', [
-      '-density', '130', `${sourcePath}[0]`, '-thumbnail', `${maxPixels}x${maxPixels}>`,
+      '-density', String(density), `${sourcePath}[0]`, '-thumbnail', `${maxPixels}x${maxPixels}>`,
       '-background', 'white', '-alpha', 'remove', '-strip', outputPath,
-    ], { timeout: 120000, maxBuffer: 10 * 1024 * 1024 });
+    ], { timeout: 180000, maxBuffer: 20 * 1024 * 1024 });
     return 'ImageMagick';
   }
   if (await commandExists('convert')) {
     await execFileAsync('convert', [
-      '-density', '130', `${sourcePath}[0]`, '-thumbnail', `${maxPixels}x${maxPixels}>`,
+      '-density', String(density), `${sourcePath}[0]`, '-thumbnail', `${maxPixels}x${maxPixels}>`,
       '-background', 'white', '-alpha', 'remove', '-strip', outputPath,
-    ], { timeout: 120000, maxBuffer: 10 * 1024 * 1024 });
+    ], { timeout: 180000, maxBuffer: 20 * 1024 * 1024 });
     return 'ImageMagick';
   }
   if (await commandExists('gs')) {
     await execFileAsync('gs', [
-      '-dSAFER', '-dBATCH', '-dNOPAUSE', '-sDEVICE=pngalpha', '-r130',
+      '-dSAFER', '-dBATCH', '-dNOPAUSE', '-sDEVICE=pngalpha', `-r${density}`,
       '-dFirstPage=1', '-dLastPage=1', `-sOutputFile=${outputPath}`, sourcePath,
-    ], { timeout: 120000, maxBuffer: 10 * 1024 * 1024 });
+    ], { timeout: 180000, maxBuffer: 20 * 1024 * 1024 });
     return 'Ghostscript';
   }
   return null;

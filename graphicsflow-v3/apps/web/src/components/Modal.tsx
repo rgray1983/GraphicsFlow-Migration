@@ -5,9 +5,10 @@ type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  variant?: 'default' | 'viewer';
 };
 
-export function Modal({ children, isOpen, onClose, title }: ModalProps) {
+export function Modal({ children, isOpen, onClose, title, variant = 'default' }: ModalProps) {
   const titleId = useId();
 
   useEffect(() => {
@@ -21,12 +22,21 @@ export function Modal({ children, isOpen, onClose, title }: ModalProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
     <div className="modal-layer" role="presentation">
       <button aria-label="Close modal" className="modal-backdrop" onClick={onClose} type="button" />
-      <section aria-labelledby={titleId} aria-modal="true" className="modal-dialog" role="dialog">
+      <section aria-labelledby={titleId} aria-modal="true" className={`modal-dialog${variant === 'viewer' ? ' modal-dialog-viewer' : ''}`} role="dialog">
         <header className="modal-header">
           <h2 id={titleId}>{title}</h2>
           <button aria-label="Close" className="icon-button" onClick={onClose} type="button">×</button>

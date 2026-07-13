@@ -105,3 +105,23 @@ Approval thumbnails and medium previews are generated into a managed preview cac
 Inspectors and future viewers request previews through one backend service. The service detects ImageMagick or Ghostscript, generates the first PDF page, caches the result, and returns a clear unavailable state when the server has no supported renderer.
 
 **Reason:** Keep rendering, invalidation, cache storage, and error handling consistent across every feature that needs a visual document preview.
+
+## 2026-07-13
+
+### Approval viewing uses cached imagery and live source actions
+
+The Approval Viewer uses a cached browser-friendly image for fast zooming and panning. Print and download actions resolve and stream the original live PDF through a server endpoint that validates the real file path remains within the configured Approvals root.
+
+**Reason:** Keep viewer interaction fast while ensuring printed and downloaded documents remain the authoritative production PDF and arbitrary filesystem paths are never exposed.
+
+### Major workflows support multiple input methods
+
+Major GraphicsFlow workflows should work well with mouse, keyboard, touch, and stylus whenever practical. Professional interaction patterns already familiar from tools such as Illustrator and Acrobat should be preferred when they reduce training and improve speed.
+
+**Reason:** GraphicsFlow will be used by office staff, designers, QC personnel, and production teams on desktops, tablets, and plant-floor devices. No group should feel like it is using a secondary version of the product.
+
+### Core graphic metadata belongs to V3
+
+Spec #, Design #, and other canonical graphic metadata are stored in the writable V3 database rather than modeled as permanent joins against legacy PHP tables. During migration, a dedicated adapter may read missing values from Graphics Manager 2.0 and persist them into V3 through a read-through import.
+
+**Reason:** Preserve legacy data during transition while ensuring future GraphicsFlow features depend on a stable V3 model that can outlive the PHP application.
