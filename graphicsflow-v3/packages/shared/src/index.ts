@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export { formatDNumber, formatGNumber, formatRevision, formatSpecNumber } from './formatters.js';
+export { renderPrintCardSvg } from './print-card-template.js';
+export type { PrintCardTemplateData, PrintCardTemplateRevision } from './print-card-template.js';
 
 export const healthResponseSchema = z.object({ status: z.literal('ok'), service: z.string(), version: z.string(), timestamp: z.string().datetime() });
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
@@ -26,6 +28,48 @@ export const graphicsQuerySchema = z.object({
   sortDirection: sortDirectionSchema.default('desc'),
 });
 export const graphicsListResponseSchema = z.object({ items: z.array(graphicRecordSchema), total: z.number().int().nonnegative(), query: z.string() });
+
+export const printCardRevisionSchema = z.object({
+  id: z.number().int().positive().nullable(),
+  revisionLabel: z.string(),
+  revisionDate: z.string(),
+  description: z.string(),
+  csr: z.string(),
+  designer: z.string(),
+  specificationNumber: z.string(),
+  designNumber: z.string(),
+  renderedRelativePath: z.string().nullable(),
+  createdAt: z.string().datetime().nullable(),
+  source: z.enum(['legacy-import', 'graphicsflow', 'approval-autofill']),
+});
+export const printCardDraftSchema = z.object({
+  specificationNumber: z.string().trim().min(1, 'Spec # is required.').max(80),
+  designNumber: z.string().trim().max(80).default(''),
+  revisionLabel: z.string().trim().min(1, 'Revision is required.').max(20),
+  revisionDate: z.string().trim().min(1, 'Revision date is required.').max(30),
+  description: z.string().trim().min(1, 'Description is required.').max(240),
+  csr: z.string().trim().min(1, 'CSR is required.').max(40),
+  designer: z.string().trim().min(1, 'Designer is required.').max(40),
+  replaceExistingImage: z.boolean().default(false),
+});
+export const printCardDefaultsResponseSchema = z.object({
+  graphic: graphicRecordSchema,
+  draft: printCardDraftSchema,
+  history: z.array(printCardRevisionSchema),
+  autoFill: z.object({
+    approvalFound: z.boolean(),
+    approvalFieldsRead: z.boolean(),
+    sources: z.record(z.string(), z.string()),
+    message: z.string().nullable(),
+  }),
+});
+export const createPrintCardResponseSchema = z.object({
+  graphicId: z.number().int().positive(),
+  revision: printCardRevisionSchema,
+  fileName: z.string(),
+  relativePath: z.string(),
+  replacedExistingImage: z.boolean(),
+});
 
 export const graphicFileKindSchema = z.enum(['approval', 'printCard']);
 export const graphicFileMatchSchema = z.object({
@@ -83,6 +127,10 @@ export type GraphicsSortField = z.infer<typeof graphicsSortFieldSchema>;
 export type SortDirection = z.infer<typeof sortDirectionSchema>;
 export type GraphicsQuery = z.infer<typeof graphicsQuerySchema>;
 export type GraphicsListResponse = z.infer<typeof graphicsListResponseSchema>;
+export type PrintCardRevision = z.infer<typeof printCardRevisionSchema>;
+export type PrintCardDraft = z.infer<typeof printCardDraftSchema>;
+export type PrintCardDefaultsResponse = z.infer<typeof printCardDefaultsResponseSchema>;
+export type CreatePrintCardResponse = z.infer<typeof createPrintCardResponseSchema>;
 export type GraphicFileKind = z.infer<typeof graphicFileKindSchema>;
 export type GraphicFileMatch = z.infer<typeof graphicFileMatchSchema>;
 export type GraphicFilesResponse = z.infer<typeof graphicFilesResponseSchema>;
