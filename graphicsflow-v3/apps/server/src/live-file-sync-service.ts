@@ -21,6 +21,7 @@ database.exec('PRAGMA foreign_keys = ON;');
 const watchers = new Map<GraphicFileKind, FSWatcher>();
 const pendingChanges = new Map<string, NodeJS.Timeout>();
 const recentRepairs = new Map<string, number>();
+const activeRepairs = new Map<string, Promise<number>>();
 
 let syncStatus = {
   active: false,
@@ -186,28 +187,39 @@ export function initializeLiveFileSync(): void {
 }
 
 export function restartLiveFileSync(): void {
-  initializeLiveFileSync();
+  setImmediate(() => initializeLiveFileSync());
 }
 
-export async function repairGraphicFileMisses(
-  gNumberValue: string,
-  kinds: GraphicFileKind[] = ['approval', 'printCard'],
-): Promise<number> {
-  const gNumber = normalizeNumber(gNumberValue.match(/\d+/g)?.join('') ?? '');
-  if (!gNumber || kinds.length === 0) return 0;
+async function repairKind(gNumber: string, kind: GraphicFileKind): Promise<number> {
+  const key = `${kind}|${gNumber}`;
+  const existing = activeRepairs.get(key);
+  if (existing) return existing;
+
+  const lastRepair = recentRepairs.get(key) ?? 0;
+  if (Date.now() - lastRepair < NEGATIVE_REPAIR_COOLDOWN_MS) return 0;
+  recentRepairs.set(key, Date.now());
+
   const settings = getCompanySettings();
-  const repairs = await Promise.all(kinds.map(async (kind) => {
-    const key = `${kind}|${gNumber}`;
-    const lastRepair = recentRepairs.get(key) ?? 0;
-    if (Date.now() - lastRepair < NEGATIVE_REPAIR_COOLDOWN_MS) return 0;
-    recentRepairs.set(key, Date.now());
-    const root = kind === 'approval' ? settings.storage.approvalsRoot : settings.storage.printCardsRoot;
-    const repaired = await targetedScan(root, kind, gNumber);
-    if (repaired > 0) recentRepairs.delete(key);
-    return repaired;
-  }));
-  syncStatus = { ...syncStatus, lastRepairAt: new Date().toISOString() };
-  return repairs.reduce((total, count) => total + count, 0);
+  const root = kind === 'approval' ? settings.storage.approvalsRoot : settings.storage.printCardsRoot;
+  const job = targetedScan(root, kind, gNumber)
+    .then((repaired) => {
+      if (repaired > 0) recentRepairs.delete(key);
+      syncStatus = { ...syncStatus, lastRepairAt: new Date().toISOString() };
+      return repaired;
+    })
+    .finally(() => activeRepairs.delete(key));
+
+  activeRepairs.set(key, job);
+  return job;
+}
+
+export function scheduleGraphicFileMissRepair(
+  gNumberValue: string,
+  kinds: GraphicFileKind[],
+): void {
+  const gNumber = normalizeNumber(gNumberValue.match(/\d+/g)?.join('') ?? '');
+  if (!gNumber || kinds.length === 0) return;
+  for (const kind of kinds) void repairKind(gNumber, kind);
 }
 
 export function getLiveFileSyncStatus() {
