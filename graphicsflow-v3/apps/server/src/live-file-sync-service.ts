@@ -8,6 +8,7 @@ import { getCompanySettings, settingsDatabasePath } from './settings-store.js';
 const MAX_DEPTH = 5;
 const MAX_TARGETED_ENTRIES = 25_000;
 const WATCH_DEBOUNCE_MS = 500;
+const NEGATIVE_REPAIR_COOLDOWN_MS = 60_000;
 
 const allowedExtensions: Record<GraphicFileKind, Set<string>> = {
   approval: new Set(['.pdf']),
@@ -19,6 +20,7 @@ database.exec('PRAGMA foreign_keys = ON;');
 
 const watchers = new Map<GraphicFileKind, FSWatcher>();
 const pendingChanges = new Map<string, NodeJS.Timeout>();
+const recentRepairs = new Map<string, number>();
 
 let syncStatus = {
   active: false,
@@ -132,6 +134,7 @@ function scheduleWatcherUpdate(kind: GraphicFileKind, root: string, fileName: st
     pendingChanges.delete(key);
     void upsertIndexedFile(kind, root, relativePath)
       .then(() => {
+        recentRepairs.clear();
         syncStatus = { ...syncStatus, lastEventAt: new Date().toISOString() };
       })
       .catch(() => {
@@ -170,6 +173,7 @@ export function initializeLiveFileSync(): void {
   const settings = getCompanySettings();
   const approvalWatcher = startWatcher('approval', settings.storage.approvalsRoot);
   const printCardWatcher = startWatcher('printCard', settings.storage.printCardsRoot);
+  recentRepairs.clear();
   syncStatus = {
     ...syncStatus,
     active: approvalWatcher || printCardWatcher,
@@ -185,16 +189,25 @@ export function restartLiveFileSync(): void {
   initializeLiveFileSync();
 }
 
-export async function repairGraphicFileMisses(gNumberValue: string): Promise<number> {
+export async function repairGraphicFileMisses(
+  gNumberValue: string,
+  kinds: GraphicFileKind[] = ['approval', 'printCard'],
+): Promise<number> {
   const gNumber = normalizeNumber(gNumberValue.match(/\d+/g)?.join('') ?? '');
-  if (!gNumber) return 0;
+  if (!gNumber || kinds.length === 0) return 0;
   const settings = getCompanySettings();
-  const [approvalRepairs, printCardRepairs] = await Promise.all([
-    targetedScan(settings.storage.approvalsRoot, 'approval', gNumber),
-    targetedScan(settings.storage.printCardsRoot, 'printCard', gNumber),
-  ]);
+  const repairs = await Promise.all(kinds.map(async (kind) => {
+    const key = `${kind}|${gNumber}`;
+    const lastRepair = recentRepairs.get(key) ?? 0;
+    if (Date.now() - lastRepair < NEGATIVE_REPAIR_COOLDOWN_MS) return 0;
+    recentRepairs.set(key, Date.now());
+    const root = kind === 'approval' ? settings.storage.approvalsRoot : settings.storage.printCardsRoot;
+    const repaired = await targetedScan(root, kind, gNumber);
+    if (repaired > 0) recentRepairs.delete(key);
+    return repaired;
+  }));
   syncStatus = { ...syncStatus, lastRepairAt: new Date().toISOString() };
-  return approvalRepairs + printCardRepairs;
+  return repairs.reduce((total, count) => total + count, 0);
 }
 
 export function getLiveFileSyncStatus() {
