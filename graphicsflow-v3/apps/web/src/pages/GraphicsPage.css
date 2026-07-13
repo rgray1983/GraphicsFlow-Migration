@@ -41,3 +41,16 @@
   line-height: 1;
   text-align: center;
 }
+
+.graphics-toolbar { display: flex; align-items: center; gap: 12px; }
+.graphics-toolbar .search-field { flex: 1; min-width: 0; }
+.create-graphic-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 15px; border: 1px solid rgba(45,212,191,.28); border-radius: 10px; background: linear-gradient(135deg, rgba(20,184,166,.94), rgba(13,148,136,.94)); color: white; font-weight: 800; white-space: nowrap; cursor: pointer; box-shadow: 0 10px 24px rgba(20,184,166,.13); transition: transform .14s ease, filter .14s ease; }
+.create-graphic-button:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.create-graphic-button:focus-visible { outline: 2px solid rgba(153,246,228,.72); outline-offset: 2px; }
+.create-graphic-button span { font-size: 17px; line-height: 1; }
+.graphics-success { margin-top: 12px; padding: 10px 13px; border: 1px solid rgba(45,212,191,.2); border-radius: 10px; background: rgba(20,184,166,.09); color: #ccfbf1; font-size: 12px; font-weight: 700; }
+
+@media (max-width: 700px) {
+  .graphics-toolbar { align-items: stretch; flex-direction: column; }
+  .create-graphic-button { width: 100%; }
+}
