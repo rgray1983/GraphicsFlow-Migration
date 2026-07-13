@@ -1,12 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   formatGNumber,
+  type CreateGraphicResponse,
   type GraphicRecord,
   type GraphicsListResponse,
   type GraphicsSortField,
   type SortDirection,
 } from '@graphicsflow/shared';
 import { useEffect, useState } from 'react';
+import { CreateGraphicModal } from '../components/CreateGraphicModal';
 import { GraphicsRecordInspector } from '../components/GraphicsRecordInspector';
 import './GraphicsPage.css';
 
@@ -28,7 +30,8 @@ async function fetchGraphics(
 
 function formatCreatedAt(value: string | null): string {
   if (!value) return '—';
-  const date = new Date(value.replace(' ', 'T') + 'Z');
+  const normalized = value.includes('T') ? value : value.replace(' ', 'T') + 'Z';
+  const date = new Date(normalized);
   return Number.isNaN(date.getTime())
     ? value
     : new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
@@ -57,16 +60,25 @@ function SortableHeader({ activeSort, direction, field, label, onSort }: Sortabl
 }
 
 export function GraphicsPage() {
+  const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<GraphicsSortField>('gNumber');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedRecord, setSelectedRecord] = useState<GraphicRecord | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creationNotice, setCreationNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
+
+  useEffect(() => {
+    if (!creationNotice) return;
+    const timer = window.setTimeout(() => setCreationNotice(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [creationNotice]);
 
   const graphicsQuery = useQuery({
     queryKey: ['graphics', search, sortBy, sortDirection],
@@ -89,6 +101,17 @@ export function GraphicsPage() {
 
     setSortBy(field);
     setSortDirection(field === 'gNumber' || field === 'createdAt' ? 'desc' : 'asc');
+  };
+
+  const handleCreated = async ({ graphic }: CreateGraphicResponse) => {
+    setCreateOpen(false);
+    setSearchInput('');
+    setSearch('');
+    setSortBy('gNumber');
+    setSortDirection('desc');
+    setSelectedRecord(graphic);
+    setCreationNotice(`${formatGNumber(graphic.gNumber)} was created successfully.`);
+    await queryClient.invalidateQueries({ queryKey: ['graphics'] });
   };
 
   return (
@@ -120,7 +143,13 @@ export function GraphicsPage() {
             <button aria-label="Clear search" onClick={() => setSearchInput('')} type="button">Clear</button>
           )}
         </label>
+        <button className="create-graphic-button" onClick={() => setCreateOpen(true)} type="button">
+          <span aria-hidden="true">＋</span>
+          Create G#
+        </button>
       </div>
+
+      {creationNotice && <div className="graphics-success" role="status">{creationNotice}</div>}
 
       <div className="graphics-workspace">
         <div className="graphics-table-card">
@@ -194,6 +223,8 @@ export function GraphicsPage() {
       {!graphicsQuery.isPending && !graphicsQuery.isError && records.length < total && (
         <p className="result-note">Showing the first {records.length.toLocaleString()} of {total.toLocaleString()} records in the selected sort order.</p>
       )}
+
+      <CreateGraphicModal isOpen={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleCreated} />
     </section>
   );
 }
