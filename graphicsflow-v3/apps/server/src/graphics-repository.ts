@@ -11,6 +11,14 @@ type GraphicRow = {
   created_at: string | null;
 };
 
+const sortColumns: Record<GraphicsQuery['sortBy'], string> = {
+  gNumber: 'CAST(g_number AS INTEGER)',
+  customerNumber: "COALESCE(customer_number, '') COLLATE NOCASE",
+  customerName: "COALESCE(customer_name, '') COLLATE NOCASE",
+  partNumber: "COALESCE(part_number, '') COLLATE NOCASE",
+  createdAt: "COALESCE(created_at, '')",
+};
+
 function mapGraphic(row: GraphicRow): GraphicRecord {
   return {
     id: row.id,
@@ -43,6 +51,8 @@ export function listGraphics(query: GraphicsQuery): GraphicsListResponse {
         OR part_number LIKE ? COLLATE NOCASE`
     : '';
   const searchParameters = search ? [pattern, pattern, pattern, pattern] : [];
+  const sortColumn = sortColumns[query.sortBy];
+  const sortDirection = query.sortDirection === 'asc' ? 'ASC' : 'DESC';
 
   const countStatement = database.prepare(`SELECT COUNT(*) AS total FROM graphics ${whereClause}`);
   const countRow = countStatement.get(...searchParameters) as { total: number };
@@ -51,7 +61,7 @@ export function listGraphics(query: GraphicsQuery): GraphicsListResponse {
     SELECT id, g_number, customer_number, customer_name, part_number, preview_image, created_at
     FROM graphics
     ${whereClause}
-    ORDER BY CAST(g_number AS INTEGER) DESC, id DESC
+    ORDER BY ${sortColumn} ${sortDirection}, id ${sortDirection}
     LIMIT ?
   `);
 
