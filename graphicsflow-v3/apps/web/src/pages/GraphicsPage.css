@@ -19,29 +19,10 @@
   transition: color .14s ease, background .14s ease;
 }
 
-.sort-header:hover {
-  color: #cbd5e1;
-  background: rgba(148, 163, 184, .07);
-}
-
-.sort-header:focus-visible {
-  outline: 2px solid rgba(45, 212, 191, .55);
-  outline-offset: 1px;
-}
-
-.sort-header.is-active {
-  color: #99f6e4;
-}
-
-.sort-arrow {
-  width: 10px;
-  flex: 0 0 10px;
-  color: #2dd4bf;
-  font-size: 11px;
-  line-height: 1;
-  text-align: center;
-}
-
+.sort-header:hover { color: #cbd5e1; background: rgba(148, 163, 184, .07); }
+.sort-header:focus-visible { outline: 2px solid rgba(45, 212, 191, .55); outline-offset: 1px; }
+.sort-header.is-active { color: #99f6e4; }
+.sort-arrow { width: 10px; flex: 0 0 10px; color: #2dd4bf; font-size: 11px; line-height: 1; text-align: center; }
 .graphics-toolbar { display: flex; align-items: center; gap: 12px; }
 .graphics-toolbar .search-field { flex: 1; min-width: 0; }
 .create-graphic-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 15px; border: 1px solid rgba(45,212,191,.28); border-radius: 10px; background: linear-gradient(135deg, rgba(20,184,166,.94), rgba(13,148,136,.94)); color: white; font-weight: 800; white-space: nowrap; cursor: pointer; box-shadow: 0 10px 24px rgba(20,184,166,.13); transition: transform .14s ease, filter .14s ease; }
@@ -49,6 +30,13 @@
 .create-graphic-button:focus-visible { outline: 2px solid rgba(153,246,228,.72); outline-offset: 2px; }
 .create-graphic-button span { font-size: 17px; line-height: 1; }
 .graphics-success { margin-top: 12px; padding: 10px 13px; border: 1px solid rgba(45,212,191,.2); border-radius: 10px; background: rgba(20,184,166,.09); color: #ccfbf1; font-size: 12px; font-weight: 700; }
+.record-management-section { border-top-color: rgba(248,113,113,.14); }
+.record-delete-area { display: grid; gap: 12px; }
+.record-delete-area p { margin: 0; color: #7f8da3; font-size: 11px; line-height: 1.55; }
+.record-delete-button { width: 100%; min-height: 38px; border: 1px solid rgba(248,113,113,.22); border-radius: 9px; background: rgba(127,29,29,.12); color: #fca5a5; font-size: 11px; font-weight: 800; cursor: pointer; transition: background .14s ease, border-color .14s ease, color .14s ease; }
+.record-delete-button:hover:not(:disabled) { border-color: rgba(248,113,113,.42); background: rgba(127,29,29,.22); color: #fecaca; }
+.record-delete-button:disabled { opacity: .55; cursor: wait; }
+.record-delete-error { padding: 9px 10px; border: 1px solid rgba(248,113,113,.2); border-radius: 8px; background: rgba(127,29,29,.14); color: #fecaca; font-size: 10px; line-height: 1.45; }
 
 @media (max-width: 700px) {
   .graphics-toolbar { align-items: stretch; flex-direction: column; }
