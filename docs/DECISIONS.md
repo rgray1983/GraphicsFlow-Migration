@@ -113,3 +113,9 @@ Inspectors and future viewers request previews through one backend service. The 
 The Approval Viewer uses a cached browser-friendly image for fast zooming and panning. Print and download actions resolve and stream the original live PDF through a server endpoint that validates the real file path remains within the configured Approvals root.
 
 **Reason:** Keep viewer interaction fast while ensuring printed and downloaded documents remain the authoritative production PDF and arbitrary filesystem paths are never exposed.
+
+### Major workflows support multiple input methods
+
+Major GraphicsFlow workflows should work well with mouse, keyboard, touch, and stylus whenever practical. Professional interaction patterns already familiar from tools such as Illustrator and Acrobat should be preferred when they reduce training and improve speed.
+
+**Reason:** GraphicsFlow will be used by office staff, designers, QC personnel, and production teams on desktops, tablets, and plant-floor devices. No group should feel like it is using a secondary version of the product.
