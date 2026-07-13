@@ -44,9 +44,11 @@ export function GraphicsPage() {
   const [selectedRecord, setSelectedRecord] = useState<GraphicRecord | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [creationNotice, setCreationNotice] = useState<string | null>(null);
+  const [newlyCreatedId, setNewlyCreatedId] = useState<number | null>(null);
 
   useEffect(() => { const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250); return () => window.clearTimeout(timer); }, [searchInput]);
   useEffect(() => { if (!creationNotice) return; const timer = window.setTimeout(() => setCreationNotice(null), 4500); return () => window.clearTimeout(timer); }, [creationNotice]);
+  useEffect(() => { if (!newlyCreatedId) return; const timer = window.setTimeout(() => setNewlyCreatedId(null), 1400); return () => window.clearTimeout(timer); }, [newlyCreatedId]);
 
   const graphicsQuery = useQuery({ queryKey: ['graphics', search, sortBy, sortDirection], queryFn: () => fetchGraphics(search, sortBy, sortDirection) });
   const records = graphicsQuery.data?.items ?? [];
@@ -60,13 +62,20 @@ export function GraphicsPage() {
   };
 
   const handleCreated = async ({ graphic }: CreateGraphicResponse) => {
-    setCreateOpen(false); setSearchInput(''); setSearch(''); setSortBy('gNumber'); setSortDirection('desc'); setSelectedRecord(graphic);
-    setCreationNotice(`${formatGNumber(graphic.gNumber)} was created successfully.`);
+    setCreateOpen(false);
+    setSearchInput('');
+    setSearch('');
+    setSortBy('gNumber');
+    setSortDirection('desc');
+    setSelectedRecord(graphic);
+    setNewlyCreatedId(graphic.id);
+    setCreationNotice(`${formatGNumber(graphic.gNumber)} created successfully.`);
     await queryClient.invalidateQueries({ queryKey: ['graphics'] });
   };
 
   const handleDeleted = async ({ deletedGNumber }: DeleteGraphicResponse) => {
     setSelectedRecord(null);
+    setNewlyCreatedId(null);
     setCreationNotice(`${formatGNumber(deletedGNumber)} was deleted from the V3 database.`);
     await queryClient.invalidateQueries({ queryKey: ['graphics'] });
   };
@@ -75,12 +84,12 @@ export function GraphicsPage() {
     <section className={`graphics-page${drawerOpen ? ' has-drawer' : ''}`}>
       <div className="page-heading-row"><div><p className="eyebrow">Graphics database</p><h2>Graphics</h2><p className="page-description">Find a G# and keep its connected information in one workspace.</p></div><div className="record-count" aria-live="polite"><strong>{graphicsQuery.isPending ? '—' : total.toLocaleString()}</strong><span>{search ? 'matching records' : 'total records'}</span></div></div>
       <div className="graphics-toolbar"><label className="search-field"><span className="sr-only">Search graphics records</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" /></svg><input autoComplete="off" onChange={(event) => setSearchInput(event.target.value)} placeholder="Search G#, customer number, customer name, or part number…" type="search" value={searchInput} />{searchInput && <button aria-label="Clear search" onClick={() => setSearchInput('')} type="button">Clear</button>}</label><button className="create-graphic-button" onClick={() => setCreateOpen(true)} type="button"><span aria-hidden="true">＋</span>Create G#</button></div>
-      {creationNotice && <div className="graphics-success" role="status">{creationNotice}</div>}
+      {creationNotice && <div className="graphics-success" role="status"><span aria-hidden="true">✓</span>{creationNotice}</div>}
       <div className="graphics-workspace"><div className="graphics-table-card">
         {graphicsQuery.isPending && <div className="table-state">Loading graphics records…</div>}
         {graphicsQuery.isError && <div className="table-state table-state-error"><strong>Graphics could not be loaded.</strong><span>Confirm that the V3 database is available, then try again.</span><button onClick={() => graphicsQuery.refetch()} type="button">Try again</button></div>}
         {!graphicsQuery.isPending && !graphicsQuery.isError && records.length === 0 && <div className="table-state"><strong>No graphics records found.</strong><span>{search ? `Nothing matched “${search}”.` : 'The graphics database is empty.'}</span></div>}
-        {!graphicsQuery.isPending && !graphicsQuery.isError && records.length > 0 && <div className="table-scroll"><table className="graphics-table"><thead><tr><SortableHeader activeSort={sortBy} direction={sortDirection} field="gNumber" label="G#" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="customerNumber" label="Customer #" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="customerName" label="Customer" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="partNumber" label="Part #" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="createdAt" label="Created" onSort={handleSort} /></tr></thead><tbody>{records.map((record) => { const selected = selectedRecord?.id === record.id; return <tr aria-selected={selected} className={selected ? 'is-selected' : undefined} key={record.id} onClick={() => setSelectedRecord(record)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedRecord(record); } }} tabIndex={0}><td><span className="g-number">{formatGNumber(record.gNumber)}</span></td><td>{record.customerNumber || '—'}</td><td className="customer-name">{record.customerName || '—'}</td><td>{record.partNumber || '—'}</td><td className="created-date">{formatCreatedAt(record.createdAt)}</td></tr>; })}</tbody></table></div>}
+        {!graphicsQuery.isPending && !graphicsQuery.isError && records.length > 0 && <div className="table-scroll"><table className="graphics-table"><thead><tr><SortableHeader activeSort={sortBy} direction={sortDirection} field="gNumber" label="G#" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="customerNumber" label="Customer #" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="customerName" label="Customer" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="partNumber" label="Part #" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="createdAt" label="Created" onSort={handleSort} /></tr></thead><tbody>{records.map((record) => { const selected = selectedRecord?.id === record.id; const newlyCreated = newlyCreatedId === record.id; const rowClassName = [selected ? 'is-selected' : '', newlyCreated ? 'is-newly-created' : ''].filter(Boolean).join(' ') || undefined; return <tr aria-selected={selected} className={rowClassName} key={record.id} onClick={() => setSelectedRecord(record)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedRecord(record); } }} tabIndex={0}><td><span className="g-number">{formatGNumber(record.gNumber)}</span></td><td>{record.customerNumber || '—'}</td><td className="customer-name">{record.customerName || '—'}</td><td>{record.partNumber || '—'}</td><td className="created-date">{formatCreatedAt(record.createdAt)}</td></tr>; })}</tbody></table></div>}
       </div><GraphicsRecordInspector isOpen={drawerOpen} onClose={() => setSelectedRecord(null)} onDeleted={handleDeleted} record={selectedRecord} /></div>
       {!graphicsQuery.isPending && !graphicsQuery.isError && records.length < total && <p className="result-note">Showing the first {records.length.toLocaleString()} of {total.toLocaleString()} records in the selected sort order.</p>}
       <CreateGraphicModal isOpen={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleCreated} />
