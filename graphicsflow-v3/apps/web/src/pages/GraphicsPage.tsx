@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { CreateGraphicModal } from '../components/CreateGraphicModal';
 import { GraphicsRecordInspector } from '../components/GraphicsRecordInspector';
 import { PrintCardCreatorModal } from '../components/PrintCardCreatorModal';
+import { PrintCardViewer } from '../components/PrintCardViewer';
 import { Toast } from '../components/Toast';
 import './GraphicsPage.css';
 
@@ -47,6 +48,7 @@ export function GraphicsPage() {
   const [selectedRecord, setSelectedRecord] = useState<GraphicRecord | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [printCardOpen, setPrintCardOpen] = useState(false);
+  const [generatedViewerOpen, setGeneratedViewerOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [newlyCreatedId, setNewlyCreatedId] = useState<number | null>(null);
 
@@ -83,11 +85,14 @@ export function GraphicsPage() {
       queryClient.invalidateQueries({ queryKey: ['graphic-files', result.graphicId] }),
       queryClient.invalidateQueries({ queryKey: ['print-card-defaults', result.graphicId] }),
     ]);
+    await queryClient.refetchQueries({ queryKey: ['graphic-files', result.graphicId] });
+    setGeneratedViewerOpen(true);
   };
 
   const handleDeleted = async ({ deletedGNumber }: DeleteGraphicResponse) => {
     setSelectedRecord(null);
     setNewlyCreatedId(null);
+    setGeneratedViewerOpen(false);
     setNotification(`${formatGNumber(deletedGNumber)} was deleted from the V3 database.`);
     await queryClient.invalidateQueries({ queryKey: ['graphics'] });
   };
@@ -106,10 +111,11 @@ export function GraphicsPage() {
         {graphicsQuery.isError && <div className="table-state table-state-error"><strong>Graphics could not be loaded.</strong><span>Confirm that the V3 database is available, then try again.</span><button onClick={() => graphicsQuery.refetch()} type="button">Try again</button></div>}
         {!graphicsQuery.isPending && !graphicsQuery.isError && records.length === 0 && <div className="table-state"><strong>No graphics records found.</strong><span>{search ? `Nothing matched “${search}”.` : 'The graphics database is empty.'}</span></div>}
         {!graphicsQuery.isPending && !graphicsQuery.isError && records.length > 0 && <div className="table-scroll"><table className="graphics-table"><thead><tr><SortableHeader activeSort={sortBy} direction={sortDirection} field="gNumber" label="G#" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="customerNumber" label="Customer #" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="customerName" label="Customer" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="partNumber" label="Part #" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="createdAt" label="Created" onSort={handleSort} /></tr></thead><tbody>{records.map((record) => { const selected = selectedRecord?.id === record.id; const newlyCreated = newlyCreatedId === record.id; const rowClassName = [selected ? 'is-selected' : '', newlyCreated ? 'is-newly-created' : ''].filter(Boolean).join(' ') || undefined; return <tr aria-selected={selected} className={rowClassName} key={record.id} onClick={() => setSelectedRecord(record)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedRecord(record); } }} tabIndex={0}><td><span className="g-number">{formatGNumber(record.gNumber)}</span></td><td>{record.customerNumber || '—'}</td><td className="customer-name">{record.customerName || '—'}</td><td>{record.partNumber || '—'}</td><td className="created-date">{formatCreatedAt(record.createdAt)}</td></tr>; })}</tbody></table></div>}
-      </div><GraphicsRecordInspector isOpen={drawerOpen} onClose={() => setSelectedRecord(null)} onDeleted={handleDeleted} record={selectedRecord} /></div>
+      </div><GraphicsRecordInspector isOpen={drawerOpen} onClose={() => setSelectedRecord(null)} onCreatePrintCard={() => setPrintCardOpen(true)} onDeleted={handleDeleted} record={selectedRecord} /></div>
       {!graphicsQuery.isPending && !graphicsQuery.isError && records.length < total && <p className="result-note">Showing the first {records.length.toLocaleString()} of {total.toLocaleString()} records in the selected sort order.</p>}
       <CreateGraphicModal isOpen={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleCreated} />
       <PrintCardCreatorModal isOpen={printCardOpen} onClose={() => setPrintCardOpen(false)} onCreated={handlePrintCardCreated} record={selectedRecord} />
+      {selectedRecord && <PrintCardViewer file={null} isOpen={generatedViewerOpen} onClose={() => setGeneratedViewerOpen(false)} record={selectedRecord} />}
     </section>
   );
 }
