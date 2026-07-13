@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import './styles.css';
 import './live-files.css';
+import './approval-viewer.css';
 
 const queryClient = new QueryClient();
 
