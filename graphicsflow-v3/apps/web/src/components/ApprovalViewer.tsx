@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react';
-import { formatGNumber, type GraphicFileMatch, type GraphicRecord } from '@graphicsflow/shared';
+import { formatGNumber, formatSpecNumber, type GraphicFileMatch, type GraphicRecord } from '@graphicsflow/shared';
 import { Modal } from './Modal';
 
 type ApprovalViewerProps = {
@@ -147,6 +147,10 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
     dragging ? 'is-dragging' : '',
   ].filter(Boolean).join(' ');
 
+  const specNumber = record.specificationNumber.trim()
+    ? formatSpecNumber(record.specificationNumber)
+    : 'NONE';
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`${formatGNumber(record.gNumber)} Approval`} variant="viewer">
       <div className="approval-viewer">
@@ -186,12 +190,26 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
             <dl>
               <div><dt>G#</dt><dd>{formatGNumber(record.gNumber)}</dd></div>
               <div><dt>Customer #</dt><dd>{record.customerNumber || 'Not recorded'}</dd></div>
+              <div><dt>Spec #</dt><dd>{specNumber}</dd></div>
               <div><dt>Part Number</dt><dd>{record.partNumber || 'Not recorded'}</dd></div>
               <div><dt>File</dt><dd>{approval?.name ?? 'Not available'}</dd></div>
               <div><dt>Modified</dt><dd>{approval ? formatDate(approval.modifiedAt) : 'Not available'}</dd></div>
               <div><dt>File Size</dt><dd>{approval ? formatFileSize(approval.size) : 'Not available'}</dd></div>
             </dl>
-            <p className="viewer-help">Hold Command or Control while scrolling to zoom. Hold Spacebar for the hand tool, then drag to pan while zoomed in.</p>
+
+            <section className="viewer-hotkeys" aria-labelledby="approval-hotkeys-title">
+              <h4 id="approval-hotkeys-title">Hot Keys</h4>
+              <div className="viewer-hotkey-row">
+                <span className="viewer-hotkey-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5M10.5 7.5v6M7.5 10.5h6" /></svg>
+                </span>
+                <div><strong>Ctrl / Cmd + Scroll</strong><span>Zoom in or out</span></div>
+              </div>
+              <div className="viewer-hotkey-row">
+                <kbd>Spacebar</kbd>
+                <div><strong>Hold + click/drag</strong><span>Pan while zoomed</span></div>
+              </div>
+            </section>
           </aside>
         </div>
       </div>
