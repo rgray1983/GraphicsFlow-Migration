@@ -9,6 +9,8 @@ type ApprovalViewerProps = {
   record: GraphicRecord;
 };
 
+type ActivePointer = { x: number; y: number; type: string };
+
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 4;
 const SCALE_STEP = 0.25;
@@ -26,13 +28,22 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
 }
 
+function pointerDistance(first: ActivePointer, second: ActivePointer): number {
+  return Math.hypot(second.x - first.x, second.y - first.y);
+}
+
 export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalViewerProps) {
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [highQuality, setHighQuality] = useState(false);
+  const [qualityLoading, setQualityLoading] = useState(false);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(null);
-  const imageUrl = `/api/previews/${record.id}/medium/image`;
+  const pointersRef = useRef(new Map<number, ActivePointer>());
+  const pinchRef = useRef<{ distance: number; scale: number } | null>(null);
+  const variant = highQuality ? 'large' : 'medium';
+  const imageUrl = `/api/previews/${record.id}/${variant}/image`;
   const pdfUrl = `/api/graphics/${record.id}/approval.pdf`;
 
   useEffect(() => {
@@ -41,6 +52,11 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
     setOffset({ x: 0, y: 0 });
     setSpaceHeld(false);
     setDragging(false);
+    setHighQuality(false);
+    setQualityLoading(false);
+    dragRef.current = null;
+    pointersRef.current.clear();
+    pinchRef.current = null;
   }, [isOpen, record.id]);
 
   useEffect(() => {
@@ -66,6 +82,8 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
       setSpaceHeld(false);
       setDragging(false);
       dragRef.current = null;
+      pointersRef.current.clear();
+      pinchRef.current = null;
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -96,10 +114,7 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
     changeScale(scale + (event.deltaY < 0 ? SCALE_STEP : -SCALE_STEP));
   };
 
-  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!spaceHeld || scale <= 1) return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+  const beginDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     setDragging(true);
     dragRef.current = {
       pointerId: event.pointerId,
@@ -110,7 +125,41 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
     };
   };
 
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY, type: event.pointerType });
+
+    if (event.pointerType === 'touch') {
+      event.preventDefault();
+      const touches = [...pointersRef.current.values()].filter((pointer) => pointer.type === 'touch');
+      if (touches.length === 2) {
+        pinchRef.current = { distance: pointerDistance(touches[0], touches[1]), scale };
+        dragRef.current = null;
+        setDragging(false);
+      } else if (touches.length === 1 && scale > 1) {
+        beginDrag(event);
+      }
+      return;
+    }
+
+    if (!spaceHeld || scale <= 1) return;
+    event.preventDefault();
+    beginDrag(event);
+  };
+
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointersRef.current.has(event.pointerId)) {
+      pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY, type: event.pointerType });
+    }
+
+    const touches = [...pointersRef.current.values()].filter((pointer) => pointer.type === 'touch');
+    if (touches.length === 2 && pinchRef.current) {
+      event.preventDefault();
+      const distance = pointerDistance(touches[0], touches[1]);
+      changeScale(pinchRef.current.scale * (distance / Math.max(1, pinchRef.current.distance)));
+      return;
+    }
+
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     setOffset({
@@ -119,10 +168,14 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
     });
   };
 
-  const stopDragging = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragRef.current?.pointerId !== event.pointerId) return;
-    dragRef.current = null;
-    setDragging(false);
+  const stopPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    pointersRef.current.delete(event.pointerId);
+    const remainingTouches = [...pointersRef.current.values()].filter((pointer) => pointer.type === 'touch');
+    if (remainingTouches.length < 2) pinchRef.current = null;
+    if (dragRef.current?.pointerId === event.pointerId) {
+      dragRef.current = null;
+      setDragging(false);
+    }
   };
 
   const printApproval = () => {
@@ -138,6 +191,11 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
     };
     document.body.appendChild(iframe);
     window.setTimeout(() => iframe.remove(), 60_000);
+  };
+
+  const toggleHighQuality = () => {
+    setQualityLoading(true);
+    setHighQuality((current) => !current);
   };
 
   const canvasClassName = [
@@ -160,6 +218,11 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
             <span>{Math.round(scale * 100)}%</span>
             <button aria-label="Zoom in" disabled={scale >= MAX_SCALE} onClick={() => changeScale(scale + SCALE_STEP)} type="button">+</button>
             <button onClick={fitApproval} type="button">Fit</button>
+            <label className="viewer-quality-toggle">
+              <input checked={highQuality} onChange={toggleHighQuality} type="checkbox" />
+              <span className="viewer-quality-track" aria-hidden="true"><span /></span>
+              <span className="viewer-quality-label">High Quality</span>
+            </label>
           </div>
           <div className="viewer-control-group viewer-actions">
             <button onClick={printApproval} type="button">Print</button>
@@ -170,18 +233,25 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
         <div className="approval-viewer-layout">
           <div
             className={canvasClassName}
-            onPointerCancel={stopDragging}
+            onPointerCancel={stopPointer}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
-            onPointerUp={stopDragging}
+            onPointerUp={stopPointer}
             onWheel={handleWheel}
           >
             <img
               alt={`${formatGNumber(record.gNumber)} approval`}
               draggable={false}
+              key={imageUrl}
+              onError={() => {
+                if (highQuality) setHighQuality(false);
+                setQualityLoading(false);
+              }}
+              onLoad={() => setQualityLoading(false)}
               src={imageUrl}
               style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
             />
+            {qualityLoading && <div className="viewer-quality-loading">Loading {highQuality ? 'high quality' : 'standard'} preview…</div>}
           </div>
 
           <aside className="approval-viewer-details">
@@ -208,6 +278,10 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
               <div className="viewer-hotkey-row">
                 <kbd>Spacebar</kbd>
                 <div><strong>Hold + click/drag</strong><span>Pan while zoomed</span></div>
+              </div>
+              <div className="viewer-hotkey-row viewer-touch-help">
+                <span className="viewer-hotkey-icon" aria-hidden="true">↔</span>
+                <div><strong>Pinch / one-finger drag</strong><span>Zoom and pan on tablets</span></div>
               </div>
             </section>
           </aside>
