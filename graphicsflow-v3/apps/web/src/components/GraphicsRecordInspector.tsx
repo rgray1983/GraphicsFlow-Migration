@@ -5,7 +5,8 @@ import {
   type GraphicFilesResponse,
   type GraphicRecord,
 } from '@graphicsflow/shared';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ApprovalViewer } from './ApprovalViewer';
 import { PreviewAsset } from './PreviewAsset';
 import { RecordInspector, type InspectorSection } from './RecordInspector';
 
@@ -37,6 +38,7 @@ function FileSummary({ file, emptyMessage }: { file: GraphicFileMatch | null; em
 type GraphicsRecordInspectorProps = { isOpen: boolean; onClose: () => void; record: GraphicRecord | null };
 
 export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRecordInspectorProps) {
+  const [approvalViewerOpen, setApprovalViewerOpen] = useState(false);
   const lastRecordRef = useRef<GraphicRecord | null>(record);
   const repairRetryRef = useRef(new Set<number>());
   if (record) lastRecordRef.current = record;
@@ -48,6 +50,10 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
     staleTime: 60_000,
     refetchOnMount: 'always',
   });
+
+  useEffect(() => {
+    if (!isOpen) setApprovalViewerOpen(false);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !visibleRecord || !filesQuery.data || filesQuery.isFetching) return;
@@ -80,7 +86,10 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
       ) : !filesQuery.isPending && !indexReady ? (
         <div className="approval-preview-empty"><strong>Live file index not built</strong><span>{noIndexMessage}</span></div>
       ) : approval ? (
-        <PreviewAsset graphicId={visibleRecord.id} alt={`${formatGNumber(visibleRecord.gNumber)} approval preview`} />
+        <button className="approval-preview-button" onClick={() => setApprovalViewerOpen(true)} type="button">
+          <PreviewAsset graphicId={visibleRecord.id} alt={`${formatGNumber(visibleRecord.gNumber)} approval preview`} />
+          <span>Open Approval Viewer</span>
+        </button>
       ) : (
         <div className="approval-preview-empty"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5M9.5 15l2-2 1.5 1.5 2.5-3 2 2.5" /></svg><strong>{filesQuery.isPending ? 'Checking file index…' : 'No approval found'}</strong><span>The current live file index has no approval match for this G#.</span></div>
       ),
@@ -92,12 +101,17 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
     {
       title: 'Documents',
       content: <div className="live-document-list">
-        <article><div className="live-document-heading"><span>Approval</span><small>{indexReady ? (approvalCount ? `${approvalCount} match${approvalCount === 1 ? '' : 'es'}` : 'No matches') : 'Index needed'}</small></div><FileSummary file={approval} emptyMessage={filesQuery.isPending ? 'Checking file index…' : indexReady ? 'No matching approval file found.' : noIndexMessage} /><button disabled type="button">View Approval <span>{approval ? 'Viewer next' : 'Unavailable'}</span></button></article>
-        <article><div className="live-document-heading"><span>Print Card</span><small>{indexReady ? (printCardCount ? `${printCardCount} match${printCardCount === 1 ? '' : 'es'}` : 'No matches') : 'Index needed'}</small></div><FileSummary file={printCard} emptyMessage={filesQuery.isPending ? 'Checking file index…' : indexReady ? 'No matching print card found.' : noIndexMessage} /><button disabled type="button">View Print Card <span>{printCard ? 'Viewer next' : 'Unavailable'}</span></button></article>
+        <article><div className="live-document-heading"><span>Approval</span><small>{indexReady ? (approvalCount ? `${approvalCount} match${approvalCount === 1 ? '' : 'es'}` : 'No matches') : 'Index needed'}</small></div><FileSummary file={approval} emptyMessage={filesQuery.isPending ? 'Checking file index…' : indexReady ? 'No matching approval file found.' : noIndexMessage} /><button disabled={!approval} onClick={() => setApprovalViewerOpen(true)} type="button">View Approval <span>{approval ? 'Open viewer' : 'Unavailable'}</span></button></article>
+        <article><div className="live-document-heading"><span>Print Card</span><small>{indexReady ? (printCardCount ? `${printCardCount} match${printCardCount === 1 ? '' : 'es'}` : 'No matches') : 'Index needed'}</small></div><FileSummary file={printCard} emptyMessage={filesQuery.isPending ? 'Checking file index…' : indexReady ? 'No matching print card found.' : noIndexMessage} /><button disabled type="button">View Print Card <span>{printCard ? 'Viewer later' : 'Unavailable'}</span></button></article>
       </div>,
     },
     { title: 'Timeline', className: 'drawer-history-placeholder', content: <p>Revision and document activity will appear here when the history service is added.</p> },
   ];
 
-  return <RecordInspector closeLabel="Close graphics record inspector" contentKey={visibleRecord.id} eyebrow="Graphics Record" isOpen={isOpen} onClose={onClose} sections={sections} title={formatGNumber(visibleRecord.gNumber)} />;
+  return (
+    <>
+      <RecordInspector closeLabel="Close graphics record inspector" contentKey={visibleRecord.id} eyebrow="Graphics Record" isOpen={isOpen} onClose={onClose} sections={sections} title={formatGNumber(visibleRecord.gNumber)} />
+      <ApprovalViewer approval={approval} isOpen={approvalViewerOpen && Boolean(approval)} onClose={() => setApprovalViewerOpen(false)} record={visibleRecord} />
+    </>
+  );
 }
