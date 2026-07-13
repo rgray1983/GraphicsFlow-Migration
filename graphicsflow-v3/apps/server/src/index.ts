@@ -2,6 +2,8 @@ import Fastify from 'fastify';
 import {
   companySettingsInputSchema,
   companySettingsSchema,
+  createGraphicInputSchema,
+  createGraphicResponseSchema,
   fileIndexJobStatusSchema,
   graphicFilesResponseSchema,
   graphicsListResponseSchema,
@@ -15,7 +17,7 @@ import {
 import { resolveApprovalDocument, streamApprovalDocument } from './approval-document-service.js';
 import { config } from './config.js';
 import { resolvedDatabasePath } from './database.js';
-import { getGraphicById, listGraphics } from './graphics-repository.js';
+import { createGraphic, DuplicateGraphicError, getGraphicById, listGraphics } from './graphics-repository.js';
 import {
   getFileIndexJobStatus,
   resolveGraphicFiles,
@@ -55,6 +57,24 @@ app.get('/api/graphics', async (request, reply) => {
   } catch (error) {
     request.log.error({ error, databasePath: resolvedDatabasePath }, 'Could not load graphics records');
     return reply.status(500).send({ error: 'Graphics records could not be loaded.' });
+  }
+});
+
+app.post('/api/graphics', async (request, reply) => {
+  const parsed = createGraphicInputSchema.safeParse(request.body);
+  if (!parsed.success) {
+    return reply.status(400).send({ error: 'The graphics record is invalid.', details: parsed.error.flatten() });
+  }
+
+  try {
+    const graphic = createGraphic(parsed.data);
+    return reply.status(201).send(createGraphicResponseSchema.parse({ graphic }));
+  } catch (error) {
+    if (error instanceof DuplicateGraphicError) {
+      return reply.status(409).send({ error: error.message });
+    }
+    request.log.error({ error }, 'Could not create graphics record');
+    return reply.status(500).send({ error: 'The G# could not be created.' });
   }
 });
 
