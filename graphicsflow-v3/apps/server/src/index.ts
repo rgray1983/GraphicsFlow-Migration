@@ -49,8 +49,12 @@ app.get('/api/graphics/:id/files', async (request, reply) => {
   if (!graphic) return reply.status(404).send({ error: 'Graphics record not found.' });
   try {
     let files = await resolveGraphicFiles(graphic.gNumber);
-    if (!files.approval.latest || !files.printCard.latest) {
-      const repaired = await repairGraphicFileMisses(graphic.gNumber);
+    const missingKinds = [
+      ...(!files.approval.latest ? ['approval' as const] : []),
+      ...(!files.printCard.latest ? ['printCard' as const] : []),
+    ];
+    if (missingKinds.length > 0) {
+      const repaired = await repairGraphicFileMisses(graphic.gNumber, missingKinds);
       if (repaired > 0) files = await resolveGraphicFiles(graphic.gNumber);
     }
     return graphicFilesResponseSchema.parse(files);
