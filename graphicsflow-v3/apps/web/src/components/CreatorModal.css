@@ -1,0 +1,22 @@
+.creator-form { display: grid; gap: 24px; min-width: min(560px, calc(100vw - 72px)); }
+.creator-intro { display: grid; gap: 7px; }
+.creator-intro h3 { margin: 0; color: #f8fafc; font-size: 22px; line-height: 1.25; }
+.creator-intro p { margin: 0; color: #94a3b8; font-size: 13px; line-height: 1.6; }
+.creator-fields { display: grid; gap: 16px; }
+.creator-fields label { display: grid; gap: 7px; }
+.creator-fields label > span { color: #94a3b8; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.creator-fields input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid rgba(148,163,184,.18); border-radius: 10px; background: rgba(15,23,42,.76); color: #f8fafc; font: inherit; text-transform: uppercase; outline: none; transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; }
+.creator-fields input:focus { border-color: rgba(45,212,191,.58); box-shadow: 0 0 0 3px rgba(20,184,166,.12); background: rgba(15,23,42,.94); }
+.creator-fields input:disabled { opacity: .6; cursor: wait; }
+.creator-message { padding: 11px 13px; border-radius: 10px; font-size: 12px; line-height: 1.5; }
+.creator-message.is-error { border: 1px solid rgba(248,113,113,.24); background: rgba(127,29,29,.18); color: #fecaca; }
+.creator-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
+.creator-actions button { min-height: 40px; padding: 9px 15px; border-radius: 9px; font-weight: 750; cursor: pointer; }
+.creator-actions button:disabled { opacity: .55; cursor: wait; }
+.creator-secondary { border: 1px solid rgba(148,163,184,.18); background: rgba(15,23,42,.7); color: #cbd5e1; }
+.creator-primary { border: 1px solid rgba(45,212,191,.3); background: linear-gradient(135deg, rgba(20,184,166,.94), rgba(13,148,136,.94)); color: white; box-shadow: 0 10px 24px rgba(20,184,166,.15); }
+.creator-primary:hover:not(:disabled) { filter: brightness(1.06); }
+@media (max-width: 640px) {
+  .creator-form { min-width: 0; }
+  .creator-actions { display: grid; grid-template-columns: 1fr 1fr; }
+}

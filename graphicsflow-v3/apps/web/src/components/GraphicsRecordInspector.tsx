@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   formatGNumber,
+  type DeleteGraphicResponse,
   type GraphicFileMatch,
   type GraphicFilesResponse,
   type GraphicRecord,
@@ -30,15 +31,29 @@ async function fetchGraphicFiles(id: number): Promise<GraphicFilesResponse> {
   return response.json() as Promise<GraphicFilesResponse>;
 }
 
+async function deleteGraphic(id: number): Promise<DeleteGraphicResponse> {
+  const response = await fetch(`/api/graphics/${id}`, { method: 'DELETE' });
+  const body = await response.json().catch(() => ({})) as { error?: string } & Partial<DeleteGraphicResponse>;
+  if (!response.ok) throw new Error(body.error ?? 'The graphics record could not be deleted.');
+  return body as DeleteGraphicResponse;
+}
+
 function FileSummary({ file, emptyMessage }: { file: GraphicFileMatch | null; emptyMessage: string }) {
   if (!file) return <p className="live-file-empty">{emptyMessage}</p>;
   return <div className="live-file-summary"><strong>{file.name}</strong><span>{formatFileSize(file.size)} · Modified {formatDate(file.modifiedAt)}</span><small title={file.relativePath}>{file.relativePath}</small></div>;
 }
 
-type GraphicsRecordInspectorProps = { isOpen: boolean; onClose: () => void; record: GraphicRecord | null };
+type GraphicsRecordInspectorProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onDeleted: (result: DeleteGraphicResponse) => void | Promise<void>;
+  record: GraphicRecord | null;
+};
 
-export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRecordInspectorProps) {
+export function GraphicsRecordInspector({ isOpen, onClose, onDeleted, record }: GraphicsRecordInspectorProps) {
   const [approvalViewerOpen, setApprovalViewerOpen] = useState(false);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const lastRecordRef = useRef<GraphicRecord | null>(record);
   const repairRetryRef = useRef(new Set<number>());
   if (record) lastRecordRef.current = record;
@@ -54,6 +69,11 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
   useEffect(() => {
     if (!isOpen) setApprovalViewerOpen(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    setDeleteError(null);
+    setDeletePending(false);
+  }, [visibleRecord?.id]);
 
   useEffect(() => {
     if (!isOpen || !visibleRecord || !filesQuery.data || filesQuery.isFetching) return;
@@ -75,6 +95,23 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
   const approvalCount = filesQuery.data?.approval.matches.length ?? 0;
   const printCardCount = filesQuery.data?.printCard.matches.length ?? 0;
   const noIndexMessage = 'Build the live file index from Company Settings → File Index.';
+
+  const handleDelete = async () => {
+    const gNumber = formatGNumber(visibleRecord.gNumber);
+    const confirmed = window.confirm(`Delete ${gNumber} from the GraphicsFlow database?\n\nThis removes only the V3 database record. It will not delete approvals, print cards, previews, or files.`);
+    if (!confirmed) return;
+
+    setDeletePending(true);
+    setDeleteError(null);
+    try {
+      const result = await deleteGraphic(visibleRecord.id);
+      await onDeleted(result);
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'The graphics record could not be deleted.');
+    } finally {
+      setDeletePending(false);
+    }
+  };
 
   const sections: InspectorSection[] = [
     {
@@ -106,6 +143,11 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
       </div>,
     },
     { title: 'Timeline', className: 'drawer-history-placeholder', content: <p>Revision and document activity will appear here when the history service is added.</p> },
+    ...(visibleRecord.canDelete ? [{
+      title: 'Record Management',
+      className: 'record-management-section',
+      content: <div className="record-delete-area"><p>Delete this GraphicsFlow-created test record from the V3 database only.</p>{deleteError && <div className="record-delete-error" role="alert">{deleteError}</div>}<button className="record-delete-button" disabled={deletePending} onClick={handleDelete} type="button">{deletePending ? 'Deleting…' : 'Delete Record'}</button></div>,
+    }] satisfies InspectorSection[] : []),
   ];
 
   return (

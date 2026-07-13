@@ -125,3 +125,15 @@ Major GraphicsFlow workflows should work well with mouse, keyboard, touch, and s
 Spec #, Design #, and other canonical graphic metadata are stored in the writable V3 database rather than modeled as permanent joins against legacy PHP tables. During migration, a dedicated adapter may read missing values from Graphics Manager 2.0 and persist them into V3 through a read-through import.
 
 **Reason:** Preserve legacy data during transition while ensuring future GraphicsFlow features depend on a stable V3 model that can outlive the PHP application.
+
+### GraphicsFlow owns newly created G# records
+
+Existing Graphics Manager records are imported into a canonical V3 `graphics_records` table while preserving their legacy IDs. New G# records are created only in the writable V3 database. The copied PHP database remains read-only.
+
+**Reason:** Creation workflows must not extend the legacy schema or make the rebuilt application dependent on PHP write behavior.
+
+### Documents and revisions share one canonical foundation
+
+Approvals and Print Cards use shared `graphics_documents` and `document_revisions` foundations. Feature-specific creators may add structured fields and rendering behavior, but record ownership, revision identity, and history follow the same model.
+
+**Reason:** Build Print Card and Approval creation on one stable revision architecture instead of recreating separate legacy silos.

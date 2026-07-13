@@ -19,25 +19,42 @@
   transition: color .14s ease, background .14s ease;
 }
 
-.sort-header:hover {
-  color: #cbd5e1;
-  background: rgba(148, 163, 184, .07);
+.sort-header:hover { color: #cbd5e1; background: rgba(148, 163, 184, .07); }
+.sort-header:focus-visible { outline: 2px solid rgba(45, 212, 191, .55); outline-offset: 1px; }
+.sort-header.is-active { color: #99f6e4; }
+.sort-arrow { width: 10px; flex: 0 0 10px; color: #2dd4bf; font-size: 11px; line-height: 1; text-align: center; }
+.graphics-page .graphics-toolbar { width: fit-content; max-width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 12px; }
+.graphics-page .graphics-toolbar .search-field { width: 680px; max-width: calc(100vw - 520px); flex: 0 1 680px; min-width: 280px; }
+.graphics-page .create-graphic-button { flex: 0 0 auto; margin-left: 0; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 15px; border: 1px solid rgba(45,212,191,.28); border-radius: 10px; background: linear-gradient(135deg, rgba(20,184,166,.94), rgba(13,148,136,.94)); color: white; font-weight: 800; white-space: nowrap; cursor: pointer; box-shadow: 0 10px 24px rgba(20,184,166,.13); transition: transform .14s ease, filter .14s ease; }
+.create-graphic-button:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.create-graphic-button:focus-visible { outline: 2px solid rgba(153,246,228,.72); outline-offset: 2px; }
+.create-graphic-button span { font-size: 17px; line-height: 1; }
+.graphics-table tbody tr.is-newly-created { animation: newly-created-row 1.4s cubic-bezier(.22,1,.36,1) both; }
+.record-management-section { border-top-color: rgba(248,113,113,.14); }
+.record-delete-area { display: grid; gap: 12px; }
+.record-delete-area p { margin: 0; color: #7f8da3; font-size: 11px; line-height: 1.55; }
+.record-delete-button { width: 100%; min-height: 38px; border: 1px solid rgba(248,113,113,.22); border-radius: 9px; background: rgba(127,29,29,.12); color: #fca5a5; font-size: 11px; font-weight: 800; cursor: pointer; transition: background .14s ease, border-color .14s ease, color .14s ease; }
+.record-delete-button:hover:not(:disabled) { border-color: rgba(248,113,113,.42); background: rgba(127,29,29,.22); color: #fecaca; }
+.record-delete-button:disabled { opacity: .55; cursor: wait; }
+.record-delete-error { padding: 9px 10px; border: 1px solid rgba(248,113,113,.2); border-radius: 8px; background: rgba(127,29,29,.14); color: #fecaca; font-size: 10px; line-height: 1.45; }
+
+@keyframes newly-created-row {
+  0% { background: rgba(45,212,191,.30); box-shadow: inset 4px 0 0 #5eead4, inset 0 0 0 1px rgba(153,246,228,.20), 0 0 28px rgba(20,184,166,.12); }
+  42% { background: rgba(20,184,166,.19); box-shadow: inset 4px 0 0 #2dd4bf, inset 0 0 0 1px rgba(45,212,191,.10); }
+  100% { background: rgba(20,184,166,.105); box-shadow: inset 3px 0 0 #2dd4bf; }
 }
 
-.sort-header:focus-visible {
-  outline: 2px solid rgba(45, 212, 191, .55);
-  outline-offset: 1px;
+@media (prefers-reduced-motion: reduce) {
+  .graphics-table tbody tr.is-newly-created { animation: none; }
 }
 
-.sort-header.is-active {
-  color: #99f6e4;
+@media (max-width: 900px) {
+  .graphics-page .graphics-toolbar { width: 100%; }
+  .graphics-page .graphics-toolbar .search-field { width: min(100%, 680px); max-width: none; }
 }
 
-.sort-arrow {
-  width: 10px;
-  flex: 0 0 10px;
-  color: #2dd4bf;
-  font-size: 11px;
-  line-height: 1;
-  text-align: center;
+@media (max-width: 700px) {
+  .graphics-page .graphics-toolbar { align-items: stretch; flex-direction: column; }
+  .graphics-page .graphics-toolbar .search-field { width: 100%; max-width: none; flex: 0 0 auto; min-width: 0; }
+  .graphics-page .create-graphic-button { width: 100%; }
 }
