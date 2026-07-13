@@ -9,6 +9,12 @@ export const graphicRecordSchema = z.object({
   id: z.number().int().positive(), gNumber: z.string(), customerNumber: z.string(), customerName: z.string(),
   specificationNumber: z.string(), partNumber: z.string(), previewImage: z.string().nullable(), createdAt: z.string().nullable(),
 });
+export const createGraphicInputSchema = z.object({
+  customerNumber: z.string().trim().min(1, 'Customer # is required.').max(80),
+  customerName: z.string().trim().min(1, 'Customer name is required.').max(160),
+  partNumber: z.string().trim().min(1, 'Part # is required.').max(160),
+});
+export const createGraphicResponseSchema = z.object({ graphic: graphicRecordSchema });
 export const graphicsSortFieldSchema = z.enum(['gNumber', 'customerNumber', 'customerName', 'partNumber', 'createdAt']);
 export const sortDirectionSchema = z.enum(['asc', 'desc']);
 export const graphicsQuerySchema = z.object({
@@ -68,6 +74,8 @@ export const pathStatusSchema = z.object({ key: z.string(), label: z.string(), p
 export const pathValidationResponseSchema = z.object({ items: z.array(pathStatusSchema), checkedAt: z.string().datetime() });
 
 export type GraphicRecord = z.infer<typeof graphicRecordSchema>;
+export type CreateGraphicInput = z.infer<typeof createGraphicInputSchema>;
+export type CreateGraphicResponse = z.infer<typeof createGraphicResponseSchema>;
 export type GraphicsSortField = z.infer<typeof graphicsSortFieldSchema>;
 export type SortDirection = z.infer<typeof sortDirectionSchema>;
 export type GraphicsQuery = z.infer<typeof graphicsQuerySchema>;
