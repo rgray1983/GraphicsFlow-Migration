@@ -29,6 +29,8 @@ function formatFileSize(bytes: number): string {
 export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalViewerProps) {
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [spaceHeld, setSpaceHeld] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(null);
   const imageUrl = `/api/previews/${record.id}/medium/image`;
   const pdfUrl = `/api/graphics/${record.id}/approval.pdf`;
@@ -37,13 +39,55 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
     if (!isOpen) return;
     setScale(1);
     setOffset({ x: 0, y: 0 });
+    setSpaceHeld(false);
+    setDragging(false);
   }, [isOpen, record.id]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const isEditableTarget = (target: EventTarget | null) => {
+      const element = target as HTMLElement | null;
+      return Boolean(element?.closest('input, textarea, select, button, a, [contenteditable="true"]'));
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || isEditableTarget(event.target)) return;
+      event.preventDefault();
+      setSpaceHeld(true);
+    };
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code !== 'Space') return;
+      setSpaceHeld(false);
+      setDragging(false);
+      dragRef.current = null;
+    };
+    const handleBlur = () => {
+      setSpaceHeld(false);
+      setDragging(false);
+      dragRef.current = null;
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [isOpen]);
 
   const clampScale = (value: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
   const changeScale = (next: number) => {
     const clamped = clampScale(next);
     setScale(clamped);
-    if (clamped === 1) setOffset({ x: 0, y: 0 });
+    if (clamped <= 1) setOffset({ x: 0, y: 0 });
+  };
+
+  const fitApproval = () => {
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
   };
 
   const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
@@ -53,8 +97,10 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (scale <= 1) return;
+    if (!spaceHeld || scale <= 1) return;
+    event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
+    setDragging(true);
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -74,13 +120,32 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
   };
 
   const stopDragging = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setDragging(false);
   };
 
   const printApproval = () => {
-    const printWindow = window.open(pdfUrl, '_blank', 'noopener,noreferrer');
-    if (printWindow) window.setTimeout(() => printWindow.print(), 900);
+    const iframe = document.createElement('iframe');
+    iframe.className = 'approval-print-frame';
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.src = pdfUrl;
+    iframe.onload = () => {
+      window.setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      }, 250);
+    };
+    document.body.appendChild(iframe);
+    window.setTimeout(() => iframe.remove(), 60_000);
   };
+
+  const canvasClassName = [
+    'approval-canvas',
+    scale > 1 ? 'is-zoomed' : '',
+    spaceHeld ? 'is-hand-tool' : '',
+    dragging ? 'is-dragging' : '',
+  ].filter(Boolean).join(' ');
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`${formatGNumber(record.gNumber)} Approval`} variant="viewer">
@@ -90,7 +155,7 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
             <button aria-label="Zoom out" disabled={scale <= MIN_SCALE} onClick={() => changeScale(scale - SCALE_STEP)} type="button">−</button>
             <span>{Math.round(scale * 100)}%</span>
             <button aria-label="Zoom in" disabled={scale >= MAX_SCALE} onClick={() => changeScale(scale + SCALE_STEP)} type="button">+</button>
-            <button onClick={() => changeScale(1)} type="button">Fit</button>
+            <button onClick={fitApproval} type="button">Fit</button>
           </div>
           <div className="viewer-control-group viewer-actions">
             <button onClick={printApproval} type="button">Print</button>
@@ -100,7 +165,7 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
 
         <div className="approval-viewer-layout">
           <div
-            className={`approval-canvas${scale > 1 ? ' is-zoomed' : ''}`}
+            className={canvasClassName}
             onPointerCancel={stopDragging}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -126,7 +191,7 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
               <div><dt>Modified</dt><dd>{approval ? formatDate(approval.modifiedAt) : 'Not available'}</dd></div>
               <div><dt>File Size</dt><dd>{approval ? formatFileSize(approval.size) : 'Not available'}</dd></div>
             </dl>
-            <p className="viewer-help">Hold Command or Control while scrolling to zoom. Drag the approval when zoomed in.</p>
+            <p className="viewer-help">Hold Command or Control while scrolling to zoom. Hold Spacebar for the hand tool, then drag to pan while zoomed in.</p>
           </aside>
         </div>
       </div>
