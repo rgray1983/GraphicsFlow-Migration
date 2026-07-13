@@ -8,6 +8,7 @@ export type HealthResponse = z.infer<typeof healthResponseSchema>;
 export const graphicRecordSchema = z.object({
   id: z.number().int().positive(), gNumber: z.string(), customerNumber: z.string(), customerName: z.string(),
   specificationNumber: z.string(), partNumber: z.string(), previewImage: z.string().nullable(), createdAt: z.string().nullable(),
+  source: z.enum(['legacy-import', 'graphicsflow']), canDelete: z.boolean(),
 });
 export const createGraphicInputSchema = z.object({
   customerNumber: z.string().trim().min(1, 'Customer # is required.').max(80),
@@ -15,6 +16,7 @@ export const createGraphicInputSchema = z.object({
   partNumber: z.string().trim().min(1, 'Part # is required.').max(160),
 });
 export const createGraphicResponseSchema = z.object({ graphic: graphicRecordSchema });
+export const deleteGraphicResponseSchema = z.object({ deletedId: z.number().int().positive(), deletedGNumber: z.string() });
 export const graphicsSortFieldSchema = z.enum(['gNumber', 'customerNumber', 'customerName', 'partNumber', 'createdAt']);
 export const sortDirectionSchema = z.enum(['asc', 'desc']);
 export const graphicsQuerySchema = z.object({
@@ -76,6 +78,7 @@ export const pathValidationResponseSchema = z.object({ items: z.array(pathStatus
 export type GraphicRecord = z.infer<typeof graphicRecordSchema>;
 export type CreateGraphicInput = z.infer<typeof createGraphicInputSchema>;
 export type CreateGraphicResponse = z.infer<typeof createGraphicResponseSchema>;
+export type DeleteGraphicResponse = z.infer<typeof deleteGraphicResponseSchema>;
 export type GraphicsSortField = z.infer<typeof graphicsSortFieldSchema>;
 export type SortDirection = z.infer<typeof sortDirectionSchema>;
 export type GraphicsQuery = z.infer<typeof graphicsQuerySchema>;
