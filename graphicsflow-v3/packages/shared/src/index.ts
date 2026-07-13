@@ -7,7 +7,7 @@ export type HealthResponse = z.infer<typeof healthResponseSchema>;
 
 export const graphicRecordSchema = z.object({
   id: z.number().int().positive(), gNumber: z.string(), customerNumber: z.string(), customerName: z.string(),
-  partNumber: z.string(), previewImage: z.string().nullable(), createdAt: z.string().nullable(),
+  specificationNumber: z.string(), partNumber: z.string(), previewImage: z.string().nullable(), createdAt: z.string().nullable(),
 });
 export const graphicsSortFieldSchema = z.enum(['gNumber', 'customerNumber', 'customerName', 'partNumber', 'createdAt']);
 export const sortDirectionSchema = z.enum(['asc', 'desc']);
