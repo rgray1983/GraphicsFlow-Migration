@@ -62,7 +62,7 @@ export function renderPrintCardSvg(data: PrintCardTemplateData): string {
   }).join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="10in" height="4in" viewBox="0 0 ${WIDTH} ${HEIGHT}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
   <rect width="${WIDTH}" height="${HEIGHT}" fill="#fff"/>
   <rect x="35" y="35" width="2930" height="1130" rx="22" fill="#fff" stroke="#111" stroke-width="10"/>
   <text x="85" y="115" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="900" letter-spacing="4">PRINT CARD</text>
