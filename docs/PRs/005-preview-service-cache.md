@@ -49,6 +49,14 @@
 - Show clear unavailable and failed states.
 - Use the component in the Graphics inspector Approval Preview section.
 
+### Graphics list refinement
+
+- Default the list to G# descending.
+- Allow server-side sorting by G#, Customer #, Customer, Part #, and Created.
+- Toggle ascending and descending order by clicking the active column again.
+- Show a small directional arrow on the active sort heading.
+- Keep sorting accurate across the full dataset before the 100-record limit is applied.
+
 ## Acceptance criteria
 
 - A record with a PDF approval generates and displays a preview.
@@ -61,6 +69,7 @@
 - Missing ImageMagick/Ghostscript reports an actionable unavailable message.
 - Absolute source paths are not exposed to the browser.
 - Production PDFs are never copied, renamed, moved, or modified.
+- Each Graphics table heading sorts the complete result set in both directions.
 - Viewer modal, source-PDF streaming, download, print, and artwork crop detection are not added.
 
 ## Local testing
@@ -81,7 +90,9 @@ npm run dev
 6. Reopen that G# without running **Refresh File Index** and confirm the file and preview appear.
 7. Modify or replace an approval and confirm the preview regenerates from its new fingerprint.
 8. Test a record that genuinely has no approval.
-9. Confirm `graphicsflow-v3/storage/preview-cache` remains ignored runtime data.
+9. Click each Graphics table heading and verify both ascending and descending order.
+10. Confirm G# descending is the default and the active arrow matches the direction.
+11. Confirm `graphicsflow-v3/storage/preview-cache` remains ignored runtime data.
 
 ## Deferred work
 
