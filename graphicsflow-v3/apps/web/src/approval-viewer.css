@@ -22,12 +22,21 @@
 .approval-viewer-details dl div { display: grid; gap: 5px; }
 .approval-viewer-details dt { color: #64748b; text-transform: uppercase; letter-spacing: .08em; font-size: 9px; font-weight: 800; }
 .approval-viewer-details dd { margin: 0; color: #dbe5ef; overflow-wrap: anywhere; font-size: 12px; line-height: 1.5; }
-.viewer-help { margin: 26px 0 0; padding-top: 18px; border-top: 1px solid rgba(148,163,184,.12); color: #64748b; font-size: 11px; line-height: 1.6; }
+.viewer-hotkeys { margin-top: 26px; padding-top: 18px; border-top: 1px solid rgba(148,163,184,.12); }
+.viewer-hotkeys h4 { margin: 0 0 14px; color: #2dd4bf; text-transform: uppercase; letter-spacing: .12em; font-size: 10px; font-weight: 850; }
+.viewer-hotkey-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px 0; }
+.viewer-hotkey-row + .viewer-hotkey-row { border-top: 1px solid rgba(148,163,184,.08); }
+.viewer-hotkey-icon, .viewer-hotkey-row kbd { width: 52px; min-height: 34px; display: grid; place-items: center; border: 1px solid rgba(45,212,191,.22); border-radius: 9px; background: rgba(20,184,166,.08); color: #99f6e4; }
+.viewer-hotkey-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.7; }
+.viewer-hotkey-row kbd { padding: 0 7px; box-shadow: inset 0 -2px 0 rgba(148,163,184,.12); font-family: inherit; font-size: 9px; font-weight: 800; }
+.viewer-hotkey-row div { display: grid; gap: 3px; }
+.viewer-hotkey-row strong { color: #dbe5ef; font-size: 11px; line-height: 1.35; }
+.viewer-hotkey-row span { color: #718096; font-size: 10px; line-height: 1.4; }
 .approval-print-frame { position: fixed; width: 1px; height: 1px; right: 0; bottom: 0; border: 0; opacity: 0; pointer-events: none; }
 @media (max-width: 900px) {
   .modal-dialog-viewer { width: calc(100vw - 20px); height: calc(100dvh - 20px); max-height: calc(100dvh - 20px); }
   .approval-viewer-layout { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
-  .approval-viewer-details { max-height: 220px; border-left: 0; border-top: 1px solid rgba(148,163,184,.13); }
+  .approval-viewer-details { max-height: 250px; border-left: 0; border-top: 1px solid rgba(148,163,184,.13); }
 }
 @media (max-width: 640px) {
   .approval-viewer-toolbar { align-items: stretch; flex-direction: column; }
