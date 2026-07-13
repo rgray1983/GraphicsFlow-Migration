@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from 'react';
 import { CreateGraphicModal } from '../components/CreateGraphicModal';
 import { GraphicsRecordInspector } from '../components/GraphicsRecordInspector';
+import { Toast } from '../components/Toast';
 import './GraphicsPage.css';
 
 async function fetchGraphics(search: string, sortBy: GraphicsSortField, sortDirection: SortDirection): Promise<GraphicsListResponse> {
@@ -43,11 +44,10 @@ export function GraphicsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedRecord, setSelectedRecord] = useState<GraphicRecord | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [creationNotice, setCreationNotice] = useState<string | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
   const [newlyCreatedId, setNewlyCreatedId] = useState<number | null>(null);
 
   useEffect(() => { const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250); return () => window.clearTimeout(timer); }, [searchInput]);
-  useEffect(() => { if (!creationNotice) return; const timer = window.setTimeout(() => setCreationNotice(null), 4500); return () => window.clearTimeout(timer); }, [creationNotice]);
   useEffect(() => { if (!newlyCreatedId) return; const timer = window.setTimeout(() => setNewlyCreatedId(null), 1400); return () => window.clearTimeout(timer); }, [newlyCreatedId]);
 
   const graphicsQuery = useQuery({ queryKey: ['graphics', search, sortBy, sortDirection], queryFn: () => fetchGraphics(search, sortBy, sortDirection) });
@@ -69,22 +69,22 @@ export function GraphicsPage() {
     setSortDirection('desc');
     setSelectedRecord(graphic);
     setNewlyCreatedId(graphic.id);
-    setCreationNotice(`${formatGNumber(graphic.gNumber)} created successfully.`);
+    setNotification(`${formatGNumber(graphic.gNumber)} created successfully.`);
     await queryClient.invalidateQueries({ queryKey: ['graphics'] });
   };
 
   const handleDeleted = async ({ deletedGNumber }: DeleteGraphicResponse) => {
     setSelectedRecord(null);
     setNewlyCreatedId(null);
-    setCreationNotice(`${formatGNumber(deletedGNumber)} was deleted from the V3 database.`);
+    setNotification(`${formatGNumber(deletedGNumber)} was deleted from the V3 database.`);
     await queryClient.invalidateQueries({ queryKey: ['graphics'] });
   };
 
   return (
     <section className={`graphics-page${drawerOpen ? ' has-drawer' : ''}`}>
+      <Toast message={notification} onDismiss={() => setNotification(null)} />
       <div className="page-heading-row"><div><p className="eyebrow">Graphics database</p><h2>Graphics</h2><p className="page-description">Find a G# and keep its connected information in one workspace.</p></div><div className="record-count" aria-live="polite"><strong>{graphicsQuery.isPending ? '—' : total.toLocaleString()}</strong><span>{search ? 'matching records' : 'total records'}</span></div></div>
       <div className="graphics-toolbar"><label className="search-field"><span className="sr-only">Search graphics records</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" /></svg><input autoComplete="off" onChange={(event) => setSearchInput(event.target.value)} placeholder="Search G#, customer number, customer name, or part number…" type="search" value={searchInput} />{searchInput && <button aria-label="Clear search" onClick={() => setSearchInput('')} type="button">Clear</button>}</label><button className="create-graphic-button" onClick={() => setCreateOpen(true)} type="button"><span aria-hidden="true">＋</span>Create G#</button></div>
-      {creationNotice && <div className="graphics-success" role="status"><span aria-hidden="true">✓</span>{creationNotice}</div>}
       <div className="graphics-workspace"><div className="graphics-table-card">
         {graphicsQuery.isPending && <div className="table-state">Loading graphics records…</div>}
         {graphicsQuery.isError && <div className="table-state table-state-error"><strong>Graphics could not be loaded.</strong><span>Confirm that the V3 database is available, then try again.</span><button onClick={() => graphicsQuery.refetch()} type="button">Try again</button></div>}
