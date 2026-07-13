@@ -119,3 +119,9 @@ The Approval Viewer uses a cached browser-friendly image for fast zooming and pa
 Major GraphicsFlow workflows should work well with mouse, keyboard, touch, and stylus whenever practical. Professional interaction patterns already familiar from tools such as Illustrator and Acrobat should be preferred when they reduce training and improve speed.
 
 **Reason:** GraphicsFlow will be used by office staff, designers, QC personnel, and production teams on desktops, tablets, and plant-floor devices. No group should feel like it is using a secondary version of the product.
+
+### Core graphic metadata belongs to V3
+
+Spec #, Design #, and other canonical graphic metadata are stored in the writable V3 database rather than modeled as permanent joins against legacy PHP tables. During migration, a dedicated adapter may read missing values from Graphics Manager 2.0 and persist them into V3 through a read-through import.
+
+**Reason:** Preserve legacy data during transition while ensuring future GraphicsFlow features depend on a stable V3 model that can outlive the PHP application.
