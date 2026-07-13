@@ -5,7 +5,7 @@ import {
   type GraphicFilesResponse,
   type GraphicRecord,
 } from '@graphicsflow/shared';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { PreviewAsset } from './PreviewAsset';
 import { RecordInspector, type InspectorSection } from './RecordInspector';
 
@@ -38,6 +38,7 @@ type GraphicsRecordInspectorProps = { isOpen: boolean; onClose: () => void; reco
 
 export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRecordInspectorProps) {
   const lastRecordRef = useRef<GraphicRecord | null>(record);
+  const repairRetryRef = useRef(new Set<number>());
   if (record) lastRecordRef.current = record;
   const visibleRecord = record ?? lastRecordRef.current;
   const filesQuery = useQuery({
@@ -45,7 +46,20 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
     queryFn: () => fetchGraphicFiles(visibleRecord!.id),
     enabled: isOpen && Boolean(visibleRecord),
     staleTime: 60_000,
+    refetchOnMount: 'always',
   });
+
+  useEffect(() => {
+    if (!isOpen || !visibleRecord || !filesQuery.data || filesQuery.isFetching) return;
+    const missingDocument = !filesQuery.data.approval.latest || !filesQuery.data.printCard.latest;
+    if (!missingDocument || repairRetryRef.current.has(visibleRecord.id)) return;
+
+    repairRetryRef.current.add(visibleRecord.id);
+    const timer = window.setTimeout(() => {
+      void filesQuery.refetch();
+    }, 2200);
+    return () => window.clearTimeout(timer);
+  }, [filesQuery.data, filesQuery.isFetching, filesQuery.refetch, isOpen, visibleRecord]);
 
   if (!visibleRecord) return null;
 
