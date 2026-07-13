@@ -194,6 +194,7 @@ app.post('/api/file-index/refresh', async (_request, reply) => reply.status(202)
 app.get('/api/file-index/status', async () => fileIndexJobStatusSchema.parse(getFileIndexJobStatus()));
 app.get('/api/live-file-sync/status', async () => getLiveFileSyncStatus());
 
-await app.listen({ host: config.host, port: config.port });
+const serverHost = '127.0.0.1';
+await app.listen({ host: serverHost, port: config.SERVER_PORT });
 initializeLiveFileSync();
-app.log.info({ host: config.host, port: config.port, databasePath: resolvedDatabasePath, settingsDatabasePath }, 'GraphicsFlow server started');
+app.log.info({ host: serverHost, port: config.SERVER_PORT, databasePath: resolvedDatabasePath, settingsDatabasePath }, 'GraphicsFlow server started');
