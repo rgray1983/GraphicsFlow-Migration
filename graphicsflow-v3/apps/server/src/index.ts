@@ -19,8 +19,8 @@ import { getFileIndexJobStatus, resolveGraphicFiles, startLiveFileIndexJob } fro
 import {
   getLiveFileSyncStatus,
   initializeLiveFileSync,
-  repairGraphicFileMisses,
   restartLiveFileSync,
+  scheduleGraphicFileMissRepair,
 } from './live-file-sync-service.js';
 import { getOrGeneratePreview, readPreviewImage } from './preview-service.js';
 import { getCompanySettings, saveCompanySettings, settingsDatabasePath, validateStoragePaths } from './settings-store.js';
@@ -48,15 +48,11 @@ app.get('/api/graphics/:id/files', async (request, reply) => {
   const graphic = getGraphicById(id);
   if (!graphic) return reply.status(404).send({ error: 'Graphics record not found.' });
   try {
-    let files = await resolveGraphicFiles(graphic.gNumber);
-    const missingKinds = [
-      ...(!files.approval.latest ? ['approval' as const] : []),
-      ...(!files.printCard.latest ? ['printCard' as const] : []),
-    ];
-    if (missingKinds.length > 0) {
-      const repaired = await repairGraphicFileMisses(graphic.gNumber, missingKinds);
-      if (repaired > 0) files = await resolveGraphicFiles(graphic.gNumber);
-    }
+    const files = await resolveGraphicFiles(graphic.gNumber);
+    const missingKinds = [] as Array<'approval' | 'printCard'>;
+    if (!files.approval.latest) missingKinds.push('approval');
+    if (!files.printCard.latest) missingKinds.push('printCard');
+    scheduleGraphicFileMissRepair(graphic.gNumber, missingKinds);
     return graphicFilesResponseSchema.parse(files);
   } catch (error) {
     request.log.error({ error, graphicId: id, gNumber: graphic.gNumber }, 'Could not resolve live graphic files');
@@ -126,8 +122,8 @@ app.get('/api/settings/file-sync/status', async () => getLiveFileSyncStatus());
 
 const start = async () => {
   try {
-    initializeLiveFileSync();
     await app.listen({ port: config.SERVER_PORT, host: '0.0.0.0' });
+    setImmediate(() => initializeLiveFileSync());
   }
   catch (error) { app.log.error(error); process.exit(1); }
 };
