@@ -29,7 +29,9 @@
 .create-graphic-button:hover { filter: brightness(1.06); transform: translateY(-1px); }
 .create-graphic-button:focus-visible { outline: 2px solid rgba(153,246,228,.72); outline-offset: 2px; }
 .create-graphic-button span { font-size: 17px; line-height: 1; }
-.graphics-success { margin-top: 12px; padding: 10px 13px; border: 1px solid rgba(45,212,191,.2); border-radius: 10px; background: rgba(20,184,166,.09); color: #ccfbf1; font-size: 12px; font-weight: 700; }
+.graphics-success { width: fit-content; max-width: min(100%, 520px); margin-top: 12px; padding: 10px 13px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(45,212,191,.24); border-radius: 10px; background: rgba(20,184,166,.11); color: #ccfbf1; font-size: 12px; font-weight: 750; box-shadow: 0 12px 30px rgba(8,47,45,.16); animation: graphics-notice-in .28s cubic-bezier(.22,1,.36,1) both; }
+.graphics-success > span { width: 18px; height: 18px; display: inline-grid; place-items: center; border-radius: 50%; background: rgba(45,212,191,.18); color: #99f6e4; font-size: 12px; }
+.graphics-table tbody tr.is-newly-created { animation: newly-created-row 1.4s cubic-bezier(.22,1,.36,1) both; }
 .record-management-section { border-top-color: rgba(248,113,113,.14); }
 .record-delete-area { display: grid; gap: 12px; }
 .record-delete-area p { margin: 0; color: #7f8da3; font-size: 11px; line-height: 1.55; }
@@ -37,6 +39,22 @@
 .record-delete-button:hover:not(:disabled) { border-color: rgba(248,113,113,.42); background: rgba(127,29,29,.22); color: #fecaca; }
 .record-delete-button:disabled { opacity: .55; cursor: wait; }
 .record-delete-error { padding: 9px 10px; border: 1px solid rgba(248,113,113,.2); border-radius: 8px; background: rgba(127,29,29,.14); color: #fecaca; font-size: 10px; line-height: 1.45; }
+
+@keyframes newly-created-row {
+  0% { background: rgba(45,212,191,.30); box-shadow: inset 4px 0 0 #5eead4, inset 0 0 0 1px rgba(153,246,228,.20), 0 0 28px rgba(20,184,166,.12); }
+  42% { background: rgba(20,184,166,.19); box-shadow: inset 4px 0 0 #2dd4bf, inset 0 0 0 1px rgba(45,212,191,.10); }
+  100% { background: rgba(20,184,166,.105); box-shadow: inset 3px 0 0 #2dd4bf; }
+}
+
+@keyframes graphics-notice-in {
+  from { opacity: 0; transform: translateY(-5px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graphics-success,
+  .graphics-table tbody tr.is-newly-created { animation: none; }
+}
 
 @media (max-width: 900px) {
   .graphics-page .graphics-toolbar { width: 100%; }
