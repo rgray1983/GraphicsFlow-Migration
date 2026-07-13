@@ -96,6 +96,12 @@ The first file-index run uses indeterminate progress because the final file coun
 
 ### Preview assets are disposable cache, not source documents
 
-Future approval thumbnails and artwork previews will be generated into a managed preview cache. Source fingerprints determine whether a cached asset is current, and stale cache records are invalidated when indexed files change. Production PDFs remain the source of truth.
+Approval thumbnails and medium previews are generated into a managed preview cache. Source modified time, size, location, record, and variant form the cache fingerprint. Production PDFs remain the source of truth.
 
 **Reason:** Deliver fast browser previews without duplicating or replacing authoritative production files.
+
+### Preview generation is a centralized service
+
+Inspectors and future viewers request previews through one backend service. The service detects ImageMagick or Ghostscript, generates the first PDF page, caches the result, and returns a clear unavailable state when the server has no supported renderer.
+
+**Reason:** Keep rendering, invalidation, cache storage, and error handling consistent across every feature that needs a visual document preview.

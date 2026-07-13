@@ -5,7 +5,8 @@ import {
   type GraphicFilesResponse,
   type GraphicRecord,
 } from '@graphicsflow/shared';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { PreviewAsset } from './PreviewAsset';
 import { RecordInspector, type InspectorSection } from './RecordInspector';
 
 function formatDate(value: string | null): string {
@@ -37,6 +38,7 @@ type GraphicsRecordInspectorProps = { isOpen: boolean; onClose: () => void; reco
 
 export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRecordInspectorProps) {
   const lastRecordRef = useRef<GraphicRecord | null>(record);
+  const repairRetryRef = useRef(new Set<number>());
   if (record) lastRecordRef.current = record;
   const visibleRecord = record ?? lastRecordRef.current;
   const filesQuery = useQuery({
@@ -44,7 +46,20 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
     queryFn: () => fetchGraphicFiles(visibleRecord!.id),
     enabled: isOpen && Boolean(visibleRecord),
     staleTime: 60_000,
+    refetchOnMount: 'always',
   });
+
+  useEffect(() => {
+    if (!isOpen || !visibleRecord || !filesQuery.data || filesQuery.isFetching) return;
+    const missingDocument = !filesQuery.data.approval.latest || !filesQuery.data.printCard.latest;
+    if (!missingDocument || repairRetryRef.current.has(visibleRecord.id)) return;
+
+    repairRetryRef.current.add(visibleRecord.id);
+    const timer = window.setTimeout(() => {
+      void filesQuery.refetch();
+    }, 2200);
+    return () => window.clearTimeout(timer);
+  }, [filesQuery.data, filesQuery.isFetching, filesQuery.refetch, isOpen, visibleRecord]);
 
   if (!visibleRecord) return null;
 
@@ -53,19 +68,19 @@ export function GraphicsRecordInspector({ isOpen, onClose, record }: GraphicsRec
   const printCard = filesQuery.data?.printCard.latest ?? null;
   const approvalCount = filesQuery.data?.approval.matches.length ?? 0;
   const printCardCount = filesQuery.data?.printCard.matches.length ?? 0;
-  const noIndexMessage = 'Build the live file index from Company Settings → Storage & Files.';
+  const noIndexMessage = 'Build the live file index from Company Settings → File Index.';
 
   const sections: InspectorSection[] = [
     {
       title: 'Approval Preview',
-      badge: <span className={`availability-badge${approval ? ' is-connected' : ''}`}>{filesQuery.isPending ? 'Checking…' : !indexReady ? 'Index needed' : approval ? 'Live file found' : 'Not found'}</span>,
+      badge: <span className={`availability-badge${approval ? ' is-connected' : ''}`}>{filesQuery.isPending ? 'Checking…' : !indexReady ? 'Index needed' : approval ? 'Live preview' : 'Not found'}</span>,
       className: 'approval-preview-section',
       content: filesQuery.isError ? (
         <div className="approval-preview-empty"><strong>Could not check approvals</strong><span>Confirm the file index and configured folders are available.</span></div>
       ) : !filesQuery.isPending && !indexReady ? (
         <div className="approval-preview-empty"><strong>Live file index not built</strong><span>{noIndexMessage}</span></div>
       ) : approval ? (
-        <div className="approval-preview-empty live-file-found"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5M9 13h6M9 17h6" /></svg><strong>Live approval connected</strong><span>{approval.name}</span></div>
+        <PreviewAsset graphicId={visibleRecord.id} alt={`${formatGNumber(visibleRecord.gNumber)} approval preview`} />
       ) : (
         <div className="approval-preview-empty"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5M9.5 15l2-2 1.5 1.5 2.5-3 2 2.5" /></svg><strong>{filesQuery.isPending ? 'Checking file index…' : 'No approval found'}</strong><span>The current live file index has no approval match for this G#.</span></div>
       ),
