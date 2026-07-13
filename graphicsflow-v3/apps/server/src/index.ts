@@ -16,6 +16,12 @@ import { config } from './config.js';
 import { resolvedDatabasePath } from './database.js';
 import { getGraphicById, listGraphics } from './graphics-repository.js';
 import { getFileIndexJobStatus, resolveGraphicFiles, startLiveFileIndexJob } from './live-file-service.js';
+import {
+  getLiveFileSyncStatus,
+  initializeLiveFileSync,
+  repairGraphicFileMisses,
+  restartLiveFileSync,
+} from './live-file-sync-service.js';
 import { getOrGeneratePreview, readPreviewImage } from './preview-service.js';
 import { getCompanySettings, saveCompanySettings, settingsDatabasePath, validateStoragePaths } from './settings-store.js';
 
@@ -42,7 +48,12 @@ app.get('/api/graphics/:id/files', async (request, reply) => {
   const graphic = getGraphicById(id);
   if (!graphic) return reply.status(404).send({ error: 'Graphics record not found.' });
   try {
-    return graphicFilesResponseSchema.parse(await resolveGraphicFiles(graphic.gNumber));
+    let files = await resolveGraphicFiles(graphic.gNumber);
+    if (!files.approval.latest || !files.printCard.latest) {
+      const repaired = await repairGraphicFileMisses(graphic.gNumber);
+      if (repaired > 0) files = await resolveGraphicFiles(graphic.gNumber);
+    }
+    return graphicFilesResponseSchema.parse(files);
   } catch (error) {
     request.log.error({ error, graphicId: id, gNumber: graphic.gNumber }, 'Could not resolve live graphic files');
     return reply.status(500).send({ error: 'Live files could not be resolved.' });
@@ -84,7 +95,11 @@ app.get('/api/settings/company', async (_request, reply) => {
 app.put('/api/settings/company', async (request, reply) => {
   const parsed = companySettingsInputSchema.safeParse(request.body);
   if (!parsed.success) return reply.status(400).send({ error: 'Company settings are invalid.', details: parsed.error.flatten() });
-  try { return companySettingsSchema.parse(saveCompanySettings(parsed.data)); }
+  try {
+    const saved = companySettingsSchema.parse(saveCompanySettings(parsed.data));
+    restartLiveFileSync();
+    return saved;
+  }
   catch (error) {
     request.log.error({ error, settingsDatabasePath }, 'Could not save company settings');
     return reply.status(500).send({ error: 'Company settings could not be saved.' });
@@ -103,9 +118,13 @@ app.post('/api/settings/validate-paths', async (request, reply) => {
 
 app.post('/api/settings/file-index/refresh', async () => fileIndexJobStatusSchema.parse(startLiveFileIndexJob()));
 app.get('/api/settings/file-index/status', async () => fileIndexJobStatusSchema.parse(getFileIndexJobStatus()));
+app.get('/api/settings/file-sync/status', async () => getLiveFileSyncStatus());
 
 const start = async () => {
-  try { await app.listen({ port: config.SERVER_PORT, host: '0.0.0.0' }); }
+  try {
+    initializeLiveFileSync();
+    await app.listen({ port: config.SERVER_PORT, host: '0.0.0.0' });
+  }
   catch (error) { app.log.error(error); process.exit(1); }
 };
 void start();
