@@ -11,7 +11,7 @@ import {
   type PreviewVariant,
 } from '@graphicsflow/shared';
 import { getGraphicById } from './graphics-repository.js';
-import { repairGraphicFileMisses } from './live-file-sync-service.js';
+import { scheduleGraphicFileMissRepair } from './live-file-sync-service.js';
 import { getCompanySettings, settingsDatabasePath } from './settings-store.js';
 
 const execFileAsync = promisify(execFile);
@@ -125,12 +125,11 @@ async function generate(graphicId: number, variant: PreviewVariant): Promise<Pre
   const graphic = getGraphicById(graphicId);
   if (!graphic) return response(graphicId, variant, 'unavailable', null, null, 'Graphics record not found.');
 
-  let source = findLatestApproval(graphicId);
+  const source = findLatestApproval(graphicId);
   if (!source) {
-    await repairGraphicFileMisses(graphic.gNumber);
-    source = findLatestApproval(graphicId);
+    scheduleGraphicFileMissRepair(graphic.gNumber, ['approval']);
+    return response(graphicId, variant, 'unavailable', null, null, 'No approval is available for this record yet.');
   }
-  if (!source) return response(graphicId, variant, 'unavailable', null, null, 'No approval is available for this record.');
   if (source.extension.toLowerCase() !== '.pdf') return response(graphicId, variant, 'unavailable', null, null, 'The current approval format cannot be previewed yet.');
 
   const key = cacheKey(graphicId, variant, source);
