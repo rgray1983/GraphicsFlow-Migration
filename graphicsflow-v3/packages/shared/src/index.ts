@@ -30,7 +30,7 @@ export const graphicFilesResponseSchema = z.object({
   indexReady: z.boolean(), indexedAt: z.string().datetime().nullable(), checkedAt: z.string().datetime(),
 });
 
-export const previewVariantSchema = z.enum(['thumb', 'medium']);
+export const previewVariantSchema = z.enum(['thumb', 'medium', 'large']);
 export const previewStatusSchema = z.enum(['ready', 'generating', 'unavailable', 'error']);
 export const previewResponseSchema = z.object({
   graphicId: z.number().int().positive(), status: previewStatusSchema, variant: previewVariantSchema,
