@@ -1,10 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
-import { formatGNumber, type GraphicRecord, type GraphicsListResponse } from '@graphicsflow/shared';
+import {
+  formatGNumber,
+  type GraphicRecord,
+  type GraphicsListResponse,
+  type GraphicsSortField,
+  type SortDirection,
+} from '@graphicsflow/shared';
 import { useEffect, useState } from 'react';
 import { GraphicsRecordInspector } from '../components/GraphicsRecordInspector';
 
-async function fetchGraphics(search: string): Promise<GraphicsListResponse> {
-  const params = new URLSearchParams();
+async function fetchGraphics(
+  search: string,
+  sortBy: GraphicsSortField,
+  sortDirection: SortDirection,
+): Promise<GraphicsListResponse> {
+  const params = new URLSearchParams({ sortBy, sortDirection });
   if (search) params.set('search', search);
 
   const response = await fetch(`/api/graphics?${params.toString()}`);
@@ -23,9 +33,33 @@ function formatCreatedAt(value: string | null): string {
     : new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
 }
 
+type SortableHeaderProps = {
+  activeSort: GraphicsSortField;
+  direction: SortDirection;
+  field: GraphicsSortField;
+  label: string;
+  onSort: (field: GraphicsSortField) => void;
+};
+
+function SortableHeader({ activeSort, direction, field, label, onSort }: SortableHeaderProps) {
+  const active = activeSort === field;
+  const ariaSort = active ? (direction === 'asc' ? 'ascending' : 'descending') : 'none';
+
+  return (
+    <th aria-sort={ariaSort} scope="col">
+      <button className={`sort-header${active ? ' is-active' : ''}`} onClick={() => onSort(field)} type="button">
+        <span>{label}</span>
+        <span aria-hidden="true" className="sort-arrow">{active ? (direction === 'asc' ? '↑' : '↓') : ''}</span>
+      </button>
+    </th>
+  );
+}
+
 export function GraphicsPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<GraphicsSortField>('gNumber');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedRecord, setSelectedRecord] = useState<GraphicRecord | null>(null);
 
   useEffect(() => {
@@ -34,8 +68,8 @@ export function GraphicsPage() {
   }, [searchInput]);
 
   const graphicsQuery = useQuery({
-    queryKey: ['graphics', search],
-    queryFn: () => fetchGraphics(search),
+    queryKey: ['graphics', search, sortBy, sortDirection],
+    queryFn: () => fetchGraphics(search, sortBy, sortDirection),
   });
 
   const records = graphicsQuery.data?.items ?? [];
@@ -44,6 +78,16 @@ export function GraphicsPage() {
 
   const selectRecord = (record: GraphicRecord) => {
     setSelectedRecord(record);
+  };
+
+  const handleSort = (field: GraphicsSortField) => {
+    if (field === sortBy) {
+      setSortDirection((current) => current === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+
+    setSortBy(field);
+    setSortDirection(field === 'gNumber' || field === 'createdAt' ? 'desc' : 'asc');
   };
 
   return (
@@ -101,11 +145,11 @@ export function GraphicsPage() {
               <table className="graphics-table">
                 <thead>
                   <tr>
-                    <th>G#</th>
-                    <th>Customer #</th>
-                    <th>Customer</th>
-                    <th>Part Number</th>
-                    <th>Created</th>
+                    <SortableHeader activeSort={sortBy} direction={sortDirection} field="gNumber" label="G#" onSort={handleSort} />
+                    <SortableHeader activeSort={sortBy} direction={sortDirection} field="customerNumber" label="Customer #" onSort={handleSort} />
+                    <SortableHeader activeSort={sortBy} direction={sortDirection} field="customerName" label="Customer" onSort={handleSort} />
+                    <SortableHeader activeSort={sortBy} direction={sortDirection} field="partNumber" label="Part #" onSort={handleSort} />
+                    <SortableHeader activeSort={sortBy} direction={sortDirection} field="createdAt" label="Created" onSort={handleSort} />
                   </tr>
                 </thead>
                 <tbody>
@@ -147,7 +191,7 @@ export function GraphicsPage() {
       </div>
 
       {!graphicsQuery.isPending && !graphicsQuery.isError && records.length < total && (
-        <p className="result-note">Showing the newest {records.length.toLocaleString()} of {total.toLocaleString()} records.</p>
+        <p className="result-note">Showing the first {records.length.toLocaleString()} of {total.toLocaleString()} records in the selected sort order.</p>
       )}
     </section>
   );
