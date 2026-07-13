@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { access, mkdir, readFile, stat } from 'node:fs/promises';
-import { dirname, extname, join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { DatabaseSync } from 'node:sqlite';
@@ -11,6 +11,7 @@ import {
   type PreviewVariant,
 } from '@graphicsflow/shared';
 import { getGraphicById } from './graphics-repository.js';
+import { repairGraphicFileMisses } from './live-file-sync-service.js';
 import { getCompanySettings, settingsDatabasePath } from './settings-store.js';
 
 const execFileAsync = promisify(execFile);
@@ -121,8 +122,15 @@ function response(
 }
 
 async function generate(graphicId: number, variant: PreviewVariant): Promise<PreviewResponse> {
-  const source = findLatestApproval(graphicId);
-  if (!source) return response(graphicId, variant, 'unavailable', null, null, 'No indexed approval is available for this record.');
+  const graphic = getGraphicById(graphicId);
+  if (!graphic) return response(graphicId, variant, 'unavailable', null, null, 'Graphics record not found.');
+
+  let source = findLatestApproval(graphicId);
+  if (!source) {
+    await repairGraphicFileMisses(graphic.gNumber);
+    source = findLatestApproval(graphicId);
+  }
+  if (!source) return response(graphicId, variant, 'unavailable', null, null, 'No approval is available for this record.');
   if (source.extension.toLowerCase() !== '.pdf') return response(graphicId, variant, 'unavailable', null, null, 'The current approval format cannot be previewed yet.');
 
   const key = cacheKey(graphicId, variant, source);
