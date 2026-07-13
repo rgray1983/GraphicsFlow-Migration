@@ -20,12 +20,18 @@ const graphicsColumns = new Set(
 
 const specificationColumnCandidates = [
   'spec_number',
+  'spec_num',
   'spec_no',
+  'specnumber',
   'specification_number',
+  'specification_num',
   'specification_no',
+  'specification',
   'f_number',
+  'f_num',
   'f_no',
   'fnumber',
+  'fnum',
   'spec',
 ] as const;
 
