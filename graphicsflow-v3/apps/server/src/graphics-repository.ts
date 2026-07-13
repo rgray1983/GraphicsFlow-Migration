@@ -6,10 +6,33 @@ type GraphicRow = {
   g_number: string | null;
   customer_number: string | null;
   customer_name: string | null;
+  specification_number: string | null;
   part_number: string | null;
   preview_image: string | null;
   created_at: string | null;
 };
+
+type TableColumn = { name: string };
+
+const graphicsColumns = new Set(
+  (database.prepare('PRAGMA table_info(graphics)').all() as TableColumn[]).map((column) => column.name.toLowerCase()),
+);
+
+const specificationColumnCandidates = [
+  'spec_number',
+  'spec_no',
+  'specification_number',
+  'specification_no',
+  'f_number',
+  'f_no',
+  'fnumber',
+  'spec',
+] as const;
+
+const specificationColumn = specificationColumnCandidates.find((candidate) => graphicsColumns.has(candidate)) ?? null;
+const specificationSelect = specificationColumn
+  ? `"${specificationColumn}" AS specification_number`
+  : "'' AS specification_number";
 
 const numericGNumberExpression = `
   CAST(
@@ -39,6 +62,7 @@ function mapGraphic(row: GraphicRow): GraphicRecord {
     gNumber: row.g_number ?? '',
     customerNumber: row.customer_number ?? '',
     customerName: row.customer_name ?? '',
+    specificationNumber: row.specification_number ?? '',
     partNumber: row.part_number ?? '',
     previewImage: row.preview_image,
     createdAt: row.created_at,
@@ -47,7 +71,7 @@ function mapGraphic(row: GraphicRow): GraphicRecord {
 
 export function getGraphicById(id: number): GraphicRecord | null {
   const row = database.prepare(`
-    SELECT id, g_number, customer_number, customer_name, part_number, preview_image, created_at
+    SELECT id, g_number, customer_number, customer_name, ${specificationSelect}, part_number, preview_image, created_at
     FROM graphics
     WHERE id = ?
   `).get(id) as GraphicRow | undefined;
@@ -72,7 +96,7 @@ export function listGraphics(query: GraphicsQuery): GraphicsListResponse {
   const countRow = countStatement.get(...searchParameters) as { total: number };
 
   const listStatement = database.prepare(`
-    SELECT id, g_number, customer_number, customer_name, part_number, preview_image, created_at
+    SELECT id, g_number, customer_number, customer_name, ${specificationSelect}, part_number, preview_image, created_at
     FROM graphics
     ${whereClause}
     ORDER BY ${sortColumn} ${sortDirection}, id ${sortDirection}
