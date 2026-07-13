@@ -79,6 +79,7 @@ type GraphicRow = {
   customer_name: string;
   part_number: string;
   preview_image: string | null;
+  source: 'legacy-import' | 'graphicsflow';
   created_at: string;
 };
 
@@ -106,6 +107,8 @@ function mapGraphic(row: GraphicRow): GraphicRecord {
     partNumber: row.part_number,
     previewImage: row.preview_image,
     createdAt: row.created_at,
+    source: row.source,
+    canDelete: row.source === 'graphicsflow',
   };
 }
 
@@ -172,7 +175,7 @@ const sortColumns: Record<GraphicsQuery['sortBy'], string> = {
 
 export function getGraphicById(id: number): GraphicRecord | null {
   const row = database.prepare(`
-    SELECT id, g_number, customer_number, customer_name, part_number, preview_image, created_at
+    SELECT id, g_number, customer_number, customer_name, part_number, preview_image, source, created_at
     FROM graphics_records
     WHERE id = ?
   `).get(id) as GraphicRow | undefined;
@@ -195,7 +198,7 @@ export function listGraphics(query: GraphicsQuery): GraphicsListResponse {
   const countRow = database.prepare(`SELECT COUNT(*) AS total FROM graphics_records ${whereClause}`)
     .get(...searchParameters) as { total: number };
   const rows = database.prepare(`
-    SELECT id, g_number, customer_number, customer_name, part_number, preview_image, created_at
+    SELECT id, g_number, customer_number, customer_name, part_number, preview_image, source, created_at
     FROM graphics_records
     ${whereClause}
     ORDER BY ${sortColumn} ${sortDirection}, id ${sortDirection}
@@ -209,6 +212,13 @@ export class DuplicateGraphicError extends Error {
   constructor() {
     super('That G# already exists.');
     this.name = 'DuplicateGraphicError';
+  }
+}
+
+export class GraphicDeletionError extends Error {
+  constructor(message: string, public readonly code: 'not-found' | 'legacy-record' | 'has-documents') {
+    super(message);
+    this.name = 'GraphicDeletionError';
   }
 }
 
@@ -247,6 +257,36 @@ export function createGraphic(input: CreateGraphicInput): GraphicRecord {
     const created = getGraphicById(id);
     if (!created) throw new Error('The new graphics record could not be reloaded.');
     return created;
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
+
+export function deleteGraphic(id: number): { deletedId: number; deletedGNumber: string } {
+  database.exec('BEGIN IMMEDIATE');
+  try {
+    const row = database.prepare(`
+      SELECT id, g_number, source
+      FROM graphics_records
+      WHERE id = ?
+    `).get(id) as { id: number; g_number: string; source: string } | undefined;
+
+    if (!row) throw new GraphicDeletionError('Graphics record not found.', 'not-found');
+    if (row.source !== 'graphicsflow') {
+      throw new GraphicDeletionError('Imported legacy graphics records cannot be deleted from GraphicsFlow.', 'legacy-record');
+    }
+
+    const documentCount = database.prepare('SELECT COUNT(*) AS total FROM graphics_documents WHERE graphic_id = ?')
+      .get(id) as { total: number };
+    if (Number(documentCount.total) > 0) {
+      throw new GraphicDeletionError('This record already has GraphicsFlow documents or revisions and cannot be deleted.', 'has-documents');
+    }
+
+    database.prepare('DELETE FROM graphic_metadata WHERE legacy_graphic_id = ?').run(id);
+    database.prepare('DELETE FROM graphics_records WHERE id = ?').run(id);
+    database.exec('COMMIT');
+    return { deletedId: id, deletedGNumber: row.g_number };
   } catch (error) {
     database.exec('ROLLBACK');
     throw error;
