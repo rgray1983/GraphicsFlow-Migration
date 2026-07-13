@@ -11,8 +11,22 @@ type GraphicRow = {
   created_at: string | null;
 };
 
+const numericGNumberExpression = `
+  CAST(
+    REPLACE(
+      REPLACE(
+        REPLACE(UPPER(TRIM(COALESCE(g_number, ''))), 'G', ''),
+        '#',
+        ''
+      ),
+      ' ',
+      ''
+    ) AS INTEGER
+  )
+`;
+
 const sortColumns: Record<GraphicsQuery['sortBy'], string> = {
-  gNumber: 'CAST(g_number AS INTEGER)',
+  gNumber: numericGNumberExpression,
   customerNumber: "COALESCE(customer_number, '') COLLATE NOCASE",
   customerName: "COALESCE(customer_name, '') COLLATE NOCASE",
   partNumber: "COALESCE(part_number, '') COLLATE NOCASE",
