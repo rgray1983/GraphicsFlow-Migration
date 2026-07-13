@@ -4,6 +4,7 @@ import {
   companySettingsSchema,
   createGraphicInputSchema,
   createGraphicResponseSchema,
+  deleteGraphicResponseSchema,
   fileIndexJobStatusSchema,
   graphicFilesResponseSchema,
   graphicsListResponseSchema,
@@ -17,7 +18,14 @@ import {
 import { resolveApprovalDocument, streamApprovalDocument } from './approval-document-service.js';
 import { config } from './config.js';
 import { resolvedDatabasePath } from './database.js';
-import { createGraphic, DuplicateGraphicError, getGraphicById, listGraphics } from './graphics-repository.js';
+import {
+  createGraphic,
+  deleteGraphic,
+  DuplicateGraphicError,
+  getGraphicById,
+  GraphicDeletionError,
+  listGraphics,
+} from './graphics-repository.js';
 import {
   getFileIndexJobStatus,
   resolveGraphicFiles,
@@ -75,6 +83,22 @@ app.post('/api/graphics', async (request, reply) => {
     }
     request.log.error({ error }, 'Could not create graphics record');
     return reply.status(500).send({ error: 'The G# could not be created.' });
+  }
+});
+
+app.delete('/api/graphics/:id', async (request, reply) => {
+  const id = Number((request.params as { id?: string }).id);
+  if (!Number.isInteger(id) || id <= 0) return reply.status(400).send({ error: 'Invalid graphics record id.' });
+
+  try {
+    return deleteGraphicResponseSchema.parse(deleteGraphic(id));
+  } catch (error) {
+    if (error instanceof GraphicDeletionError) {
+      const status = error.code === 'not-found' ? 404 : 409;
+      return reply.status(status).send({ error: error.message, code: error.code });
+    }
+    request.log.error({ error, graphicId: id }, 'Could not delete graphics record');
+    return reply.status(500).send({ error: 'The graphics record could not be deleted.' });
   }
 });
 
