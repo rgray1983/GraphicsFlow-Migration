@@ -46,8 +46,9 @@ function revisionedGNumber(gNumber: string, revision: string): string {
 }
 
 export function renderPrintCardSvg(data: PrintCardTemplateData): string {
-  const revisions = [...data.revisions].slice(-4);
-  while (revisions.length < 4) revisions.unshift({ revisionLabel: '', revisionDate: '', description: '', csr: '', designer: '' });
+  const populatedRevisions = [...data.revisions].slice(-4);
+  const revisions = [...populatedRevisions];
+  while (revisions.length < 4) revisions.push({ revisionLabel: '', revisionDate: '', description: '', csr: '', designer: '' });
 
   const tableX = 22;
   const tableY = 210;
@@ -76,7 +77,7 @@ export function renderPrintCardSvg(data: PrintCardTemplateData): string {
     </g>`;
   }).join('');
 
-  const latest = revisions.at(-1);
+  const latest = populatedRevisions.at(-1);
   const displayG = revisionedGNumber(data.gNumber, latest?.revisionLabel ?? '');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
