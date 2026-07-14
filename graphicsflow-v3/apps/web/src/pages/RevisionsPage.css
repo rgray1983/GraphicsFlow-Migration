@@ -75,6 +75,34 @@
 .revision-preview-message span { font-size: 9px; line-height: 1.5; }
 .revision-quality-toggle { min-height: 32px; display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid rgba(148,163,184,.15); border-radius: 7px; color: #94a3b8; background: rgba(15,23,42,.72); font-size: 9px; font-weight: 800; cursor: pointer; }
 .revision-quality-toggle input { accent-color: #14b8a6; }
-@media (max-width: 1180px) { .revision-main-grid { grid-template-columns: minmax(260px,30%) minmax(0,70%); } }
-@media (max-width: 900px) { .revision-main-grid { grid-template-columns: 1fr; } .revision-document-workspace { position: static; min-height: 0; grid-template-rows: auto minmax(400px,auto) auto auto; } .revision-embedded-viewer,.revision-embedded-viewer .document-canvas { min-height: 400px; } .revision-document-sheet img { max-height: 320px; } }
-@media (max-width: 760px) { .revisions-heading,.revision-record-hero { display: grid; } .revision-search { grid-template-columns: 1fr; } .revision-type { border-right: 0; border-bottom: 1px solid rgba(148,163,184,.12); } .revision-search > button { min-height: 42px; } .revision-current-summary { min-width: 0; padding: 14px 0 0; border-left: 0; border-top: 1px solid rgba(148,163,184,.12); } .revision-primary-actions { justify-content: flex-start; } .revision-journey > header,.revision-journey article > header,.revision-journey article > footer { display: grid; } .revision-journey article > footer button { margin-left: 0; } .revision-document-stage { padding: 12px; } .revision-document-sheet img { max-height: 280px; } }
+.revision-onboarding-grid { display: grid; grid-template-columns: minmax(240px,20%) minmax(0,80%); gap: 18px; align-items: start; }
+.revision-onboarding-info,.revision-onboarding-workspace { border: 1px solid rgba(148,163,184,.12); border-radius: 15px; background: rgba(3,9,19,.62); }
+.revision-onboarding-info { padding: 18px; }
+.revision-onboarding-info h3 { margin: 4px 0 8px; color: #eef6ff; font-size: 18px; }
+.revision-onboarding-info > p:not(.eyebrow) { color: #8190a6; font-size: 9px; line-height: 1.55; overflow-wrap: anywhere; }
+.revision-onboarding-info dl { display: grid; gap: 8px; margin: 18px 0; }
+.revision-onboarding-info dl div { display: flex; justify-content: space-between; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(148,163,184,.1); }
+.revision-onboarding-info dt,.revision-onboarding-info dd { margin: 0; font-size: 8px; }
+.revision-onboarding-info dt { color: #64748b; text-transform: uppercase; }
+.revision-onboarding-info dd { color: #cbd5e1; text-align: right; }
+.revision-onboarding-note { padding: 12px; border: 1px solid rgba(45,212,191,.14); border-radius: 10px; background: rgba(20,184,166,.06); }
+.revision-onboarding-workspace { display: grid; gap: 16px; padding: 18px; }
+.revision-onboarding-preview { min-height: 360px; overflow: hidden; border: 1px solid rgba(148,163,184,.14); border-radius: 12px; }
+.revision-onboarding-preview .document-canvas { min-height: 360px; }
+.revision-onboarding-form { display: grid; gap: 18px; }
+.revision-onboarding-form > header,.revision-onboarding-history > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.revision-onboarding-form h3,.revision-onboarding-history h4 { margin: 3px 0 0; color: #dbe7f2; }
+.revision-onboarding-form button { min-height: 34px; padding: 7px 11px; border: 1px solid rgba(45,212,191,.24); border-radius: 8px; color: #fff; background: linear-gradient(135deg,#14b8a6,#0d9488); font-size: 9px; font-weight: 800; cursor: pointer; }
+.revision-onboarding-form button:disabled { opacity: .45; cursor: not-allowed; }
+.revision-onboarding-fields { display: grid; grid-template-columns: repeat(5,minmax(120px,1fr)); gap: 10px; }
+.revision-onboarding-form label { display: grid; gap: 5px; color: #718096; font-size: 8px; font-weight: 800; text-transform: uppercase; }
+.revision-onboarding-form input { min-width: 0; height: 34px; padding: 0 9px; border: 1px solid rgba(148,163,184,.14); border-radius: 7px; outline: 0; color: #dbe7f2; background: rgba(15,23,42,.72); font: inherit; text-transform: none; }
+.revision-onboarding-form input:focus { border-color: rgba(45,212,191,.45); }
+.revision-onboarding-history { display: grid; gap: 10px; padding-top: 4px; }
+.revision-onboarding-history > header > button { color: #99f6e4; background: rgba(20,184,166,.08); }
+.revision-onboarding-row { display: grid; grid-template-columns: 70px 110px minmax(180px,1fr) 90px 90px 34px; gap: 8px; align-items: end; padding: 10px; border: 1px solid rgba(148,163,184,.1); border-radius: 10px; background: rgba(10,18,31,.72); }
+.revision-onboarding-row > button { min-width: 34px; padding: 0; color: #fca5a5; border-color: rgba(248,113,113,.16); background: rgba(127,29,29,.12); }
+.revision-onboarding-error { margin: 0; color: #fca5a5; font-size: 9px; }
+@media (max-width: 1180px) { .revision-main-grid,.revision-onboarding-grid { grid-template-columns: minmax(260px,30%) minmax(0,70%); } .revision-onboarding-fields { grid-template-columns: repeat(2,minmax(140px,1fr)); } .revision-onboarding-row { grid-template-columns: 70px 110px minmax(160px,1fr); } }
+@media (max-width: 900px) { .revision-main-grid,.revision-onboarding-grid { grid-template-columns: 1fr; } .revision-document-workspace { position: static; min-height: 0; grid-template-rows: auto minmax(400px,auto) auto auto; } .revision-embedded-viewer,.revision-embedded-viewer .document-canvas { min-height: 400px; } .revision-document-sheet img { max-height: 320px; } }
+@media (max-width: 760px) { .revisions-heading,.revision-record-hero,.revision-onboarding-form > header,.revision-onboarding-history > header { display: grid; } .revision-search { grid-template-columns: 1fr; } .revision-type { border-right: 0; border-bottom: 1px solid rgba(148,163,184,.12); } .revision-search > button { min-height: 42px; } .revision-current-summary { min-width: 0; padding: 14px 0 0; border-left: 0; border-top: 1px solid rgba(148,163,184,.12); } .revision-primary-actions { justify-content: flex-start; } .revision-journey > header,.revision-journey article > header,.revision-journey article > footer { display: grid; } .revision-journey article > footer button { margin-left: 0; } .revision-document-stage { padding: 12px; } .revision-document-sheet img { max-height: 280px; } .revision-onboarding-fields,.revision-onboarding-row { grid-template-columns: 1fr; } }
