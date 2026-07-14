@@ -42,19 +42,27 @@ export const printCardRevisionSchema = z.object({
   createdAt: z.string().datetime().nullable(),
   source: z.enum(['legacy-import', 'graphicsflow', 'approval-autofill']),
 });
-export const printCardDraftSchema = z.object({
-  specificationNumber: z.string().trim().min(1, 'Spec # is required.').max(80),
+const printCardEditableDraftSchema = z.object({
+  specificationNumber: z.string().trim().max(80),
   designNumber: z.string().trim().max(80).default(''),
+  revisionLabel: z.string().trim().max(20),
+  revisionDate: z.string().trim().max(30),
+  description: z.string().trim().max(240),
+  csr: z.string().trim().max(40),
+  designer: z.string().trim().max(40),
+  replaceExistingImage: z.boolean().default(false),
+});
+export const printCardDraftSchema = printCardEditableDraftSchema.extend({
+  specificationNumber: z.string().trim().min(1, 'Spec # is required.').max(80),
   revisionLabel: z.string().trim().min(1, 'Revision is required.').max(20),
   revisionDate: z.string().trim().min(1, 'Revision date is required.').max(30),
   description: z.string().trim().min(1, 'Description is required.').max(240),
   csr: z.string().trim().min(1, 'CSR is required.').max(40),
   designer: z.string().trim().min(1, 'Designer is required.').max(40),
-  replaceExistingImage: z.boolean().default(false),
 });
 export const printCardDefaultsResponseSchema = z.object({
   graphic: graphicRecordSchema,
-  draft: printCardDraftSchema,
+  draft: printCardEditableDraftSchema,
   history: z.array(printCardRevisionSchema),
   autoFill: z.object({
     approvalFound: z.boolean(),
