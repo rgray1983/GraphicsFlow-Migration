@@ -55,6 +55,9 @@ export const printCardDefaultsResponseSchema = z.object({
 export const createPrintCardResponseSchema = z.object({
   graphicId: z.number().int().positive(), revision: printCardRevisionSchema, fileName: z.string(), relativePath: z.string(), replacedExistingImage: z.boolean(),
 });
+export const printCardDetailsResponseSchema = z.object({
+  graphicId: z.number().int().positive(), revision: printCardRevisionSchema.nullable(), canEdit: z.boolean(),
+});
 
 export const graphicFileKindSchema = z.enum(['approval', 'printCard']);
 export const graphicFileMatchSchema = z.object({ kind: graphicFileKindSchema, name: z.string(), extension: z.string(), size: z.number().int().nonnegative(), modifiedAt: z.string().datetime(), relativePath: z.string() });
@@ -89,6 +92,7 @@ export type PrintCardRevision = z.infer<typeof printCardRevisionSchema>;
 export type PrintCardDraft = z.infer<typeof printCardDraftSchema>;
 export type PrintCardDefaultsResponse = z.infer<typeof printCardDefaultsResponseSchema>;
 export type CreatePrintCardResponse = z.infer<typeof createPrintCardResponseSchema>;
+export type PrintCardDetailsResponse = z.infer<typeof printCardDetailsResponseSchema>;
 export type GraphicFileKind = z.infer<typeof graphicFileKindSchema>;
 export type GraphicFileMatch = z.infer<typeof graphicFileMatchSchema>;
 export type GraphicFilesResponse = z.infer<typeof graphicFilesResponseSchema>;
