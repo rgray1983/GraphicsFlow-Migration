@@ -16,7 +16,7 @@ export type PrintCardTemplateData = {
   revisions: PrintCardTemplateRevision[];
 };
 
-const WIDTH = 3000;
+const WIDTH = 300;
 const HEIGHT = 1200;
 
 function xml(value: string): string {
@@ -28,60 +28,77 @@ function xml(value: string): string {
     .replaceAll("'", '&apos;');
 }
 
-function fit(value: string, max = 44): string {
-  const clean = value.trim().toUpperCase();
-  return clean.length > max ? `${clean.slice(0, Math.max(0, max - 1))}…` : clean;
+function clean(value: string): string {
+  return value.trim().toUpperCase();
 }
 
-function field(label: string, value: string, x: number, y: number, width: number, valueSize = 56): string {
-  return `<g>
-    <rect x="${x}" y="${y}" width="${width}" height="150" rx="12" fill="#fff" stroke="#111" stroke-width="5"/>
-    <text x="${x + 24}" y="${y + 42}" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" letter-spacing="2">${xml(label)}</text>
-    <text x="${x + 24}" y="${y + 112}" font-family="Arial, Helvetica, sans-serif" font-size="${valueSize}" font-weight="700">${xml(fit(value, Math.floor(width / 34)))}</text>
-  </g>`;
+function fit(value: string, max: number): string {
+  const normalized = clean(value);
+  return normalized.length > max ? normalized.slice(0, max) : normalized;
+}
+
+function revisionedGNumber(gNumber: string, revision: string): string {
+  const base = clean(gNumber).replace(/^G#?/, '').replace(/[^A-Z0-9_-]/g, '');
+  const rev = clean(revision);
+  if (!base) return '';
+  if (!rev || rev === '0' || base.endsWith(`-${rev}`)) return `G#${base}`;
+  return `G#${base}-${rev}`;
 }
 
 export function renderPrintCardSvg(data: PrintCardTemplateData): string {
   const revisions = [...data.revisions].slice(-4);
   while (revisions.length < 4) revisions.unshift({ revisionLabel: '', revisionDate: '', description: '', csr: '', designer: '' });
 
-  const rows = revisions.map((revision, index) => {
-    const y = 650 + index * 125;
-    return `<g>
-      <rect x="70" y="${y}" width="2860" height="125" fill="#fff" stroke="#111" stroke-width="4"/>
-      <line x1="290" y1="${y}" x2="290" y2="${y + 125}" stroke="#111" stroke-width="4"/>
-      <line x1="670" y1="${y}" x2="670" y2="${y + 125}" stroke="#111" stroke-width="4"/>
-      <line x1="2260" y1="${y}" x2="2260" y2="${y + 125}" stroke="#111" stroke-width="4"/>
-      <line x1="2580" y1="${y}" x2="2580" y2="${y + 125}" stroke="#111" stroke-width="4"/>
-      <text x="180" y="${y + 80}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700">${xml(fit(revision.revisionLabel, 8))}</text>
-      <text x="480" y="${y + 80}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="43" font-weight="700">${xml(fit(revision.revisionDate, 14))}</text>
-      <text x="700" y="${y + 80}" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="600">${xml(fit(revision.description, 54))}</text>
-      <text x="2420" y="${y + 80}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="700">${xml(fit(revision.csr, 10))}</text>
-      <text x="2755" y="${y + 80}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="700">${xml(fit(revision.designer, 10))}</text>
+  const tableX = 22;
+  const tableY = 210;
+  const tableW = 256;
+  const tableH = 810;
+  const sourceW = 980;
+  const sourceH = 234;
+  const scaleX = tableH / sourceW;
+  const scaleY = tableW / sourceH;
+  const columns = [0, 75, 230, 730, 855, 980];
+  const headerH = 42;
+  const rowH = 48;
+
+  const verticalLines = columns.slice(1, -1).map((x) => `<line x1="${x}" y1="0" x2="${x}" y2="${sourceH}"/>`).join('');
+  const horizontalLines = [headerH, ...Array.from({ length: 4 }, (_, index) => headerH + rowH * (index + 1))]
+    .map((y) => `<line x1="0" y1="${y}" x2="${sourceW}" y2="${y}"/>`).join('');
+
+  const rowMarkup = revisions.map((revision, index) => {
+    const baseline = headerH + rowH * index + 32;
+    return `<g font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400">
+      <text x="28" y="${baseline}">${xml(fit(revision.revisionLabel, 7))}</text>
+      <text x="90" y="${baseline}">${xml(fit(revision.revisionDate, 12))}</text>
+      <text x="242" y="${baseline}">${xml(fit(revision.description, 42))}</text>
+      <text x="772" y="${baseline}">${xml(fit(revision.csr, 8))}</text>
+      <text x="897" y="${baseline}">${xml(fit(revision.designer, 8))}</text>
     </g>`;
   }).join('');
+
+  const latest = revisions.at(-1);
+  const displayG = revisionedGNumber(data.gNumber, latest?.revisionLabel ?? '');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
   <rect width="${WIDTH}" height="${HEIGHT}" fill="#fff"/>
-  <rect x="35" y="35" width="2930" height="1130" rx="22" fill="#fff" stroke="#111" stroke-width="10"/>
-  <text x="85" y="115" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="900" letter-spacing="4">PRINT CARD</text>
-  <text x="2910" y="115" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="900">${xml(fit(data.gNumber, 24))}</text>
-  ${field('CUSTOMER #', data.customerNumber, 70, 165, 660, 52)}
-  ${field('CUSTOMER', data.customerName, 755, 165, 1320, 50)}
-  ${field('PART # / ITEM', data.partNumber, 2100, 165, 830, 44)}
-  ${field('SPEC #', data.specificationNumber || 'NONE', 70, 340, 870, 58)}
-  ${field('DESIGN #', data.designNumber || 'NONE', 965, 340, 870, 58)}
-  ${field('CURRENT REV', revisions.at(-1)?.revisionLabel || '0', 1860, 340, 520, 62)}
-  ${field('REV DATE', revisions.at(-1)?.revisionDate || '', 2405, 340, 525, 48)}
-  <g>
-    <rect x="70" y="585" width="2860" height="65" fill="#111"/>
-    <text x="180" y="630" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="800">REV</text>
-    <text x="480" y="630" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="800">DATE</text>
-    <text x="700" y="630" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="800">DESCRIPTION</text>
-    <text x="2420" y="630" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="800">CSR</text>
-    <text x="2755" y="630" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="800">DES</text>
+  <g transform="translate(${tableX} ${tableY + tableH}) rotate(-90) scale(${scaleX} ${scaleY})" fill="none" stroke="#000" stroke-width="2">
+    <rect x="0" y="0" width="${sourceW}" height="${sourceH}"/>
+    ${verticalLines}
+    ${horizontalLines}
+    <g fill="#000" stroke="none" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700">
+      <text x="16" y="29">REV</text>
+      <text x="103" y="29">DATE</text>
+      <text x="410" y="29">DESCRIPTION</text>
+      <text x="768" y="29">CSR</text>
+      <text x="893" y="29">DES</text>
+    </g>
+    <g fill="#000" stroke="none">${rowMarkup}</g>
   </g>
-  ${rows}
+  <g fill="#000" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400">
+    <text x="28" y="1045">F#${xml(clean(data.specificationNumber))}</text>
+    <text x="28" y="1085">D#${xml(clean(data.designNumber))}</text>
+    <text x="28" y="1125">${xml(displayG)}</text>
+  </g>
 </svg>`;
 }
