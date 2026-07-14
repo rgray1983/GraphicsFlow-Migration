@@ -10,6 +10,7 @@ import {
 } from '@graphicsflow/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { DocumentCanvas } from './DocumentCanvas';
+import { LoadingIndicator, LoadingOverlay, ShimmerPreview } from './LoadingIndicator';
 import { Modal } from './Modal';
 import './PrintCardCreatorModal.css';
 
@@ -208,13 +209,14 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
     finally { setSaving(false); }
   };
 
-  const previewCard = <div className="print-card-production-preview"><div className="print-card-art-preview">{artPreviewUrl ? <img alt="Converted artwork preview" src={artPreviewUrl} /> : <span>{readingFile ? 'Converting artwork…' : 'Select live artwork or upload a 9 × 4 PDF'}</span>}</div><div className="print-card-info-preview" dangerouslySetInnerHTML={{ __html: infoSvg }} /></div>;
+  const previewCard = <ShimmerPreview active={readingFile} label="Converting artwork…"><div className="print-card-production-preview"><div className="print-card-art-preview">{artPreviewUrl ? <img alt="Converted artwork preview" src={artPreviewUrl} /> : <span>Select live artwork or upload a 9 × 4 PDF</span>}</div><div className="print-card-info-preview" dangerouslySetInnerHTML={{ __html: infoSvg }} /></div></ShimmerPreview>;
 
   return (
     <Modal isOpen={isOpen} onClose={close} title={record ? `Print Card Workspace · ${formatGNumber(record.gNumber)}` : 'Print Card Workspace'} variant="creator">
-      {loading && <div className="creator-loading">Reading GraphicsFlow metadata and live artwork…</div>}
+      {loading && <LoadingIndicator size="panel" title="Loading Print Card Workspace" message="Reading approval metadata and locating artwork files…" />}
       {!loading && record && defaults && (
         <form className="print-card-creator" onSubmit={submit}>
+          {saving && <LoadingOverlay size="panel" title="Generating Print Card" message="Rendering artwork and creating the production JPG…" />}
           <section className="creator-editor">
             <div className="creator-intro"><div><span className="creator-kicker">Document Workspace</span><h3>Create Print Card</h3><p>Select read-only live artwork or upload an override, verify metadata, and generate the 300 DPI card.</p></div><div className={`creator-readiness${missing.length === 0 ? ' is-ready' : ''}`}><div><span>Production Ready</span><strong>{readinessPercent}%</strong></div><div className="creator-readiness-track"><i style={{ width: `${readinessPercent}%` }} /></div><small>{missing.length ? `Missing: ${missing.join(', ')}` : 'All required production information is complete.'}</small></div></div>
             <div className="creator-record-summary"><div><span>Customer #</span><strong>{record.customerNumber}</strong></div><div><span>Customer</span><strong>{record.customerName}</strong></div><div><span>Part #</span><strong>{record.partNumber}</strong></div></div>
@@ -247,7 +249,7 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
             <p>The viewer renders a complete 600 DPI Print Card PNG directly from the selected PDF. The generated production JPG remains 300 DPI.</p>
             <footer className="creator-actions creator-preview-actions"><button className="secondary" onClick={close} type="button">Cancel</button><button className="primary" disabled={saving || readingFile || previewLoading || missing.length > 0} type="submit">{saving ? 'Generating Print Card…' : 'Generate Print Card'}</button></footer>
           </aside>
-          {previewOpen && <div className="production-preview-workspace print-card-preview-workspace" role="dialog" aria-modal="true" aria-label="Print Card Preview"><header><div><span className="creator-kicker">Print Card Preview</span><h2>{formatGNumber(record.gNumber)} · 10 × 4 in</h2></div><span className="print-card-preview-quality">Viewer Render · 600 DPI</span></header>{fullPreviewUrl ? <DocumentCanvas ariaLabel="Print Card preview controls" fitScale={0.75} isActive={previewOpen} onEscape={closePreview} toolbarEnd={<button className="close-preview" onClick={closePreview} type="button">Close</button>}><div className="production-preview-card production-preview-image-card"><img alt={`${formatGNumber(record.gNumber)} complete 600 DPI Print Card preview`} draggable={false} src={fullPreviewUrl} /></div></DocumentCanvas> : <div className="creator-loading">Rendering complete 600 DPI Print Card Preview…</div>}</div>}
+          {previewOpen && <div className="production-preview-workspace print-card-preview-workspace" role="dialog" aria-modal="true" aria-label="Print Card Preview"><header><div><span className="creator-kicker">Print Card Preview</span><h2>{formatGNumber(record.gNumber)} · 10 × 4 in</h2></div><span className="print-card-preview-quality">Viewer Render · 600 DPI</span></header>{fullPreviewUrl ? <DocumentCanvas ariaLabel="Print Card preview controls" fitScale={0.75} isActive={previewOpen} onEscape={closePreview} toolbarEnd={<button className="close-preview" onClick={closePreview} type="button">Close</button>}><div className="production-preview-card production-preview-image-card"><img alt={`${formatGNumber(record.gNumber)} complete 600 DPI Print Card preview`} draggable={false} src={fullPreviewUrl} /></div></DocumentCanvas> : <LoadingIndicator size="viewer" title="Rendering Print Card Preview" message="Building the high-resolution 600 DPI preview…" />}</div>}
         </form>
       )}
       {!loading && error && !defaults && <div className="creator-loading creator-loading-error"><strong>Print Card Creator could not open.</strong><span>{error}</span></div>}
