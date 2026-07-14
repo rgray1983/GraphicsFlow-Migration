@@ -28,14 +28,44 @@ export const revisionWorkspaceRecordSchema = z.object({
   currentRevision: revisionJourneyEntrySchema.nullable(),
   journey: z.array(revisionJourneyEntrySchema),
 });
+export const unregisteredPrintCardSchema = z.object({
+  specificationNumber: z.string(),
+  fileName: z.string(),
+  relativePath: z.string(),
+  modifiedAt: z.string().datetime(),
+  size: z.number().int().nonnegative(),
+});
 export const revisionLookupResponseSchema = z.object({
   query: revisionLookupQuerySchema,
   record: revisionWorkspaceRecordSchema.nullable(),
+  unregisteredPrintCard: unregisteredPrintCardSchema.nullable().default(null),
   message: z.string().nullable(),
 });
+
+const onboardingRevisionSchema = z.object({
+  revisionLabel: z.string().trim().min(1, 'Revision is required.').max(20),
+  revisionDate: z.string().trim().max(30).default(''),
+  description: z.string().trim().max(240).default(''),
+  csr: z.string().trim().max(40).default(''),
+  designer: z.string().trim().max(40).default(''),
+});
+export const onboardPrintCardInputSchema = z.object({
+  specificationNumber: z.string().trim().min(1).max(80),
+  gNumber: z.string().trim().min(1, 'G# is required.').max(80),
+  customerNumber: z.string().trim().min(1, 'Customer # is required.').max(80),
+  customerName: z.string().trim().min(1, 'Customer name is required.').max(160),
+  partNumber: z.string().trim().min(1, 'Part # is required.').max(160),
+  designNumber: z.string().trim().max(80).default(''),
+  liveRelativePath: z.string().trim().min(1).max(1000),
+  revisions: z.array(onboardingRevisionSchema).min(1, 'Add at least one revision.').max(100),
+});
+export const onboardPrintCardResponseSchema = z.object({ record: revisionWorkspaceRecordSchema });
 
 export type RevisionDocumentType = z.infer<typeof revisionDocumentTypeSchema>;
 export type RevisionLookupQuery = z.infer<typeof revisionLookupQuerySchema>;
 export type RevisionJourneyEntry = z.infer<typeof revisionJourneyEntrySchema>;
 export type RevisionWorkspaceRecord = z.infer<typeof revisionWorkspaceRecordSchema>;
+export type UnregisteredPrintCard = z.infer<typeof unregisteredPrintCardSchema>;
 export type RevisionLookupResponse = z.infer<typeof revisionLookupResponseSchema>;
+export type OnboardPrintCardInput = z.infer<typeof onboardPrintCardInputSchema>;
+export type OnboardPrintCardResponse = z.infer<typeof onboardPrintCardResponseSchema>;
