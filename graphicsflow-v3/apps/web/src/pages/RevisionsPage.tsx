@@ -1,7 +1,17 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { formatGNumber, formatSpecNumber, type RevisionDocumentType, type RevisionLookupResponse } from '@graphicsflow/shared';
+import {
+  formatGNumber,
+  formatSpecNumber,
+  type GraphicFileMatch,
+  type GraphicFilesResponse,
+  type GraphicRecord,
+  type RevisionDocumentType,
+  type RevisionLookupResponse,
+} from '@graphicsflow/shared';
+import { ApprovalViewer } from '../components/ApprovalViewer';
 import { LoadingIndicator } from '../components/LoadingIndicator';
+import { PrintCardViewer } from '../components/PrintCardViewer';
 import './RevisionsPage.css';
 
 async function lookup(type: RevisionDocumentType, identifier: string): Promise<RevisionLookupResponse> {
@@ -9,6 +19,12 @@ async function lookup(type: RevisionDocumentType, identifier: string): Promise<R
   const response = await fetch(`/api/revisions/lookup?${params.toString()}`);
   if (!response.ok) throw new Error('Revision history could not be searched.');
   return response.json() as Promise<RevisionLookupResponse>;
+}
+
+async function loadFiles(graphicId: number): Promise<GraphicFilesResponse> {
+  const response = await fetch(`/api/graphics/${graphicId}/files`);
+  if (!response.ok) throw new Error('Current document files could not be loaded.');
+  return response.json() as Promise<GraphicFilesResponse>;
 }
 
 function displayDate(value: string | null): string {
@@ -21,10 +37,43 @@ export function RevisionsPage() {
   const [type, setType] = useState<RevisionDocumentType>('approval');
   const [input, setInput] = useState('');
   const [search, setSearch] = useState('');
+  const [viewerType, setViewerType] = useState<RevisionDocumentType | null>(null);
+  const [viewerFile, setViewerFile] = useState<GraphicFileMatch | null>(null);
+  const [viewerLoading, setViewerLoading] = useState(false);
+  const [viewerError, setViewerError] = useState<string | null>(null);
   const query = useQuery({ queryKey: ['revision-lookup', type, search], queryFn: () => lookup(type, search), enabled: Boolean(search), retry: false });
   const record = query.data?.record ?? null;
   const submit = (event: FormEvent) => { event.preventDefault(); const next = input.trim(); if (next) setSearch(next); };
-  const changeType = (next: RevisionDocumentType) => { setType(next); setInput(''); setSearch(''); };
+  const changeType = (next: RevisionDocumentType) => { setType(next); setInput(''); setSearch(''); setViewerType(null); setViewerError(null); };
+
+  const viewerRecord: GraphicRecord | null = record ? {
+    id: record.graphicId,
+    gNumber: record.gNumber,
+    customerNumber: record.customerNumber,
+    customerName: record.customerName,
+    specificationNumber: record.specificationNumber,
+    partNumber: record.partNumber,
+    previewImage: null,
+    createdAt: null,
+    source: 'graphicsflow',
+    canDelete: false,
+  } : null;
+
+  const openCurrent = async () => {
+    if (!record || viewerLoading) return;
+    setViewerLoading(true);
+    setViewerError(null);
+    try {
+      const files = await loadFiles(record.graphicId);
+      const currentFile = record.documentType === 'approval' ? files.approval.latest : files.printCard.latest;
+      setViewerFile(currentFile);
+      setViewerType(record.documentType);
+    } catch (reason) {
+      setViewerError(reason instanceof Error ? reason.message : 'The current document could not be opened.');
+    } finally {
+      setViewerLoading(false);
+    }
+  };
 
   return (
     <section className="revisions-page">
@@ -51,8 +100,8 @@ export function RevisionsPage() {
         </section>
 
         <section className="revision-current-card">
-          <div><p className="eyebrow">Current document</p><h3>{record.currentRevision ? `Revision ${record.currentRevision.revisionLabel}` : 'Live document record'}</h3><p>{record.currentRevision?.description || 'The document exists, but no structured revision history has been recorded yet.'}</p></div>
-          <div className="revision-primary-actions"><button type="button">Open Current</button><button className="primary" type="button">Create Revision</button><button type="button">Edit Information</button></div>
+          <div><p className="eyebrow">Current document</p><h3>{record.currentRevision ? `Revision ${record.currentRevision.revisionLabel}` : 'Live document record'}</h3><p>{record.currentRevision?.description || 'The document exists, but no structured revision history has been recorded yet.'}</p>{viewerError && <span className="revision-open-error">{viewerError}</span>}</div>
+          <div className="revision-primary-actions"><button disabled={viewerLoading} onClick={() => void openCurrent()} type="button">{viewerLoading ? 'Opening…' : 'Open Current'}</button><button className="primary" type="button">Create Revision</button><button type="button">Edit Information</button></div>
         </section>
 
         <section className="revision-journey">
@@ -60,6 +109,9 @@ export function RevisionsPage() {
           {record.journey.length === 0 ? <div className="revision-journey-empty">No structured revisions have been recorded. Creating the next revision will begin this journey.</div> : <ol>{record.journey.map((revision, index) => <li className={revision.isCurrent ? 'is-current' : ''} key={`${revision.id ?? 'legacy'}-${index}`}><div className="revision-node"><span>{revision.revisionLabel || index}</span></div><article><header><div><strong>Revision {revision.revisionLabel || index}</strong>{revision.isCurrent && <em>Current</em>}</div><time>{displayDate(revision.createdAt || revision.revisionDate)}</time></header><p>{revision.description || 'No change description was recorded.'}</p><footer><span>{revision.source === 'legacy-import' ? 'Legacy history' : 'GraphicsFlow'}</span><span>{[revision.csr, revision.designer].filter(Boolean).join(' · ') || 'Author not recorded'}</span><button type="button">View Revision</button></footer></article></li>)}</ol>}
         </section>
       </div>}
+
+      {viewerRecord && <ApprovalViewer approval={viewerFile} isOpen={viewerType === 'approval'} onClose={() => setViewerType(null)} record={viewerRecord} />}
+      {viewerRecord && <PrintCardViewer file={viewerFile} isOpen={viewerType === 'printCard'} onClose={() => setViewerType(null)} record={viewerRecord} />}
     </section>
   );
 }
