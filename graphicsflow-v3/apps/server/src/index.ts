@@ -15,6 +15,7 @@ import {
   previewResponseSchema,
   previewVariantSchema,
   printCardDefaultsResponseSchema,
+  printCardDetailsResponseSchema,
   printCardDraftSchema,
   storageSettingsSchema,
 } from '@graphicsflow/shared';
@@ -43,7 +44,7 @@ import {
 } from './live-file-sync-service.js';
 import { getOrGeneratePreview, readPreviewImage } from './preview-service.js';
 import { getApprovalRevisionAutofill, renderArtworkPreview } from './print-card-preview-service.js';
-import { createProductionPrintCard, readProductionPrintCard } from './print-card-production-service.js';
+import { createProductionPrintCard, getCurrentPrintCardDetails, readProductionPrintCard } from './print-card-production-service.js';
 import { getPrintCardDefaults } from './print-card-service.js';
 import {
   getCompanySettings,
@@ -133,6 +134,19 @@ app.get('/api/graphics/:id/print-card/defaults', async (request, reply) => {
   }
 });
 
+app.get('/api/graphics/:id/print-card/details', async (request, reply) => {
+  const id = Number((request.params as { id?: string }).id);
+  if (!Number.isInteger(id) || id <= 0) return reply.status(400).send({ error: 'Invalid graphics record id.' });
+  try {
+    const details = getCurrentPrintCardDetails(id);
+    if (!details) return reply.status(404).send({ error: 'Graphics record not found.' });
+    return printCardDetailsResponseSchema.parse(details);
+  } catch (error) {
+    request.log.error({ error, graphicId: id }, 'Could not load Print Card details');
+    return reply.status(500).send({ error: 'Print Card details could not be loaded.' });
+  }
+});
+
 app.post('/api/print-card/artwork-preview', async (request, reply) => {
   const body = request.body as { artPdfBase64?: unknown } | null;
   if (!body || typeof body.artPdfBase64 !== 'string' || !body.artPdfBase64.trim()) {
@@ -161,16 +175,17 @@ app.post('/api/graphics/:id/print-card', async (request, reply) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'The Print Card could not be created.';
     request.log.error({ error, graphicId: id }, 'Could not create print card');
-    return reply.status(/already exists|configure|required|invalid|upload/i.test(message) ? 409 : 500).send({ error: message });
+    return reply.status(/already exists|configure|required|invalid|upload|9 × 4|replace existing/i.test(message) ? 409 : 500).send({ error: message });
   }
 });
 
 app.get('/api/graphics/:id/print-card.jpg', async (request, reply) => {
   const id = Number((request.params as { id?: string }).id);
+  const download = (request.query as { download?: string } | undefined)?.download === '1';
   if (!Number.isInteger(id) || id <= 0) return reply.status(400).send({ error: 'Invalid graphics record id.' });
   const image = await readProductionPrintCard(id);
   if (!image) return reply.status(404).send({ error: 'Generated Print Card is not available.' });
-  return reply.header('Content-Type', 'image/jpeg').header('Content-Disposition', `inline; filename="${image.fileName.replace(/"/g, '')}"`).header('Cache-Control', 'private, no-store').send(image.data);
+  return reply.header('Content-Type', 'image/jpeg').header('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${image.fileName.replace(/"/g, '')}"`).header('Cache-Control', 'private, no-store').send(image.data);
 });
 
 app.get('/api/graphics/:id/approval.pdf', async (request, reply) => {
