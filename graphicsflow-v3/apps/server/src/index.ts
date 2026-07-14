@@ -42,6 +42,7 @@ import {
   scheduleGraphicFileMissRepair,
 } from './live-file-sync-service.js';
 import { getOrGeneratePreview, readPreviewImage } from './preview-service.js';
+import { getApprovalRevisionAutofill, renderArtworkPreview } from './print-card-preview-service.js';
 import { createProductionPrintCard, readProductionPrintCard } from './print-card-production-service.js';
 import { getPrintCardDefaults } from './print-card-service.js';
 import {
@@ -110,10 +111,40 @@ app.get('/api/graphics/:id/print-card/defaults', async (request, reply) => {
   try {
     const defaults = await getPrintCardDefaults(id);
     if (!defaults) return reply.status(404).send({ error: 'Graphics record not found.' });
+    const approvalRevision = await getApprovalRevisionAutofill(id);
+    if (approvalRevision) {
+      if (!defaults.draft.csr && approvalRevision.csr) {
+        defaults.draft.csr = approvalRevision.csr;
+        defaults.autoFill.sources.csr = 'Approval revision table';
+      }
+      if (!defaults.draft.designer && approvalRevision.designer) {
+        defaults.draft.designer = approvalRevision.designer;
+        defaults.autoFill.sources.designer = 'Approval revision table';
+      }
+      if (!defaults.draft.description && approvalRevision.description) {
+        defaults.draft.description = approvalRevision.description;
+        defaults.autoFill.sources.description = 'Approval revision table';
+      }
+    }
     return printCardDefaultsResponseSchema.parse(defaults);
   } catch (error) {
     request.log.error({ error, graphicId: id }, 'Could not load print card defaults');
     return reply.status(500).send({ error: 'Print Card defaults could not be loaded.' });
+  }
+});
+
+app.post('/api/print-card/artwork-preview', async (request, reply) => {
+  const body = request.body as { artPdfBase64?: unknown } | null;
+  if (!body || typeof body.artPdfBase64 !== 'string' || !body.artPdfBase64.trim()) {
+    return reply.status(400).send({ error: 'Artwork PDF data is required.' });
+  }
+  try {
+    const image = await renderArtworkPreview(body.artPdfBase64);
+    return reply.header('Content-Type', 'image/png').header('Cache-Control', 'no-store').send(image);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'The artwork preview could not be generated.';
+    request.log.error({ error }, 'Could not generate artwork preview');
+    return reply.status(422).send({ error: message });
   }
 });
 
