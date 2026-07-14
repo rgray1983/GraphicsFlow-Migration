@@ -145,15 +145,20 @@ export async function renderArtworkPreview(artPdfBase64: string): Promise<Buffer
   try {
     await writeFile(pdfPath, pdf);
     await execFileAsync(renderer, [
-      '-density', '300',
+      '-density', '600',
       `${pdfPath}[0]`,
       '-background', 'white',
       '-alpha', 'remove',
       '-alpha', 'off',
-      '-resize', '2700x1200!',
+      '-filter', 'Lanczos',
+      '-resize', '5400x2400',
+      '-gravity', 'center',
+      '-extent', '5400x2400',
       '-units', 'PixelsPerInch',
+      '-density', '600',
+      '-define', 'png:compression-level=6',
       imagePath,
-    ], { timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
+    ], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
     return await readFile(imagePath);
   } finally {
     await rm(directory, { recursive: true, force: true });
