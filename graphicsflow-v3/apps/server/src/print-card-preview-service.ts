@@ -4,15 +4,15 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
-import { renderPrintCardSvg, type PrintCardDraft } from '@graphicsflow/shared';
+import type { PrintCardDraft } from '@graphicsflow/shared';
 import { getGraphicById } from './graphics-repository.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
 import { readLiveArtwork } from './print-card-artwork-service.js';
+import { renderPrintCardInfoPanelPng } from './print-card-info-renderer.js';
 import { getPrintCardDefaults } from './print-card-service.js';
 import { getCompanySettings } from './settings-store.js';
 
 const execFileAsync = promisify(execFile);
-let cachedPrintCardFont: string | null = null;
 
 function clean(value: unknown): string {
   return String(value ?? '').trim().toUpperCase();
@@ -58,21 +58,6 @@ async function findImageMagick(): Promise<'magick' | 'convert' | null> {
   if (await commandExists('magick')) return 'magick';
   if (await commandExists('convert')) return 'convert';
   return null;
-}
-
-async function findPrintCardFont(renderer: 'magick' | 'convert'): Promise<string> {
-  if (cachedPrintCardFont) return cachedPrintCardFont;
-  const { stdout } = await execFileAsync(renderer, ['-list', 'font'], { timeout: 15000, maxBuffer: 10 * 1024 * 1024 });
-  const fonts = [...stdout.matchAll(/^\s*Font:\s*(.+?)\s*$/gm)].map((match) => match[1]).filter(Boolean);
-  const preferred = ['Arial', 'Helvetica', 'DejaVu-Sans', 'Liberation-Sans', 'Nimbus-Sans', 'Noto-Sans'];
-  cachedPrintCardFont = preferred.find((name) => fonts.includes(name)) ?? fonts[0] ?? null;
-  if (!cachedPrintCardFont) throw new Error('ImageMagick does not have an available font for the Print Card information panel.');
-  return cachedPrintCardFont;
-}
-
-function applySvgFont(svg: string, font: string): string {
-  const safeFont = font.replace(/[&<>"']/g, '');
-  return svg.replaceAll('font-family="Arial"', `font-family="${safeFont}"`);
 }
 
 type IndexedApproval = { root: string; relative_path: string; extension: string };
@@ -190,11 +175,9 @@ export async function renderCompletePrintCardPreview(graphicId: number, draft: P
   if (!defaults) throw new Error('Print Card defaults could not be loaded.');
   const renderer = await findImageMagick();
   if (!renderer) throw new Error('ImageMagick is required to render the Print Card preview.');
-  const font = await findPrintCardFont(renderer);
 
   const directory = await mkdtemp(join(tmpdir(), 'graphicsflow-complete-print-card-preview-'));
   const artPath = join(directory, 'art.png');
-  const infoSvgPath = join(directory, 'info.svg');
   const infoPath = join(directory, 'info.png');
   const outputPath = join(directory, 'print-card.png');
   try {
@@ -203,7 +186,7 @@ export async function renderCompletePrintCardPreview(graphicId: number, draft: P
       ...defaults.history.map((row) => ({ revisionLabel: row.revisionLabel, revisionDate: row.revisionDate, description: row.description, csr: row.csr, designer: row.designer })),
       { revisionLabel: draft.revisionLabel, revisionDate: draft.revisionDate, description: draft.description, csr: draft.csr, designer: draft.designer },
     ].slice(-4);
-    const infoSvg = renderPrintCardSvg({
+    await renderPrintCardInfoPanelPng({
       gNumber: graphic.gNumber,
       customerNumber: graphic.customerNumber,
       customerName: graphic.customerName,
@@ -211,9 +194,7 @@ export async function renderCompletePrintCardPreview(graphicId: number, draft: P
       specificationNumber: draft.specificationNumber,
       designNumber: draft.designNumber,
       revisions,
-    });
-    await writeFile(infoSvgPath, applySvgFont(infoSvg, font), 'utf8');
-    await execFileAsync(renderer, ['-background', 'white', '-density', '600', '-font', font, infoSvgPath, '-alpha', 'remove', '-alpha', 'off', '-resize', '600x2400!', infoPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+    }, infoPath, 600, 2400);
     await execFileAsync(renderer, [artPath, infoPath, '+append', '-units', 'PixelsPerInch', '-density', '600', '-define', 'png:compression-level=4', outputPath], { timeout: 120000, maxBuffer: 80 * 1024 * 1024 });
     return await readFile(outputPath);
   } finally {
