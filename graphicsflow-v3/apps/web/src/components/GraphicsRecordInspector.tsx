@@ -9,6 +9,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { ApprovalViewer } from './ApprovalViewer';
 import { PreviewAsset } from './PreviewAsset';
+import { PrintCardViewer } from './PrintCardViewer';
 import { RecordInspector, type InspectorSection } from './RecordInspector';
 
 function formatDate(value: string | null): string {
@@ -46,12 +47,14 @@ function FileSummary({ file, emptyMessage }: { file: GraphicFileMatch | null; em
 type GraphicsRecordInspectorProps = {
   isOpen: boolean;
   onClose: () => void;
+  onCreatePrintCard: () => void;
   onDeleted: (result: DeleteGraphicResponse) => void | Promise<void>;
   record: GraphicRecord | null;
 };
 
-export function GraphicsRecordInspector({ isOpen, onClose, onDeleted, record }: GraphicsRecordInspectorProps) {
+export function GraphicsRecordInspector({ isOpen, onClose, onCreatePrintCard, onDeleted, record }: GraphicsRecordInspectorProps) {
   const [approvalViewerOpen, setApprovalViewerOpen] = useState(false);
+  const [printCardViewerOpen, setPrintCardViewerOpen] = useState(false);
   const [deletePending, setDeletePending] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const lastRecordRef = useRef<GraphicRecord | null>(record);
@@ -62,28 +65,30 @@ export function GraphicsRecordInspector({ isOpen, onClose, onDeleted, record }: 
     queryKey: ['graphic-files', visibleRecord?.id],
     queryFn: () => fetchGraphicFiles(visibleRecord!.id),
     enabled: isOpen && Boolean(visibleRecord),
-    staleTime: 60_000,
+    staleTime: 0,
     refetchOnMount: 'always',
   });
 
   useEffect(() => {
-    if (!isOpen) setApprovalViewerOpen(false);
+    if (!isOpen) {
+      setApprovalViewerOpen(false);
+      setPrintCardViewerOpen(false);
+    }
   }, [isOpen]);
 
   useEffect(() => {
     setDeleteError(null);
     setDeletePending(false);
+    setApprovalViewerOpen(false);
+    setPrintCardViewerOpen(false);
   }, [visibleRecord?.id]);
 
   useEffect(() => {
     if (!isOpen || !visibleRecord || !filesQuery.data || filesQuery.isFetching) return;
     const missingDocument = !filesQuery.data.approval.latest || !filesQuery.data.printCard.latest;
     if (!missingDocument || repairRetryRef.current.has(visibleRecord.id)) return;
-
     repairRetryRef.current.add(visibleRecord.id);
-    const timer = window.setTimeout(() => {
-      void filesQuery.refetch();
-    }, 2200);
+    const timer = window.setTimeout(() => { void filesQuery.refetch(); }, 2200);
     return () => window.clearTimeout(timer);
   }, [filesQuery.data, filesQuery.isFetching, filesQuery.refetch, isOpen, visibleRecord]);
 
@@ -100,7 +105,6 @@ export function GraphicsRecordInspector({ isOpen, onClose, onDeleted, record }: 
     const gNumber = formatGNumber(visibleRecord.gNumber);
     const confirmed = window.confirm(`Delete ${gNumber} from the GraphicsFlow database?\n\nThis removes only the V3 database record. It will not delete approvals, print cards, previews, or files.`);
     if (!confirmed) return;
-
     setDeletePending(true);
     setDeleteError(null);
     try {
@@ -123,37 +127,28 @@ export function GraphicsRecordInspector({ isOpen, onClose, onDeleted, record }: 
       ) : !filesQuery.isPending && !indexReady ? (
         <div className="approval-preview-empty"><strong>Live file index not built</strong><span>{noIndexMessage}</span></div>
       ) : approval ? (
-        <button className="approval-preview-button" onClick={() => setApprovalViewerOpen(true)} type="button">
-          <PreviewAsset graphicId={visibleRecord.id} alt={`${formatGNumber(visibleRecord.gNumber)} approval preview`} />
-          <span>Open Approval Viewer</span>
-        </button>
+        <button className="approval-preview-button" onClick={() => setApprovalViewerOpen(true)} type="button"><PreviewAsset graphicId={visibleRecord.id} alt={`${formatGNumber(visibleRecord.gNumber)} approval preview`} /><span>Open Approval Viewer</span></button>
       ) : (
         <div className="approval-preview-empty"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5M9.5 15l2-2 1.5 1.5 2.5-3 2 2.5" /></svg><strong>{filesQuery.isPending ? 'Checking file index…' : 'No approval found'}</strong><span>The current live file index has no approval match for this G#.</span></div>
       ),
     },
-    {
-      title: 'Details',
-      content: <dl className="record-detail-grid"><div><dt>Customer #</dt><dd>{visibleRecord.customerNumber || 'Not recorded'}</dd></div><div><dt>Customer</dt><dd>{visibleRecord.customerName || 'Not recorded'}</dd></div><div><dt>Part Number</dt><dd>{visibleRecord.partNumber || 'Not recorded'}</dd></div><div><dt>Created</dt><dd>{formatDate(visibleRecord.createdAt)}</dd></div></dl>,
-    },
+    { title: 'Details', content: <dl className="record-detail-grid"><div><dt>Customer #</dt><dd>{visibleRecord.customerNumber || 'Not recorded'}</dd></div><div><dt>Customer</dt><dd>{visibleRecord.customerName || 'Not recorded'}</dd></div><div><dt>Part Number</dt><dd>{visibleRecord.partNumber || 'Not recorded'}</dd></div><div><dt>Created</dt><dd>{formatDate(visibleRecord.createdAt)}</dd></div></dl> },
     {
       title: 'Documents',
       content: <div className="live-document-list">
         <article><div className="live-document-heading"><span>Approval</span><small>{indexReady ? (approvalCount ? `${approvalCount} match${approvalCount === 1 ? '' : 'es'}` : 'No matches') : 'Index needed'}</small></div><FileSummary file={approval} emptyMessage={filesQuery.isPending ? 'Checking file index…' : indexReady ? 'No matching approval file found.' : noIndexMessage} /><button disabled={!approval} onClick={() => setApprovalViewerOpen(true)} type="button">View Approval <span>{approval ? 'Open viewer' : 'Unavailable'}</span></button></article>
-        <article><div className="live-document-heading"><span>Print Card</span><small>{indexReady ? (printCardCount ? `${printCardCount} match${printCardCount === 1 ? '' : 'es'}` : 'No matches') : 'Index needed'}</small></div><FileSummary file={printCard} emptyMessage={filesQuery.isPending ? 'Checking file index…' : indexReady ? 'No matching print card found.' : noIndexMessage} /><button disabled type="button">View Print Card <span>{printCard ? 'Viewer later' : 'Unavailable'}</span></button></article>
+        <article><div className="live-document-heading"><span>Print Card</span><small>{indexReady ? (printCardCount ? `${printCardCount} match${printCardCount === 1 ? '' : 'es'}` : 'No matches') : 'Index needed'}</small></div><FileSummary file={printCard} emptyMessage={filesQuery.isPending ? 'Checking file index…' : indexReady ? 'No matching print card found.' : noIndexMessage} />{printCard && <button onClick={() => setPrintCardViewerOpen(true)} type="button">View Print Card <span>Open viewer</span></button>}<button onClick={onCreatePrintCard} type="button">{printCard ? 'Create New Print Card' : 'Create Print Card'} <span>Open creator</span></button></article>
       </div>,
     },
     { title: 'Timeline', className: 'drawer-history-placeholder', content: <p>Revision and document activity will appear here when the history service is added.</p> },
-    ...(visibleRecord.canDelete ? [{
-      title: 'Record Management',
-      className: 'record-management-section',
-      content: <div className="record-delete-area"><p>Delete this GraphicsFlow-created test record from the V3 database only.</p>{deleteError && <div className="record-delete-error" role="alert">{deleteError}</div>}<button className="record-delete-button" disabled={deletePending} onClick={handleDelete} type="button">{deletePending ? 'Deleting…' : 'Delete Record'}</button></div>,
-    }] satisfies InspectorSection[] : []),
+    ...(visibleRecord.canDelete ? [{ title: 'Record Management', className: 'record-management-section', content: <div className="record-delete-area"><p>Delete this GraphicsFlow-created test record from the V3 database only.</p>{deleteError && <div className="record-delete-error" role="alert">{deleteError}</div>}<button className="record-delete-button" disabled={deletePending} onClick={handleDelete} type="button">{deletePending ? 'Deleting…' : 'Delete Record'}</button></div> }] satisfies InspectorSection[] : []),
   ];
 
   return (
     <>
       <RecordInspector closeLabel="Close graphics record inspector" contentKey={visibleRecord.id} eyebrow="Graphics Record" isOpen={isOpen} onClose={onClose} sections={sections} title={formatGNumber(visibleRecord.gNumber)} />
       <ApprovalViewer approval={approval} isOpen={approvalViewerOpen && Boolean(approval)} onClose={() => setApprovalViewerOpen(false)} record={visibleRecord} />
+      <PrintCardViewer file={printCard} isOpen={printCardViewerOpen} onClose={() => setPrintCardViewerOpen(false)} record={visibleRecord} />
     </>
   );
 }

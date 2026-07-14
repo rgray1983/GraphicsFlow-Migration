@@ -45,17 +45,14 @@ function matchesNumber(fileName: string, gNumber: string): boolean {
 }
 
 function removeIndexedFile(kind: GraphicFileKind, root: string, relativePath: string): void {
-  database.prepare('DELETE FROM live_file_index WHERE kind = ? AND root = ? AND relative_path = ?')
-    .run(kind, root, relativePath);
-  database.prepare('DELETE FROM preview_cache WHERE kind = ? AND root = ? AND relative_path = ?')
-    .run(kind, root, relativePath);
+  database.prepare('DELETE FROM live_file_index WHERE kind = ? AND root = ? AND relative_path = ?').run(kind, root, relativePath);
+  database.prepare('DELETE FROM preview_cache WHERE kind = ? AND root = ? AND relative_path = ?').run(kind, root, relativePath);
 }
 
 async function upsertIndexedFile(kind: GraphicFileKind, root: string, relativePath: string): Promise<boolean> {
   const fullPath = join(root, relativePath);
   const extension = extname(relativePath).toLowerCase();
   if (!allowedExtensions[kind].has(extension)) return false;
-
   let information;
   try {
     information = await stat(fullPath);
@@ -63,12 +60,10 @@ async function upsertIndexedFile(kind: GraphicFileKind, root: string, relativePa
     removeIndexedFile(kind, root, relativePath);
     return false;
   }
-
   if (!information.isFile()) return false;
   const name = relativePath.split(/[/\\]/).at(-1) ?? relativePath;
   const numbers = extractNumbers(name);
   if (numbers.length === 0) return false;
-
   database.exec('BEGIN');
   try {
     removeIndexedFile(kind, root, relativePath);
@@ -89,11 +84,9 @@ async function upsertIndexedFile(kind: GraphicFileKind, root: string, relativePa
 
 async function targetedScan(root: string, kind: GraphicFileKind, gNumber: string): Promise<number> {
   if (!root || !existsSync(root)) return 0;
-
   const queue: Array<{ path: string; relative: string; depth: number }> = [{ path: root, relative: '', depth: 0 }];
   let inspected = 0;
   let repaired = 0;
-
   while (queue.length > 0 && inspected < MAX_TARGETED_ENTRIES) {
     const current = queue.shift()!;
     let entries;
@@ -102,25 +95,21 @@ async function targetedScan(root: string, kind: GraphicFileKind, gNumber: string
     } catch {
       continue;
     }
-
     for (const entry of entries) {
       inspected += 1;
       if (inspected > MAX_TARGETED_ENTRIES) break;
       const relativePath = current.relative ? join(current.relative, entry.name) : entry.name;
       const fullPath = join(current.path, entry.name);
-
       if (entry.isDirectory()) {
         if (current.depth < MAX_DEPTH) queue.push({ path: fullPath, relative: relativePath, depth: current.depth + 1 });
         continue;
       }
-
       if (!entry.isFile()) continue;
       const extension = extname(entry.name).toLowerCase();
       if (!allowedExtensions[kind].has(extension) || !matchesNumber(entry.name, gNumber)) continue;
       if (await upsertIndexedFile(kind, root, relativePath)) repaired += 1;
     }
   }
-
   return repaired;
 }
 
@@ -130,7 +119,6 @@ function scheduleWatcherUpdate(kind: GraphicFileKind, root: string, fileName: st
   const key = `${kind}|${relativePath}`;
   const existing = pendingChanges.get(key);
   if (existing) clearTimeout(existing);
-
   pendingChanges.set(key, setTimeout(() => {
     pendingChanges.delete(key);
     void upsertIndexedFile(kind, root, relativePath)
@@ -138,9 +126,7 @@ function scheduleWatcherUpdate(kind: GraphicFileKind, root: string, fileName: st
         recentRepairs.clear();
         syncStatus = { ...syncStatus, lastEventAt: new Date().toISOString() };
       })
-      .catch(() => {
-        // A later targeted miss repair or full refresh will reconcile missed network events.
-      });
+      .catch(() => {});
   }, WATCH_DEBOUNCE_MS));
 }
 
@@ -148,11 +134,8 @@ function startWatcher(kind: GraphicFileKind, root: string): boolean {
   watchers.get(kind)?.close();
   watchers.delete(kind);
   if (!root || !existsSync(root)) return false;
-
   try {
-    const watcher = watch(root, { recursive: true }, (_eventType, fileName) => {
-      scheduleWatcherUpdate(kind, root, fileName);
-    });
+    const watcher = watch(root, { recursive: true }, (_eventType, fileName) => scheduleWatcherUpdate(kind, root, fileName));
     watcher.on('error', () => {
       watchers.delete(kind);
       syncStatus = {
@@ -190,15 +173,13 @@ export function restartLiveFileSync(): void {
   setImmediate(() => initializeLiveFileSync());
 }
 
-async function repairKind(gNumber: string, kind: GraphicFileKind): Promise<number> {
+async function repairKind(gNumber: string, kind: GraphicFileKind, force = false): Promise<number> {
   const key = `${kind}|${gNumber}`;
   const existing = activeRepairs.get(key);
   if (existing) return existing;
-
   const lastRepair = recentRepairs.get(key) ?? 0;
-  if (Date.now() - lastRepair < NEGATIVE_REPAIR_COOLDOWN_MS) return 0;
+  if (!force && Date.now() - lastRepair < NEGATIVE_REPAIR_COOLDOWN_MS) return 0;
   recentRepairs.set(key, Date.now());
-
   const settings = getCompanySettings();
   const root = kind === 'approval' ? settings.storage.approvalsRoot : settings.storage.printCardsRoot;
   const job = targetedScan(root, kind, gNumber)
@@ -208,18 +189,25 @@ async function repairKind(gNumber: string, kind: GraphicFileKind): Promise<numbe
       return repaired;
     })
     .finally(() => activeRepairs.delete(key));
-
   activeRepairs.set(key, job);
   return job;
 }
 
-export function scheduleGraphicFileMissRepair(
-  gNumberValue: string,
-  kinds: GraphicFileKind[],
-): void {
-  const gNumber = normalizeNumber(gNumberValue.match(/\d+/g)?.join('') ?? '');
+function normalizeGraphicNumber(gNumberValue: string): string {
+  return normalizeNumber(gNumberValue.match(/\d+/g)?.join('') ?? '');
+}
+
+export function scheduleGraphicFileMissRepair(gNumberValue: string, kinds: GraphicFileKind[]): void {
+  const gNumber = normalizeGraphicNumber(gNumberValue);
   if (!gNumber || kinds.length === 0) return;
   for (const kind of kinds) void repairKind(gNumber, kind);
+}
+
+export async function refreshGraphicFilesNow(gNumberValue: string, kinds: GraphicFileKind[]): Promise<number> {
+  const gNumber = normalizeGraphicNumber(gNumberValue);
+  if (!gNumber || kinds.length === 0) return 0;
+  const results = await Promise.all(kinds.map((kind) => repairKind(gNumber, kind, true)));
+  return results.reduce((total, count) => total + count, 0);
 }
 
 export function getLiveFileSyncStatus() {
