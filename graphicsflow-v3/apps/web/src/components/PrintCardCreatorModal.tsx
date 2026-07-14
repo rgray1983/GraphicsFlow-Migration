@@ -72,15 +72,21 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
   const [draft, setDraft] = useState<PrintCardDraft>(emptyDraft);
   const [initialDraft, setInitialDraft] = useState<PrintCardDraft>(emptyDraft);
   const [artPreviewUrl, setArtPreviewUrl] = useState('');
+  const [fullPreviewUrl, setFullPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [readingFile, setReadingFile] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const setPreviewBlob = (blob: Blob) => {
     const next = URL.createObjectURL(blob);
     setArtPreviewUrl((current) => { if (current) URL.revokeObjectURL(current); return next; });
+  };
+  const setFullPreviewBlob = (blob: Blob) => {
+    const next = URL.createObjectURL(blob);
+    setFullPreviewUrl((current) => { if (current) URL.revokeObjectURL(current); return next; });
   };
 
   const previewLiveArtwork = async (graphicId: number, relativePath: string) => {
@@ -101,6 +107,7 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
     let cancelled = false;
     setLoading(true); setError(null); setPreviewOpen(false); setArtworkMatches(null);
     setArtPreviewUrl((current) => { if (current) URL.revokeObjectURL(current); return ''; });
+    setFullPreviewUrl((current) => { if (current) URL.revokeObjectURL(current); return ''; });
     void Promise.all([
       fetch(`/api/graphics/${record.id}/print-card/defaults`).then(async (response) => {
         if (!response.ok) throw new Error(await readError(response, 'Print Card defaults could not be loaded.'));
@@ -121,13 +128,20 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
     return () => { cancelled = true; };
   }, [isOpen, record]);
 
-  useEffect(() => () => { if (artPreviewUrl) URL.revokeObjectURL(artPreviewUrl); }, [artPreviewUrl]);
+  useEffect(() => () => {
+    if (artPreviewUrl) URL.revokeObjectURL(artPreviewUrl);
+    if (fullPreviewUrl) URL.revokeObjectURL(fullPreviewUrl);
+  }, [artPreviewUrl, fullPreviewUrl]);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(initialDraft);
   const close = () => {
-    if (saving || readingFile) return;
+    if (saving || readingFile || previewLoading) return;
     if (dirty && !window.confirm('Discard the Print Card changes?')) return;
     onClose();
+  };
+  const closePreview = () => {
+    setPreviewOpen(false);
+    setFullPreviewUrl((current) => { if (current) URL.revokeObjectURL(current); return ''; });
   };
   const revisions = useMemo(() => [
     ...(defaults?.history ?? []).map((row) => ({ revisionLabel: row.revisionLabel, revisionDate: row.revisionDate, description: row.description, csr: row.csr, designer: row.designer })),
@@ -162,6 +176,22 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
       setDraft((current) => ({ ...current, artPdfName: file.name, artPdfBase64: base64, liveArtworkRelativePath: '' }));
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'The artwork PDF could not be read.'); }
     finally { setReadingFile(false); }
+  };
+  const openPreview = async () => {
+    if (!record || previewLoading) return;
+    if (!draft.artPdfBase64 && !draft.liveArtworkRelativePath) { setError('Select a live artwork PDF or upload a PDF before opening the Print Card Preview.'); return; }
+    setPreviewOpen(true); setPreviewLoading(true); setError(null);
+    setFullPreviewUrl((current) => { if (current) URL.revokeObjectURL(current); return ''; });
+    try {
+      const response = await fetch(`/api/graphics/${record.id}/print-card/preview`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft),
+      });
+      if (!response.ok) throw new Error(await readError(response, 'The 600 DPI Print Card Preview could not be rendered.'));
+      setFullPreviewBlob(await response.blob());
+    } catch (reason) {
+      setPreviewOpen(false);
+      setError(reason instanceof Error ? reason.message : 'The 600 DPI Print Card Preview could not be rendered.');
+    } finally { setPreviewLoading(false); }
   };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -211,13 +241,13 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
           </section>
           <aside className="creator-preview-panel">
             <div className="creator-preview-heading"><div><span className="creator-kicker">Print Card Thumbnail</span><h3>10 × 4 in · 300 DPI</h3></div><span>9 in art + 1 in info</span></div>
-            <button className="creator-thumbnail-button" onClick={() => setPreviewOpen(true)} type="button" aria-label="Open Print Card preview">{previewCard}<span>Open Print Card Preview</span></button>
+            <button className="creator-thumbnail-button" onClick={() => void openPreview()} type="button" aria-label="Open Print Card preview">{previewCard}<span>{previewLoading ? 'Rendering 600 DPI Preview…' : 'Open Print Card Preview'}</span></button>
             <div className="creator-preview-summary"><strong>{draft.artPdfBase64 ? 'Uploaded artwork selected' : draft.liveArtworkRelativePath ? 'Live artwork connected' : 'Artwork waiting'}</strong><span>{missing.length ? `${missing.length} required item${missing.length === 1 ? '' : 's'} remaining` : 'Ready for final inspection'}</span></div>
-            <button className="open-production-preview" onClick={() => setPreviewOpen(true)} type="button">Open Print Card Preview</button>
-            <p>The high-quality preview and generated JPG use a temporary read-only copy. Server source files are never modified.</p>
-            <footer className="creator-actions creator-preview-actions"><button className="secondary" onClick={close} type="button">Cancel</button><button className="primary" disabled={saving || readingFile || missing.length > 0} type="submit">{saving ? 'Generating Print Card…' : 'Generate Print Card'}</button></footer>
+            <button className="open-production-preview" disabled={previewLoading} onClick={() => void openPreview()} type="button">{previewLoading ? 'Rendering 600 DPI Preview…' : 'Open Print Card Preview'}</button>
+            <p>The viewer renders a complete 600 DPI Print Card PNG directly from the selected PDF. The generated production JPG remains 300 DPI.</p>
+            <footer className="creator-actions creator-preview-actions"><button className="secondary" onClick={close} type="button">Cancel</button><button className="primary" disabled={saving || readingFile || previewLoading || missing.length > 0} type="submit">{saving ? 'Generating Print Card…' : 'Generate Print Card'}</button></footer>
           </aside>
-          {previewOpen && <div className="production-preview-workspace print-card-preview-workspace" role="dialog" aria-modal="true" aria-label="Print Card Preview"><header><div><span className="creator-kicker">Print Card Preview</span><h2>{formatGNumber(record.gNumber)} · 10 × 4 in</h2></div><span className="print-card-preview-quality">High Quality · 300 DPI</span></header><DocumentCanvas ariaLabel="Print Card preview controls" fitScale={0.75} isActive={previewOpen} onEscape={() => setPreviewOpen(false)} toolbarEnd={<button className="close-preview" onClick={() => setPreviewOpen(false)} type="button">Close</button>}><div className="production-preview-card">{previewCard}</div></DocumentCanvas></div>}
+          {previewOpen && <div className="production-preview-workspace print-card-preview-workspace" role="dialog" aria-modal="true" aria-label="Print Card Preview"><header><div><span className="creator-kicker">Print Card Preview</span><h2>{formatGNumber(record.gNumber)} · 10 × 4 in</h2></div><span className="print-card-preview-quality">Viewer Render · 600 DPI</span></header>{fullPreviewUrl ? <DocumentCanvas ariaLabel="Print Card preview controls" fitScale={0.75} isActive={previewOpen} onEscape={closePreview} toolbarEnd={<button className="close-preview" onClick={closePreview} type="button">Close</button>}><div className="production-preview-card production-preview-image-card"><img alt={`${formatGNumber(record.gNumber)} complete 600 DPI Print Card preview`} draggable={false} src={fullPreviewUrl} /></div></DocumentCanvas> : <div className="creator-loading">Rendering complete 600 DPI Print Card Preview…</div>}</div>}
         </form>
       )}
       {!loading && error && !defaults && <div className="creator-loading creator-loading-error"><strong>Print Card Creator could not open.</strong><span>{error}</span></div>}
