@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from 'react';
 import { CreateGraphicModal } from '../components/CreateGraphicModal';
 import { GraphicsRecordInspector } from '../components/GraphicsRecordInspector';
+import { LoadingIndicator } from '../components/LoadingIndicator';
 import { PrintCardCreatorModal } from '../components/PrintCardCreatorModal';
 import { PrintCardViewer } from '../components/PrintCardViewer';
 import { Toast } from '../components/Toast';
@@ -107,7 +108,7 @@ export function GraphicsPage() {
         <button className="create-print-card-button" disabled={!selectedRecord} onClick={() => setPrintCardOpen(true)} title={selectedRecord ? `Create Print Card for ${formatGNumber(selectedRecord.gNumber)}` : 'Select a G# first'} type="button">Create Print Card</button>
       </div>
       <div className="graphics-workspace"><div className="graphics-table-card">
-        {graphicsQuery.isPending && <div className="table-state">Loading graphics records…</div>}
+        {graphicsQuery.isPending && <LoadingIndicator size="panel" title="Loading Graphics" message="Reading the GraphicsFlow database…" />}
         {graphicsQuery.isError && <div className="table-state table-state-error"><strong>Graphics could not be loaded.</strong><span>Confirm that the V3 database is available, then try again.</span><button onClick={() => graphicsQuery.refetch()} type="button">Try again</button></div>}
         {!graphicsQuery.isPending && !graphicsQuery.isError && records.length === 0 && <div className="table-state"><strong>No graphics records found.</strong><span>{search ? `Nothing matched “${search}”.` : 'The graphics database is empty.'}</span></div>}
         {!graphicsQuery.isPending && !graphicsQuery.isError && records.length > 0 && <div className="table-scroll"><table className="graphics-table"><thead><tr><SortableHeader activeSort={sortBy} direction={sortDirection} field="gNumber" label="G#" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="customerNumber" label="Customer #" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="customerName" label="Customer" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="partNumber" label="Part #" onSort={handleSort} /><SortableHeader activeSort={sortBy} direction={sortDirection} field="createdAt" label="Created" onSort={handleSort} /></tr></thead><tbody>{records.map((record) => { const selected = selectedRecord?.id === record.id; const newlyCreated = newlyCreatedId === record.id; const rowClassName = [selected ? 'is-selected' : '', newlyCreated ? 'is-newly-created' : ''].filter(Boolean).join(' ') || undefined; return <tr aria-selected={selected} className={rowClassName} key={record.id} onClick={() => setSelectedRecord(record)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedRecord(record); } }} tabIndex={0}><td><span className="g-number">{formatGNumber(record.gNumber)}</span></td><td>{record.customerNumber || '—'}</td><td className="customer-name">{record.customerName || '—'}</td><td>{record.partNumber || '—'}</td><td className="created-date">{formatCreatedAt(record.createdAt)}</td></tr>; })}</tbody></table></div>}
