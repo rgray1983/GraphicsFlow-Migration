@@ -38,8 +38,16 @@ export async function readCurrentPrintCard(graphicId: number): Promise<PrintCard
   const graphic = getGraphicById(graphicId);
   if (!graphic) return null;
 
-  const files = await resolveGraphicFiles(graphic.gNumber);
-  const live = files.printCard.matches.find((match) => imageContentType(match.extension));
+  const lookupNumbers = [graphic.specificationNumber, graphic.gNumber]
+    .map((value) => String(value ?? '').trim())
+    .filter((value, index, values) => value && values.indexOf(value) === index);
+
+  let live = null;
+  for (const number of lookupNumbers) {
+    const files = await resolveGraphicFiles(number);
+    live = files.printCard.matches.find((match) => imageContentType(match.extension)) ?? null;
+    if (live) break;
+  }
   if (!live) return null;
 
   const root = getCompanySettings().storage.printCardsRoot;
