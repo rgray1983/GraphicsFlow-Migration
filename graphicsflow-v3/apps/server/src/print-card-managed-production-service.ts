@@ -80,16 +80,17 @@ function revisionHistory(graphicId: number, gNumber: string): PrintCardTemplateR
 
 async function renderPdfArtwork(pdfPath: string, artPath: string): Promise<void> {
   const gs = await ghostscript();
-  if (gs) await execFileAsync(gs, ['-dSAFER', '-dBATCH', '-dNOPAUSE', '-dFirstPage=1', '-dLastPage=1', '-sDEVICE=jpeg', '-dJPEGQ=95', '-r300', '-dGraphicsAlphaBits=4', '-dTextAlphaBits=4', `-sOutputFile=${artPath}`, pdfPath], { timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
-  else {
+  if (gs) {
+    await execFileAsync(gs, ['-dSAFER', '-dBATCH', '-dNOPAUSE', '-dFirstPage=1', '-dLastPage=1', '-sDEVICE=png16m', '-r300', '-dGraphicsAlphaBits=4', '-dTextAlphaBits=4', `-sOutputFile=${artPath}`, pdfPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+  } else {
     const magick = await imageMagick();
-    await execFileAsync(magick, ['-density', '300', `${pdfPath}[0]`, '-background', 'white', '-alpha', 'remove', '-quality', '95', artPath], { timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
+    await execFileAsync(magick, ['-density', '300', `${pdfPath}[0]`, '-background', 'white', '-alpha', 'remove', '-alpha', 'off', artPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
   }
   const { width, height } = await identifySize(artPath);
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) throw new Error('GraphicsFlow could not determine the artwork page dimensions.');
   if (Math.abs(width / height - EXPECTED_ART_RATIO) / EXPECTED_ART_RATIO > ART_RATIO_TOLERANCE) throw new Error(`Artwork must use a 9 × 4 inch page. The selected PDF rendered at ${width} × ${height}px and would be distorted.`);
   const magick = await imageMagick();
-  await execFileAsync(magick, [artPath, '-resize', '2700x1200', '-background', 'white', '-gravity', 'center', '-extent', '2700x1200', artPath], { timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
+  await execFileAsync(magick, [artPath, '-filter', 'Lanczos', '-resize', '2700x1200', '-background', 'white', '-gravity', 'center', '-extent', '2700x1200', '-units', 'PixelsPerInch', '-density', '300', artPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
 }
 
 async function renderInfoPanel(svg: string, infoPath: string): Promise<void> {
@@ -97,7 +98,7 @@ async function renderInfoPanel(svg: string, infoPath: string): Promise<void> {
   await writeFile(svgPath, svg, 'utf8');
   try {
     const magick = await imageMagick();
-    await execFileAsync(magick, [svgPath, '-resize', '300x1200!', '-background', 'white', '-alpha', 'remove', '-quality', '95', infoPath], { timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
+    await execFileAsync(magick, ['-background', 'white', '-density', '300', svgPath, '-alpha', 'remove', '-alpha', 'off', '-filter', 'Lanczos', '-resize', '300x1200!', '-units', 'PixelsPerInch', '-density', '300', infoPath], { timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
   } finally { await rm(svgPath, { force: true }); }
 }
 
@@ -137,8 +138,8 @@ export async function createManagedPrintCard(graphicId: number, draft: PrintCard
 
   const token = `${process.pid}.${Date.now()}`;
   const pdfPath = join(managedRoot, `.${fileBase}.${token}.art.pdf`);
-  const artPath = join(managedRoot, `.${fileBase}.${token}.art.jpg`);
-  const infoPath = join(managedRoot, `.${fileBase}.${token}.info.jpg`);
+  const artPath = join(managedRoot, `.${fileBase}.${token}.art.png`);
+  const infoPath = join(managedRoot, `.${fileBase}.${token}.info.png`);
   const tempPath = join(managedRoot, `.${fileBase}.${token}.tmp.jpg`);
   const backupPath = join(managedRoot, `.${fileBase}.${token}.backup.jpg`);
   let artworkSource: PrintCardRevision['artworkSource'] = 'existing-output';
@@ -156,7 +157,7 @@ export async function createManagedPrintCard(graphicId: number, draft: PrintCard
       await renderPdfArtwork(pdfPath, artPath);
     } else {
       const magick = await imageMagick();
-      await execFileAsync(magick, [finalPath, '-crop', '2700x1200+0+0', '+repage', artPath], { timeout: 120000 });
+      await execFileAsync(magick, [finalPath, '-crop', '2700x1200+0+0', '+repage', '-units', 'PixelsPerInch', '-density', '300', artPath], { timeout: 120000 });
     }
 
     const history = revisionHistory(graphicId, graphic.gNumber);
@@ -164,7 +165,7 @@ export async function createManagedPrintCard(graphicId: number, draft: PrintCard
     const revisions = draft.replaceExistingImage && history.length ? [...history.slice(0, -1), currentRevision].slice(-4) : [...history, currentRevision].slice(-4);
     await renderInfoPanel(renderPrintCardSvg({ gNumber: graphic.gNumber, customerNumber: graphic.customerNumber, customerName: graphic.customerName, partNumber: graphic.partNumber, specificationNumber: draft.specificationNumber, designNumber: draft.designNumber, revisions }), infoPath);
     const magick = await imageMagick();
-    await execFileAsync(magick, [artPath, infoPath, '+append', '-resize', '3000x1200!', '-units', 'PixelsPerInch', '-density', '300', '-quality', '95', '-strip', tempPath], { timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
+    await execFileAsync(magick, [artPath, infoPath, '+append', '-units', 'PixelsPerInch', '-density', '300', '-sampling-factor', '4:4:4', '-quality', '100', tempPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
 
     graphicsStoreDatabase.exec('BEGIN IMMEDIATE');
     try {
