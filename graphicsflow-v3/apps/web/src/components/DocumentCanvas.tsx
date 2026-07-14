@@ -100,7 +100,6 @@ export function DocumentCanvas({
   };
 
   const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
-    if (!event.ctrlKey && !event.metaKey) return;
     event.preventDefault();
     changeScale(scale + (event.deltaY < 0 ? SCALE_STEP : -SCALE_STEP));
   };
@@ -196,7 +195,7 @@ export function DocumentCanvas({
         </div>
       </div>
       <div className="document-canvas-help">
-        <span>Ctrl/Cmd + scroll to zoom</span>
+        <span>Scroll to zoom</span>
         <span>Spacebar + drag to pan</span>
         <span>Pinch or one-finger drag on touch</span>
       </div>
