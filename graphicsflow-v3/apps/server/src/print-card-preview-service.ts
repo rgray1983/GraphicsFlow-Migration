@@ -4,8 +4,11 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
+import { renderPrintCardSvg, type PrintCardDraft } from '@graphicsflow/shared';
 import { getGraphicById } from './graphics-repository.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
+import { readLiveArtwork } from './print-card-artwork-service.js';
+import { getPrintCardDefaults } from './print-card-service.js';
 import { getCompanySettings } from './settings-store.js';
 
 const execFileAsync = promisify(execFile);
@@ -131,35 +134,70 @@ export async function getApprovalRevisionAutofill(graphicId: number): Promise<{ 
   return { csr: latest.csr, designer: latest.designer, description: latest.description };
 }
 
-export async function renderArtworkPreview(artPdfBase64: string): Promise<Buffer> {
-  const pdf = Buffer.from(artPdfBase64, 'base64');
-  if (pdf.length < 5 || pdf.subarray(0, 4).toString('ascii') !== '%PDF') {
-    throw new Error('The uploaded artwork is not a valid PDF.');
+async function readDraftPdf(draft: PrintCardDraft): Promise<Buffer> {
+  if (draft.artPdfBase64) {
+    const pdf = Buffer.from(draft.artPdfBase64, 'base64');
+    if (pdf.length < 5 || pdf.subarray(0, 4).toString('ascii') !== '%PDF') throw new Error('The uploaded artwork is not a valid PDF.');
+    return pdf;
   }
+  if (draft.liveArtworkRelativePath) return (await readLiveArtwork(draft.liveArtworkRelativePath)).data;
+  throw new Error('Select a live artwork PDF or upload a PDF first.');
+}
+
+async function renderPdfPage(pdf: Buffer, width: number, height: number): Promise<Buffer> {
   const renderer = await findImageMagick();
   if (!renderer) throw new Error('ImageMagick is required to preview artwork PDFs.');
-
   const directory = await mkdtemp(join(tmpdir(), 'graphicsflow-print-card-preview-'));
   const pdfPath = join(directory, 'artwork.pdf');
   const imagePath = join(directory, 'artwork.png');
   try {
     await writeFile(pdfPath, pdf);
     await execFileAsync(renderer, [
-      '-density', '600',
-      `${pdfPath}[0]`,
-      '-background', 'white',
-      '-alpha', 'remove',
-      '-alpha', 'off',
-      '-filter', 'Lanczos',
-      '-resize', '5400x2400',
-      '-gravity', 'center',
-      '-extent', '5400x2400',
-      '-units', 'PixelsPerInch',
-      '-density', '600',
-      '-define', 'png:compression-level=6',
-      imagePath,
-    ], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+      '-density', '600', `${pdfPath}[0]`, '-background', 'white', '-alpha', 'remove', '-alpha', 'off',
+      '-filter', 'Lanczos', '-resize', `${width}x${height}`, '-gravity', 'center', '-extent', `${width}x${height}`,
+      '-units', 'PixelsPerInch', '-density', '600', '-define', 'png:compression-level=4', imagePath,
+    ], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
     return await readFile(imagePath);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+export async function renderArtworkPreview(artPdfBase64: string): Promise<Buffer> {
+  return renderPdfPage(Buffer.from(artPdfBase64, 'base64'), 5400, 2400);
+}
+
+export async function renderCompletePrintCardPreview(graphicId: number, draft: PrintCardDraft): Promise<Buffer> {
+  const graphic = getGraphicById(graphicId);
+  if (!graphic) throw new Error('Graphics record not found.');
+  const defaults = await getPrintCardDefaults(graphicId);
+  if (!defaults) throw new Error('Print Card defaults could not be loaded.');
+  const renderer = await findImageMagick();
+  if (!renderer) throw new Error('ImageMagick is required to render the Print Card preview.');
+
+  const directory = await mkdtemp(join(tmpdir(), 'graphicsflow-complete-print-card-preview-'));
+  const artPath = join(directory, 'art.png');
+  const infoSvgPath = join(directory, 'info.svg');
+  const infoPath = join(directory, 'info.png');
+  const outputPath = join(directory, 'print-card.png');
+  try {
+    await writeFile(artPath, await renderPdfPage(await readDraftPdf(draft), 5400, 2400));
+    const revisions = [
+      ...defaults.history.map((row) => ({ revisionLabel: row.revisionLabel, revisionDate: row.revisionDate, description: row.description, csr: row.csr, designer: row.designer })),
+      { revisionLabel: draft.revisionLabel, revisionDate: draft.revisionDate, description: draft.description, csr: draft.csr, designer: draft.designer },
+    ].slice(-4);
+    await writeFile(infoSvgPath, renderPrintCardSvg({
+      gNumber: graphic.gNumber,
+      customerNumber: graphic.customerNumber,
+      customerName: graphic.customerName,
+      partNumber: graphic.partNumber,
+      specificationNumber: draft.specificationNumber,
+      designNumber: draft.designNumber,
+      revisions,
+    }), 'utf8');
+    await execFileAsync(renderer, [infoSvgPath, '-resize', '600x2400!', '-background', 'white', '-alpha', 'remove', '-alpha', 'off', infoPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+    await execFileAsync(renderer, [artPath, infoPath, '+append', '-units', 'PixelsPerInch', '-density', '600', '-define', 'png:compression-level=4', outputPath], { timeout: 120000, maxBuffer: 80 * 1024 * 1024 });
+    return await readFile(outputPath);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
