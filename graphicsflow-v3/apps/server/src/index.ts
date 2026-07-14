@@ -42,7 +42,8 @@ import {
   scheduleGraphicFileMissRepair,
 } from './live-file-sync-service.js';
 import { getOrGeneratePreview, readPreviewImage } from './preview-service.js';
-import { createPrintCard, getPrintCardDefaults, readGeneratedPrintCard } from './print-card-service.js';
+import { createProductionPrintCard, readProductionPrintCard } from './print-card-production-service.js';
+import { getPrintCardDefaults } from './print-card-service.js';
 import {
   getCompanySettings,
   saveCompanySettings,
@@ -50,7 +51,7 @@ import {
   validateStoragePaths,
 } from './settings-store.js';
 
-const app = Fastify({ logger: true, bodyLimit: 2 * 1024 * 1024 });
+const app = Fastify({ logger: true, bodyLimit: 45 * 1024 * 1024 });
 
 app.get('/api/health', async () => healthResponseSchema.parse({
   status: 'ok', service: 'graphicsflow-api', version: '0.1.0', timestamp: new Date().toISOString(),
@@ -122,21 +123,21 @@ app.post('/api/graphics/:id/print-card', async (request, reply) => {
   const parsed = printCardDraftSchema.safeParse(request.body);
   if (!parsed.success) return reply.status(400).send({ error: 'The Print Card information is invalid.', details: parsed.error.flatten() });
   try {
-    const created = await createPrintCard(id, parsed.data);
+    const created = await createProductionPrintCard(id, parsed.data);
     const graphic = getGraphicById(id);
     if (graphic) await refreshGraphicFilesNow(graphic.gNumber, ['printCard']);
     return reply.status(201).send(createPrintCardResponseSchema.parse(created));
   } catch (error) {
     const message = error instanceof Error ? error.message : 'The Print Card could not be created.';
     request.log.error({ error, graphicId: id }, 'Could not create print card');
-    return reply.status(/already exists|configure|required|invalid/i.test(message) ? 409 : 500).send({ error: message });
+    return reply.status(/already exists|configure|required|invalid|upload/i.test(message) ? 409 : 500).send({ error: message });
   }
 });
 
 app.get('/api/graphics/:id/print-card.jpg', async (request, reply) => {
   const id = Number((request.params as { id?: string }).id);
   if (!Number.isInteger(id) || id <= 0) return reply.status(400).send({ error: 'Invalid graphics record id.' });
-  const image = await readGeneratedPrintCard(id);
+  const image = await readProductionPrintCard(id);
   if (!image) return reply.status(404).send({ error: 'Generated Print Card is not available.' });
   return reply.header('Content-Type', 'image/jpeg').header('Content-Disposition', `inline; filename="${image.fileName.replace(/"/g, '')}"`).header('Cache-Control', 'private, no-store').send(image.data);
 });
