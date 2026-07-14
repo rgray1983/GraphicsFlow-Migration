@@ -210,14 +210,14 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
             {error && <div className="creator-error" role="alert">{error}</div>}
           </section>
           <aside className="creator-preview-panel">
-            <div className="creator-preview-heading"><div><span className="creator-kicker">Production Thumbnail</span><h3>10 × 4 in · 300 DPI</h3></div><span>9 in art + 1 in info</span></div>
-            <button className="creator-thumbnail-button" onClick={() => setPreviewOpen(true)} type="button" aria-label="Open large production preview">{previewCard}<span>Open Production Preview</span></button>
+            <div className="creator-preview-heading"><div><span className="creator-kicker">Print Card Thumbnail</span><h3>10 × 4 in · 300 DPI</h3></div><span>9 in art + 1 in info</span></div>
+            <button className="creator-thumbnail-button" onClick={() => setPreviewOpen(true)} type="button" aria-label="Open Print Card preview">{previewCard}<span>Open Print Card Preview</span></button>
             <div className="creator-preview-summary"><strong>{draft.artPdfBase64 ? 'Uploaded artwork selected' : draft.liveArtworkRelativePath ? 'Live artwork connected' : 'Artwork waiting'}</strong><span>{missing.length ? `${missing.length} required item${missing.length === 1 ? '' : 's'} remaining` : 'Ready for final inspection'}</span></div>
-            <button className="open-production-preview" onClick={() => setPreviewOpen(true)} type="button">Open Production Preview</button>
-            <p>The preview and generated JPG use a temporary read-only copy. Server source files are never modified.</p>
+            <button className="open-production-preview" onClick={() => setPreviewOpen(true)} type="button">Open Print Card Preview</button>
+            <p>The high-quality preview and generated JPG use a temporary read-only copy. Server source files are never modified.</p>
             <footer className="creator-actions creator-preview-actions"><button className="secondary" onClick={close} type="button">Cancel</button><button className="primary" disabled={saving || readingFile || missing.length > 0} type="submit">{saving ? 'Generating Print Card…' : 'Generate Print Card'}</button></footer>
           </aside>
-          {previewOpen && <div className="production-preview-workspace" role="dialog" aria-modal="true" aria-label="Production Print Card Preview"><header><div><span className="creator-kicker">Production Preview</span><h2>{formatGNumber(record.gNumber)} · 10 × 4 in</h2></div></header><DocumentCanvas ariaLabel="Production Print Card preview controls" fitScale={0.75} isActive={previewOpen} onEscape={() => setPreviewOpen(false)} toolbarEnd={<button className="close-preview" onClick={() => setPreviewOpen(false)} type="button">Close</button>}><div className="production-preview-card">{previewCard}</div></DocumentCanvas></div>}
+          {previewOpen && <div className="production-preview-workspace print-card-preview-workspace" role="dialog" aria-modal="true" aria-label="Print Card Preview"><header><div><span className="creator-kicker">Print Card Preview</span><h2>{formatGNumber(record.gNumber)} · 10 × 4 in</h2></div><span className="print-card-preview-quality">High Quality · 300 DPI</span></header><DocumentCanvas ariaLabel="Print Card preview controls" fitScale={0.75} isActive={previewOpen} onEscape={() => setPreviewOpen(false)} toolbarEnd={<button className="close-preview" onClick={() => setPreviewOpen(false)} type="button">Close</button>}><div className="production-preview-card">{previewCard}</div></DocumentCanvas></div>}
         </form>
       )}
       {!loading && error && !defaults && <div className="creator-loading creator-loading-error"><strong>Print Card Creator could not open.</strong><span>{error}</span></div>}
