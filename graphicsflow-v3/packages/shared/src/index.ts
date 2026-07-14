@@ -38,7 +38,7 @@ export const printCardArtworkMatchesResponseSchema = z.object({
 export const printCardRevisionSchema = z.object({
   id: z.number().int().positive().nullable(), revisionLabel: z.string(), revisionDate: z.string(), description: z.string(),
   csr: z.string(), designer: z.string(), specificationNumber: z.string(), designNumber: z.string(),
-  sourceRelativePath: z.string().nullable().default(null), artworkSource: z.enum(['live-pdf', 'uploaded-pdf', 'existing-output', 'legacy']).nullable().default(null),
+  sourceRelativePath: z.string().nullable().optional(), artworkSource: z.enum(['live-pdf', 'uploaded-pdf', 'existing-output', 'legacy']).nullable().optional(),
   renderedRelativePath: z.string().nullable(), createdAt: z.string().datetime().nullable(),
   source: z.enum(['legacy-import', 'graphicsflow', 'approval-autofill']),
 });
@@ -47,7 +47,7 @@ const printCardEditableDraftSchema = z.object({
   revisionLabel: z.string().trim().max(20), revisionDate: z.string().trim().max(30),
   description: z.string().trim().max(240), csr: z.string().trim().max(40), designer: z.string().trim().max(40),
   replaceExistingImage: z.boolean().default(false), artPdfName: z.string().trim().max(255).default(''),
-  artPdfBase64: z.string().max(40_000_000).default(''), liveArtworkRelativePath: z.string().trim().max(1000).default(''),
+  artPdfBase64: z.string().max(40_000_000).default(''), liveArtworkRelativePath: z.string().trim().max(1000).optional(),
 });
 export const printCardDraftSchema = printCardEditableDraftSchema.extend({
   specificationNumber: z.string().trim().min(1, 'Spec # is required.').max(80),
