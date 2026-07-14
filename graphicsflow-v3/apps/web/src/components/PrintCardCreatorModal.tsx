@@ -8,7 +8,8 @@ import {
   type PrintCardDefaultsResponse,
   type PrintCardDraft,
 } from '@graphicsflow/shared';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { DocumentCanvas } from './DocumentCanvas';
 import { Modal } from './Modal';
 import './PrintCardCreatorModal.css';
 
@@ -19,7 +20,6 @@ type Props = {
   record: GraphicRecord | null;
 };
 
-type PanPoint = { x: number; y: number };
 type SourceKind = 'approval' | 'previous' | 'manual' | 'required' | 'system';
 
 const emptyDraft: PrintCardDraft = {
@@ -77,9 +77,6 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
   const [readingFile, setReadingFile] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState<PanPoint>({ x: 0, y: 0 });
-  const dragOrigin = useRef<{ pointerX: number; pointerY: number; panX: number; panY: number } | null>(null);
 
   const setPreviewBlob = (blob: Blob) => {
     const next = URL.createObjectURL(blob);
@@ -125,17 +122,6 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
   }, [isOpen, record]);
 
   useEffect(() => () => { if (artPreviewUrl) URL.revokeObjectURL(artPreviewUrl); }, [artPreviewUrl]);
-  useEffect(() => {
-    if (!previewOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setPreviewOpen(false);
-      if (event.key === '0') { setZoom(1); setPan({ x: 0, y: 0 }); }
-      if (event.key === '+' || event.key === '=') setZoom((value) => Math.min(4, value + .25));
-      if (event.key === '-') setZoom((value) => Math.max(.5, value - .25));
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [previewOpen]);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(initialDraft);
   const close = () => {
@@ -177,7 +163,6 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'The artwork PDF could not be read.'); }
     finally { setReadingFile(false); }
   };
-  const openPreview = () => { setZoom(1); setPan({ x: 0, y: 0 }); setPreviewOpen(true); };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!record || saving) return;
@@ -226,13 +211,13 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
           </section>
           <aside className="creator-preview-panel">
             <div className="creator-preview-heading"><div><span className="creator-kicker">Production Thumbnail</span><h3>10 × 4 in · 300 DPI</h3></div><span>9 in art + 1 in info</span></div>
-            <button className="creator-thumbnail-button" onClick={openPreview} type="button" aria-label="Open large production preview">{previewCard}<span>Open Production Preview</span></button>
+            <button className="creator-thumbnail-button" onClick={() => setPreviewOpen(true)} type="button" aria-label="Open large production preview">{previewCard}<span>Open Production Preview</span></button>
             <div className="creator-preview-summary"><strong>{draft.artPdfBase64 ? 'Uploaded artwork selected' : draft.liveArtworkRelativePath ? 'Live artwork connected' : 'Artwork waiting'}</strong><span>{missing.length ? `${missing.length} required item${missing.length === 1 ? '' : 's'} remaining` : 'Ready for final inspection'}</span></div>
-            <button className="open-production-preview" onClick={openPreview} type="button">Open Production Preview</button>
+            <button className="open-production-preview" onClick={() => setPreviewOpen(true)} type="button">Open Production Preview</button>
             <p>The preview and generated JPG use a temporary read-only copy. Server source files are never modified.</p>
             <footer className="creator-actions creator-preview-actions"><button className="secondary" onClick={close} type="button">Cancel</button><button className="primary" disabled={saving || readingFile || missing.length > 0} type="submit">{saving ? 'Generating Print Card…' : 'Generate Print Card'}</button></footer>
           </aside>
-          {previewOpen && <div className="production-preview-workspace" role="dialog" aria-modal="true" aria-label="Production Print Card Preview"><header><div><span className="creator-kicker">Production Preview</span><h2>{formatGNumber(record.gNumber)} · 10 × 4 in</h2></div><div className="production-preview-controls"><button onClick={() => { setZoom(.75); setPan({ x: 0, y: 0 }); }} type="button">Fit</button>{[1, 2, 4].map((value) => <button className={zoom === value ? 'is-active' : ''} key={value} onClick={() => { setZoom(value); setPan({ x: 0, y: 0 }); }} type="button">{value * 100}%</button>)}<button className="close-preview" onClick={() => setPreviewOpen(false)} type="button">Close</button></div></header><div className="production-preview-stage" onWheel={(event) => { event.preventDefault(); setZoom((value) => Math.min(4, Math.max(.5, value + (event.deltaY < 0 ? .25 : -.25)))); }} onPointerDown={(event) => { dragOrigin.current = { pointerX: event.clientX, pointerY: event.clientY, panX: pan.x, panY: pan.y }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { if (!dragOrigin.current) return; setPan({ x: dragOrigin.current.panX + event.clientX - dragOrigin.current.pointerX, y: dragOrigin.current.panY + event.clientY - dragOrigin.current.pointerY }); }} onPointerUp={(event) => { dragOrigin.current = null; event.currentTarget.releasePointerCapture(event.pointerId); }}><div className="production-preview-card" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>{previewCard}</div></div><footer><span>Scroll to zoom · drag to pan · Esc to close</span><strong>{Math.round(zoom * 100)}%</strong></footer></div>}
+          {previewOpen && <div className="production-preview-workspace" role="dialog" aria-modal="true" aria-label="Production Print Card Preview"><header><div><span className="creator-kicker">Production Preview</span><h2>{formatGNumber(record.gNumber)} · 10 × 4 in</h2></div></header><DocumentCanvas ariaLabel="Production Print Card preview controls" fitScale={0.75} isActive={previewOpen} onEscape={() => setPreviewOpen(false)} toolbarEnd={<button className="close-preview" onClick={() => setPreviewOpen(false)} type="button">Close</button>}><div className="production-preview-card">{previewCard}</div></DocumentCanvas></div>}
         </form>
       )}
       {!loading && error && !defaults && <div className="creator-loading creator-loading-error"><strong>Print Card Creator could not open.</strong><span>{error}</span></div>}
