@@ -50,9 +50,6 @@ function buildPostScript(data: PrintCardTemplateData): string {
   const latest = data.revisions.slice(-4).at(-1);
   const displayG = revisionedGNumber(data.gNumber, latest?.revisionLabel ?? '');
 
-  // These source dimensions match the original browser SVG. PostScript uses a
-  // bottom-left origin, so the transform below mirrors the SVG's top-left
-  // coordinate system before rotating the revision table into the narrow panel.
   const tableX = 22;
   const tableY = 210;
   const tableW = 256;
@@ -64,11 +61,12 @@ function buildPostScript(data: PrintCardTemplateData): string {
   const columns = [0, 75, 230, 730, 855, 980];
   const headerH = 42;
   const rowH = 48;
+  const flipY = (value: number) => sourceH - value;
 
   const rowCommands = rows.map((row, index) => {
-    const baseline = headerH + rowH * index + 32;
+    const baseline = flipY(headerH + rowH * index + 32);
     return [
-      `/Helvetica findfont 22 scalefont setfont`,
+      '/Helvetica findfont 22 scalefont setfont',
       `28 ${baseline} moveto (${ps(row.revisionLabel)}) show`,
       `90 ${baseline} moveto (${ps(row.revisionDate)}) show`,
       `242 ${baseline} moveto (${ps(row.description)}) show`,
@@ -79,10 +77,10 @@ function buildPostScript(data: PrintCardTemplateData): string {
 
   const verticalLines = columns.slice(1, -1).map((x) => `${x} 0 moveto ${x} ${sourceH} lineto stroke`).join('\n');
   const horizontalLines = [headerH, ...Array.from({ length: 4 }, (_, index) => headerH + rowH * (index + 1))]
-    .map((y) => `0 ${y} moveto ${sourceW} ${y} lineto stroke`).join('\n');
+    .map((y) => `0 ${flipY(y)} moveto ${sourceW} ${flipY(y)} lineto stroke`).join('\n');
 
-  const tableTranslateX = tableX + tableW;
   const tableTranslateY = BASE_HEIGHT - tableY;
+  const headerBaseline = flipY(29);
 
   return `%!PS-Adobe-3.0
 << /PageSize [${BASE_WIDTH} ${BASE_HEIGHT}] >> setpagedevice
@@ -91,19 +89,19 @@ function buildPostScript(data: PrintCardTemplateData): string {
 1 setlinejoin 1 setlinecap
 
 gsave
-${tableTranslateX} ${tableTranslateY} translate
-90 rotate
-${-scaleX} ${scaleY} scale
+${tableX} ${tableTranslateY} translate
+-90 rotate
+${scaleX} ${scaleY} scale
 2 setlinewidth
 0 0 ${sourceW} ${sourceH} rectstroke
 ${verticalLines}
 ${horizontalLines}
 /Helvetica-Bold findfont 15 scalefont setfont
-16 29 moveto (REV) show
-103 29 moveto (DATE) show
-410 29 moveto (DESCRIPTION) show
-768 29 moveto (CSR) show
-893 29 moveto (DES) show
+16 ${headerBaseline} moveto (REV) show
+103 ${headerBaseline} moveto (DATE) show
+410 ${headerBaseline} moveto (DESCRIPTION) show
+768 ${headerBaseline} moveto (CSR) show
+893 ${headerBaseline} moveto (DES) show
 ${rowCommands}
 grestore
 
