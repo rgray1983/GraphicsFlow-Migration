@@ -112,9 +112,12 @@ export function RevisionsPage() {
     }
   };
 
+  const printCardParams = record?.documentType === 'printCard'
+    ? new URLSearchParams({ specificationNumber: record.specificationNumber }).toString()
+    : '';
   const embeddedImageUrl = record?.documentType === 'approval'
     ? `/api/previews/${record.graphicId}/${highQuality ? 'large' : 'medium'}/image`
-    : record ? `/api/graphics/${record.graphicId}/print-card.jpg` : '';
+    : record ? `/api/graphics/${record.graphicId}/print-card.jpg?${printCardParams}` : '';
 
   return (
     <section className="revisions-page">
