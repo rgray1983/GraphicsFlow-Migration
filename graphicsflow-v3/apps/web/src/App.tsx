@@ -1,5 +1,6 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
 import { GraphicsPage } from './pages/GraphicsPage';
+import { RevisionsPage } from './pages/RevisionsPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 const navigation = [
@@ -8,6 +9,7 @@ const navigation = [
   ['/approvals', 'Approvals'],
   ['/vendor-art', 'Vendor Art'],
   ['/print-cards', 'Print Cards'],
+  ['/revisions', 'Revisions'],
   ['/reports', 'Reports'],
   ['/settings', 'Company Settings'],
 ] as const;
@@ -57,8 +59,9 @@ export function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/graphics" element={<GraphicsPage />} />
+          <Route path="/revisions" element={<RevisionsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          {navigation.slice(2, 6).map(([path, title]) => (
+          {navigation.filter(([path]) => ['/approvals', '/vendor-art', '/print-cards', '/reports'].includes(path)).map(([path, title]) => (
             <Route key={path} path={path} element={<PlaceholderPage title={title} />} />
           ))}
         </Routes>
