@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type WheelEvent,
@@ -18,6 +19,7 @@ type DocumentCanvasProps = {
   className?: string;
   toolbarEnd?: ReactNode;
   onEscape?: () => void;
+  renderAtLayoutScale?: boolean;
 };
 
 const MIN_SCALE = 0.5;
@@ -36,6 +38,7 @@ export function DocumentCanvas({
   className = '',
   toolbarEnd,
   onEscape,
+  renderAtLayoutScale = false,
 }: DocumentCanvasProps) {
   const [scale, setScale] = useState(fitScale);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -151,8 +154,13 @@ export function DocumentCanvas({
     'document-canvas-stage',
     scale > fitScale ? 'is-zoomed' : '',
     dragging ? 'is-dragging' : '',
+    renderAtLayoutScale ? 'uses-layout-scale' : '',
     className,
   ].filter(Boolean).join(' ');
+
+  const contentStyle = renderAtLayoutScale
+    ? ({ zoom: scale, transform: `translate(${offset.x / scale}px, ${offset.y / scale}px)` } as CSSProperties)
+    : { transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` };
 
   return (
     <div className="document-canvas" aria-label={ariaLabel}>
@@ -173,7 +181,7 @@ export function DocumentCanvas({
         onPointerUp={stopPointer}
         onWheel={handleWheel}
       >
-        <div className="document-canvas-content" style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}>
+        <div className="document-canvas-content" style={contentStyle}>
           {children}
         </div>
       </div>
