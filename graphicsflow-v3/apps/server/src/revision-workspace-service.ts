@@ -2,6 +2,7 @@ import type { RevisionJourneyEntry, RevisionLookupQuery, RevisionLookupResponse 
 import type { SQLInputValue } from 'node:sqlite';
 import { database as legacyDatabase } from './database.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
+import { getApprovalRevisionJourney } from './print-card-preview-service.js';
 
 function clean(value: unknown): string { return String(value ?? '').trim().toUpperCase(); }
 function digits(value: string): string { return value.match(/\d+/g)?.join('')?.replace(/^0+/, '') ?? ''; }
@@ -55,16 +56,50 @@ function legacyPrintCardRows(specificationNumber: string): Array<Record<string, 
   } catch { return []; }
 }
 
-export function lookupRevisionWorkspace(query: RevisionLookupQuery): RevisionLookupResponse {
+function revisionNumber(entry: RevisionJourneyEntry): number | null {
+  const matched = clean(entry.revisionLabel).match(/\d+/)?.[0];
+  return matched == null ? null : Number(matched);
+}
+
+function revisionTime(entry: RevisionJourneyEntry): number {
+  const candidate = entry.createdAt || entry.revisionDate;
+  if (!candidate) return 0;
+  const parsed = new Date(candidate).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function finalizeJourney(entries: RevisionJourneyEntry[]): { journey: RevisionJourneyEntry[]; current: RevisionJourneyEntry | null } {
+  const byRevision = new Map<string, RevisionJourneyEntry>();
+  for (const entry of entries) {
+    const key = clean(entry.revisionLabel) || `ROW-${byRevision.size}`;
+    const existing = byRevision.get(key);
+    if (!existing || entry.source === 'graphicsflow' || revisionTime(entry) > revisionTime(existing)) byRevision.set(key, { ...entry, isCurrent: false });
+  }
+  const journey = [...byRevision.values()].sort((a, b) => {
+    const aNumber = revisionNumber(a);
+    const bNumber = revisionNumber(b);
+    if (aNumber !== null && bNumber !== null && aNumber !== bNumber) return aNumber - bNumber;
+    if (aNumber !== null && bNumber === null) return 1;
+    if (aNumber === null && bNumber !== null) return -1;
+    const timeDifference = revisionTime(a) - revisionTime(b);
+    return timeDifference || clean(a.revisionLabel).localeCompare(clean(b.revisionLabel));
+  });
+  const current = journey.at(-1) ?? null;
+  if (current) current.isCurrent = true;
+  return { journey, current };
+}
+
+export async function lookupRevisionWorkspace(query: RevisionLookupQuery): Promise<RevisionLookupResponse> {
   if (query.type === 'approval') {
     const graphic = getGraphicByNormalizedG(query.identifier);
     if (!graphic) return { query, record: null, message: 'No Approval history was found for that G#.' };
-    const journey = v3Journey(Number(graphic.id), 'approval');
-    if (journey.length) journey[journey.length - 1].isCurrent = true;
+    const graphicId = Number(graphic.id);
+    const legacyJourney = await getApprovalRevisionJourney(graphicId);
+    const { journey, current } = finalizeJourney([...legacyJourney, ...v3Journey(graphicId, 'approval')]);
     return { query, message: null, record: {
-      documentType: 'approval', graphicId: Number(graphic.id), gNumber: clean(graphic.g_number), specificationNumber: '',
+      documentType: 'approval', graphicId, gNumber: clean(graphic.g_number), specificationNumber: '',
       customerNumber: clean(graphic.customer_number), customerName: clean(graphic.customer_name), partNumber: clean(graphic.part_number),
-      status: journey.length ? 'active' : 'live file only', currentRevision: journey.at(-1) ?? null, journey,
+      status: journey.length ? 'active' : 'live file only', currentRevision: current, journey,
     } };
   }
 
@@ -83,11 +118,10 @@ export function lookupRevisionWorkspace(query: RevisionLookupQuery): RevisionLoo
   if (!graphic) return { query, record: null, message: 'No Print Card history was found for that Spec#.' };
   const specificationNumber = clean(query.identifier).replace(/^F#?/, '');
   const legacyJourney = legacyRows.map((row) => mapEntry(row, 'legacy-import'));
-  const journey = [...legacyJourney, ...v3Journey(Number(graphic.id), 'printCard', specificationNumber)];
-  if (journey.length) journey[journey.length - 1].isCurrent = true;
+  const { journey, current } = finalizeJourney([...legacyJourney, ...v3Journey(Number(graphic.id), 'printCard', specificationNumber)]);
   return { query, message: null, record: {
     documentType: 'printCard', graphicId: Number(graphic.id), gNumber: clean(graphic.g_number), specificationNumber,
     customerNumber: clean(graphic.customer_number), customerName: clean(graphic.customer_name), partNumber: clean(graphic.part_number),
-    status: journey.length ? 'active' : 'record found', currentRevision: journey.at(-1) ?? null, journey,
+    status: journey.length ? 'active' : 'record found', currentRevision: current, journey,
   } };
 }
