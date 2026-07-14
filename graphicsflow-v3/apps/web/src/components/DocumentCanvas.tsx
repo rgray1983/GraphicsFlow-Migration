@@ -38,7 +38,7 @@ export function DocumentCanvas({
   className = '',
   toolbarEnd,
   onEscape,
-  renderAtLayoutScale = false,
+  renderAtLayoutScale = true,
 }: DocumentCanvasProps) {
   const [scale, setScale] = useState(fitScale);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
