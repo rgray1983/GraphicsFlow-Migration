@@ -1,0 +1,65 @@
+import { useState, type FormEvent } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { formatGNumber, formatSpecNumber, type RevisionDocumentType, type RevisionLookupResponse } from '@graphicsflow/shared';
+import { LoadingIndicator } from '../components/LoadingIndicator';
+import './RevisionsPage.css';
+
+async function lookup(type: RevisionDocumentType, identifier: string): Promise<RevisionLookupResponse> {
+  const params = new URLSearchParams({ type, identifier });
+  const response = await fetch(`/api/revisions/lookup?${params.toString()}`);
+  if (!response.ok) throw new Error('Revision history could not be searched.');
+  return response.json() as Promise<RevisionLookupResponse>;
+}
+
+function displayDate(value: string | null): string {
+  if (!value) return 'Date not recorded';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+}
+
+export function RevisionsPage() {
+  const [type, setType] = useState<RevisionDocumentType>('approval');
+  const [input, setInput] = useState('');
+  const [search, setSearch] = useState('');
+  const query = useQuery({ queryKey: ['revision-lookup', type, search], queryFn: () => lookup(type, search), enabled: Boolean(search), retry: false });
+  const record = query.data?.record ?? null;
+  const submit = (event: FormEvent) => { event.preventDefault(); const next = input.trim(); if (next) setSearch(next); };
+  const changeType = (next: RevisionDocumentType) => { setType(next); setInput(''); setSearch(''); };
+
+  return (
+    <section className="revisions-page">
+      <header className="revisions-heading">
+        <div><p className="eyebrow">Document history</p><h2>Revisions</h2><p>Follow the complete journey of an Approval or Print Card without browsing a database list.</p></div>
+        <span className="revision-framework-badge">One history workspace</span>
+      </header>
+
+      <form className={`revision-search${record ? ' has-result' : ''}`} onSubmit={submit}>
+        <label className="revision-type"><span className="sr-only">Document type</span><select aria-label="Document type" onChange={(event) => changeType(event.target.value as RevisionDocumentType)} value={type}><option value="approval">Approval</option><option value="printCard">Print Card</option></select></label>
+        <label className="revision-search-input"><span className="sr-only">{type === 'approval' ? 'Search by G#' : 'Search by Spec#'}</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" /></svg><input autoComplete="off" onChange={(event) => setInput(event.target.value)} placeholder={type === 'approval' ? 'Search by G#…' : 'Search by Spec#…'} value={input} /></label>
+        <button disabled={!input.trim() || query.isFetching} type="submit">{query.isFetching ? 'Searching…' : 'Search History'}</button>
+      </form>
+
+      {!search && <section className="revision-empty-state"><div className="revision-empty-mark"><span>↺</span></div><p className="eyebrow">Nothing to browse</p><h3>Search only when history matters.</h3><p>Choose the document type, then enter a {type === 'approval' ? 'G#' : 'Spec#'}. GraphicsFlow will bring the current document and its complete revision journey into one focused workspace.</p><div className="revision-empty-rules"><span><b>Approval</b> G#</span><i /><span><b>Print Card</b> Spec#</span></div></section>}
+      {query.isFetching && <LoadingIndicator message="Collecting the current document and its revision journey…" size="panel" title="Searching Revision History" />}
+      {query.isError && <section className="revision-message is-error"><strong>Revision search failed.</strong><span>Confirm the server is running, then try the search again.</span></section>}
+      {!query.isFetching && query.data && !record && <section className="revision-message"><strong>No history found.</strong><span>{query.data.message}</span></section>}
+
+      {record && !query.isFetching && <div className="revision-workspace">
+        <section className="revision-record-hero">
+          <div><span className="revision-document-label">{record.documentType === 'approval' ? 'Approval' : 'Print Card'}</span><h3>{record.documentType === 'approval' ? formatGNumber(record.gNumber) : formatSpecNumber(record.specificationNumber)}</h3><p>{record.documentType === 'printCard' && `${formatGNumber(record.gNumber)} · `}{record.customerName} · {record.partNumber}</p></div>
+          <div className="revision-current-summary"><span>Current revision</span><strong>{record.currentRevision?.revisionLabel || 'No managed revision'}</strong><small>{record.currentRevision ? displayDate(record.currentRevision.createdAt || record.currentRevision.revisionDate) : 'History will begin with the first managed revision.'}</small></div>
+        </section>
+
+        <section className="revision-current-card">
+          <div><p className="eyebrow">Current document</p><h3>{record.currentRevision ? `Revision ${record.currentRevision.revisionLabel}` : 'Live document record'}</h3><p>{record.currentRevision?.description || 'The document exists, but no structured revision history has been recorded yet.'}</p></div>
+          <div className="revision-primary-actions"><button type="button">Open Current</button><button className="primary" type="button">Create Revision</button><button type="button">Edit Information</button></div>
+        </section>
+
+        <section className="revision-journey">
+          <header><div><p className="eyebrow">Revision journey</p><h3>The life of this {record.documentType === 'approval' ? 'Approval' : 'Print Card'}</h3></div><span>{record.journey.length} revision{record.journey.length === 1 ? '' : 's'}</span></header>
+          {record.journey.length === 0 ? <div className="revision-journey-empty">No structured revisions have been recorded. Creating the next revision will begin this journey.</div> : <ol>{record.journey.map((revision, index) => <li className={revision.isCurrent ? 'is-current' : ''} key={`${revision.id ?? 'legacy'}-${index}`}><div className="revision-node"><span>{revision.revisionLabel || index}</span></div><article><header><div><strong>Revision {revision.revisionLabel || index}</strong>{revision.isCurrent && <em>Current</em>}</div><time>{displayDate(revision.createdAt || revision.revisionDate)}</time></header><p>{revision.description || 'No change description was recorded.'}</p><footer><span>{revision.source === 'legacy-import' ? 'Legacy history' : 'GraphicsFlow'}</span><span>{[revision.csr, revision.designer].filter(Boolean).join(' · ') || 'Author not recorded'}</span><button type="button">View Revision</button></footer></article></li>)}</ol>}
+        </section>
+      </div>}
+    </section>
+  );
+}
