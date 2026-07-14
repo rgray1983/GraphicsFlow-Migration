@@ -82,7 +82,7 @@ export function renderPrintCardSvg(data: PrintCardTemplateData): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
   <rect width="${WIDTH}" height="${HEIGHT}" fill="#fff"/>
-  <g transform="translate(${tableX} ${tableY + tableH}) rotate(-90) scale(${scaleX} ${scaleY})" fill="none" stroke="#000" stroke-width="2">
+  <g transform="translate(${tableX + tableW} ${tableY}) rotate(90) scale(${scaleX} ${scaleY})" fill="none" stroke="#000" stroke-width="2">
     <rect x="0" y="0" width="${sourceW}" height="${sourceH}"/>
     ${verticalLines}
     ${horizontalLines}
