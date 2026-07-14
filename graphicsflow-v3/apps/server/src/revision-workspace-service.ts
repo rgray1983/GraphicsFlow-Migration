@@ -1,4 +1,5 @@
 import type { RevisionJourneyEntry, RevisionLookupQuery, RevisionLookupResponse } from '@graphicsflow/shared';
+import type { SQLInputValue } from 'node:sqlite';
 import { database as legacyDatabase } from './database.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
 
@@ -32,9 +33,12 @@ function getGraphicById(id: number) {
   return graphicsStoreDatabase.prepare(`SELECT id, g_number, customer_number, customer_name, part_number FROM graphics_records WHERE id = ?`).get(id) as Record<string, unknown> | undefined ?? null;
 }
 function v3Journey(graphicId: number, type: RevisionLookupQuery['type'], specificationNumber?: string): RevisionJourneyEntry[] {
-  const params: unknown[] = [graphicId, type];
+  const params: SQLInputValue[] = [graphicId, type];
   let specClause = '';
-  if (type === 'printCard' && specificationNumber) { specClause = ' AND UPPER(REPLACE(REPLACE(COALESCE(r.specification_number, \'\'), \'F#\', \'\'), \' \' , \'\')) = ?'; params.push(clean(specificationNumber).replace(/^F#?/, '').replace(/\s+/g, '')); }
+  if (type === 'printCard' && specificationNumber) {
+    specClause = ' AND UPPER(REPLACE(REPLACE(COALESCE(r.specification_number, \'\'), \'F#\', \'\'), \' \' , \'\')) = ?';
+    params.push(clean(specificationNumber).replace(/^F#?/, '').replace(/\s+/g, ''));
+  }
   const rows = graphicsStoreDatabase.prepare(`
     SELECT r.* FROM graphics_documents d
     INNER JOIN document_revisions r ON r.document_id = d.id
