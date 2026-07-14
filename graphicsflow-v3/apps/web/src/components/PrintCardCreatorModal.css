@@ -100,19 +100,12 @@
 .creator-loading-error { align-content: center; gap: 8px; }
 .creator-loading-error strong { color: #fecaca; }
 .creator-loading-error span { color: #94a3b8; }
-.production-preview-workspace { position: fixed; inset: 12px; z-index: 1300; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; border: 1px solid rgba(148,163,184,.18); border-radius: 14px; background: #070b12; box-shadow: 0 30px 100px rgba(0,0,0,.7); }
-.production-preview-workspace > header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 18px; border-bottom: 1px solid rgba(148,163,184,.13); background: #0b111b; }
+.production-preview-workspace { position: fixed; top: 50%; left: 50%; width: min(1240px, calc(100vw - 96px)); height: min(760px, calc(100vh - 96px)); z-index: 1300; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; transform: translate(-50%, -50%); border: 1px solid rgba(148,163,184,.24); border-radius: 14px; background: #070b12; box-shadow: 0 30px 100px rgba(0,0,0,.72), 0 0 0 9999px rgba(2,6,23,.38); }
+.production-preview-workspace > header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 13px 18px; border-bottom: 1px solid rgba(148,163,184,.13); background: #0b111b; }
 .production-preview-workspace h2 { margin: 3px 0 0; color: #e5eef7; font-size: 15px; }
-.production-preview-controls { display: flex; align-items: center; gap: 7px; }
-.production-preview-controls button { min-width: 48px; min-height: 32px; border: 1px solid rgba(148,163,184,.15); border-radius: 7px; color: #94a3b8; background: rgba(15,23,42,.72); font-size: 9px; font-weight: 800; cursor: pointer; }
-.production-preview-controls button.is-active { border-color: rgba(45,212,191,.44); color: #99f6e4; background: rgba(20,184,166,.12); }
-.production-preview-controls .close-preview { min-width: 66px; margin-left: 8px; color: #e2e8f0; }
-.production-preview-stage { min-height: 0; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at center, #263343 0, #141c27 46%, #080c12 100%); cursor: grab; touch-action: none; }
-.production-preview-stage:active { cursor: grabbing; }
-.production-preview-card { width: min(86vw, 1500px); transform-origin: center; transition: transform .04s linear; will-change: transform; }
+.print-card-preview-quality { padding: 6px 9px; border-radius: 999px; color: #99f6e4; background: rgba(20,184,166,.1); font-size: 8px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.production-preview-card { width: min(1040px, 82vw); transform-origin: center; will-change: transform; }
 .production-preview-card .print-card-production-preview { border-radius: 0; box-shadow: 0 28px 70px rgba(0,0,0,.58); }
-.production-preview-workspace > footer { display: flex; align-items: center; justify-content: space-between; padding: 9px 18px; border-top: 1px solid rgba(148,163,184,.12); color: #64748b; background: #0b111b; font-size: 8px; }
-.production-preview-workspace > footer strong { color: #99f6e4; font-size: 9px; }
 @media (min-width: 1101px) and (min-height: 780px) {
   .creator-editor { overflow-y: hidden; }
 }
@@ -123,6 +116,7 @@
   .creator-editor { overflow: visible; }
   .creator-preview-panel { min-height: 420px; padding: 18px 28px 20px; border-top: 1px solid rgba(148,163,184,.13); border-left: 0; }
   .creator-preview-actions { width: 100%; margin-top: 12px; padding-top: 14px; }
+  .production-preview-workspace { width: calc(100vw - 40px); height: calc(100vh - 56px); }
 }
 @media (max-width: 700px) {
   .modal-dialog-creator { width: calc(100vw - 12px); height: calc(100vh - 12px); }
@@ -136,7 +130,7 @@
   .creator-artwork-row small { display: none; }
   .creator-history li { grid-template-columns: 62px 1fr; }
   .creator-history li small { display: none; }
-  .production-preview-workspace { inset: 4px; }
+  .production-preview-workspace { width: calc(100vw - 12px); height: calc(100vh - 20px); border-radius: 10px; }
   .production-preview-workspace > header { align-items: flex-start; }
-  .production-preview-controls button:not(.close-preview) { display: none; }
+  .print-card-preview-quality { display: none; }
 }
