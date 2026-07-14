@@ -39,7 +39,6 @@ export function DocumentCanvas({
 }: DocumentCanvasProps) {
   const [scale, setScale] = useState(fitScale);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [spaceHeld, setSpaceHeld] = useState(false);
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(null);
   const pointersRef = useRef(new Map<number, ActivePointer>());
@@ -48,7 +47,6 @@ export function DocumentCanvas({
   const reset = () => {
     setScale(fitScale);
     setOffset({ x: 0, y: 0 });
-    setSpaceHeld(false);
     setDragging(false);
     dragRef.current = null;
     pointersRef.current.clear();
@@ -61,33 +59,17 @@ export function DocumentCanvas({
 
   useEffect(() => {
     if (!isActive) return;
-    const isEditableTarget = (target: EventTarget | null) => {
-      const element = target as HTMLElement | null;
-      return Boolean(element?.closest('input, textarea, select, button, a, [contenteditable="true"]'));
-    };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && onEscape) {
         event.preventDefault();
         onEscape();
-        return;
       }
-      if (event.code !== 'Space' || isEditableTarget(event.target)) return;
-      event.preventDefault();
-      setSpaceHeld(true);
-    };
-    const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.code !== 'Space') return;
-      setSpaceHeld(false);
-      setDragging(false);
-      dragRef.current = null;
     };
     const handleBlur = () => reset();
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('blur', handleBlur);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
   }, [isActive, onEscape, fitScale]);
@@ -105,6 +87,7 @@ export function DocumentCanvas({
   };
 
   const beginDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
     setDragging(true);
     dragRef.current = {
       pointerId: event.pointerId,
@@ -116,10 +99,10 @@ export function DocumentCanvas({
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    event.currentTarget.setPointerCapture(event.pointerId);
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY, type: event.pointerType });
     if (event.pointerType === 'touch') {
       event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
       const touches = [...pointersRef.current.values()].filter((pointer) => pointer.type === 'touch');
       if (touches.length === 2) {
         pinchRef.current = { distance: pointerDistance(touches[0], touches[1]), scale };
@@ -130,7 +113,7 @@ export function DocumentCanvas({
       }
       return;
     }
-    if (!spaceHeld || scale <= fitScale) return;
+    if (scale <= fitScale || event.button !== 0) return;
     event.preventDefault();
     beginDrag(event);
   };
@@ -161,12 +144,12 @@ export function DocumentCanvas({
       dragRef.current = null;
       setDragging(false);
     }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   const canvasClassName = [
     'document-canvas-stage',
     scale > fitScale ? 'is-zoomed' : '',
-    spaceHeld && scale > fitScale ? 'is-hand-tool' : '',
     dragging ? 'is-dragging' : '',
     className,
   ].filter(Boolean).join(' ');
@@ -196,7 +179,7 @@ export function DocumentCanvas({
       </div>
       <div className="document-canvas-help">
         <span>Scroll to zoom</span>
-        <span>Spacebar + drag to pan</span>
+        <span>Click and drag to pan while zoomed</span>
         <span>Pinch or one-finger drag on touch</span>
       </div>
     </div>
