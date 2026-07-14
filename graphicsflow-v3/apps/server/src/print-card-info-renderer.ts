@@ -50,13 +50,17 @@ function buildPostScript(data: PrintCardTemplateData): string {
   const latest = data.revisions.slice(-4).at(-1);
   const displayG = revisionedGNumber(data.gNumber, latest?.revisionLabel ?? '');
 
-  // The revision table is drawn horizontally, then rotated to match the legacy Print Card layout.
+  // These source dimensions match the original browser SVG. PostScript uses a
+  // bottom-left origin, so the transform below mirrors the SVG's top-left
+  // coordinate system before rotating the revision table into the narrow panel.
   const tableX = 22;
   const tableY = 210;
+  const tableW = 256;
+  const tableH = 810;
   const sourceW = 980;
   const sourceH = 234;
-  const scaleX = 810 / sourceW;
-  const scaleY = 256 / sourceH;
+  const scaleX = tableH / sourceW;
+  const scaleY = tableW / sourceH;
   const columns = [0, 75, 230, 730, 855, 980];
   const headerH = 42;
   const rowH = 48;
@@ -77,6 +81,9 @@ function buildPostScript(data: PrintCardTemplateData): string {
   const horizontalLines = [headerH, ...Array.from({ length: 4 }, (_, index) => headerH + rowH * (index + 1))]
     .map((y) => `0 ${y} moveto ${sourceW} ${y} lineto stroke`).join('\n');
 
+  const tableTranslateX = tableX + tableW;
+  const tableTranslateY = BASE_HEIGHT - tableY;
+
   return `%!PS-Adobe-3.0
 << /PageSize [${BASE_WIDTH} ${BASE_HEIGHT}] >> setpagedevice
 1 1 1 setrgbcolor 0 0 ${BASE_WIDTH} ${BASE_HEIGHT} rectfill
@@ -84,9 +91,9 @@ function buildPostScript(data: PrintCardTemplateData): string {
 1 setlinejoin 1 setlinecap
 
 gsave
-${tableX + 256} ${tableY} translate
+${tableTranslateX} ${tableTranslateY} translate
 90 rotate
-${scaleX} ${scaleY} scale
+${-scaleX} ${scaleY} scale
 2 setlinewidth
 0 0 ${sourceW} ${sourceH} rectstroke
 ${verticalLines}
@@ -101,9 +108,9 @@ ${rowCommands}
 grestore
 
 /Helvetica findfont 24 scalefont setfont
-28 1045 moveto (F#${ps(clean(data.specificationNumber))}) show
-28 1085 moveto (D#${ps(clean(data.designNumber))}) show
-28 1125 moveto (${ps(displayG)}) show
+28 ${BASE_HEIGHT - 1045} moveto (F#${ps(clean(data.specificationNumber))}) show
+28 ${BASE_HEIGHT - 1085} moveto (D#${ps(clean(data.designNumber))}) show
+28 ${BASE_HEIGHT - 1125} moveto (${ps(displayG)}) show
 showpage
 `;
 }
