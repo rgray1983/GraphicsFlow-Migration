@@ -18,7 +18,6 @@ type Props = {
 };
 
 type PanPoint = { x: number; y: number };
-
 type SourceKind = 'approval' | 'previous' | 'manual' | 'required' | 'system';
 
 const emptyDraft: PrintCardDraft = {
@@ -149,7 +148,6 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
   const readinessTotal = requiredFields.length + 1;
   const readinessComplete = readinessTotal - missing.length;
   const readinessPercent = Math.max(0, Math.round((readinessComplete / readinessTotal) * 100));
-
   const update = <K extends keyof PrintCardDraft>(key: K, value: PrintCardDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
 
   const chooseArtwork = async (file: File | undefined) => {
@@ -171,14 +169,16 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
     } finally { setReadingFile(false); }
   };
 
-  const openPreview = () => {
-    setZoom(1); setPan({ x: 0, y: 0 }); setPreviewOpen(true);
-  };
+  const openPreview = () => { setZoom(1); setPan({ x: 0, y: 0 }); setPreviewOpen(true); };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!record || saving) return;
     if (missing.length) { setError(`Complete the required Print Card information: ${missing.join(', ')}.`); return; }
+    if (draft.replaceExistingImage) {
+      const confirmed = window.confirm('Replace the existing Print Card image?\n\nThis preserves the existing 9-inch artwork when no new PDF is selected, rebuilds the information panel, and does not create a new revision.');
+      if (!confirmed) return;
+    }
     setSaving(true); setError(null);
     try {
       const response = await fetch(`/api/graphics/${record.id}/print-card`, {
@@ -212,17 +212,11 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
                 <small>{missing.length ? `Missing: ${missing.join(', ')}` : 'All required production information is complete.'}</small>
               </div>
             </div>
-
             <div className="creator-record-summary"><div><span>Customer #</span><strong>{record.customerNumber}</strong></div><div><span>Customer</span><strong>{record.customerName}</strong></div><div><span>Part #</span><strong>{record.partNumber}</strong></div></div>
-
             <section className="creator-work-section">
               <header><div><span className="creator-step">01</span><div><h4>Artwork</h4><p>Converted server-side at 300 DPI for preview and production.</p></div></div><span className={`creator-step-state${artPreviewUrl || draft.replaceExistingImage ? ' is-complete' : ''}`}>{artPreviewUrl || draft.replaceExistingImage ? 'Ready' : 'Required'}</span></header>
-              <label className="creator-artwork-upload">
-                <input accept="application/pdf,.pdf" onChange={(event) => void chooseArtwork(event.target.files?.[0])} type="file" />
-                <span><strong>{readingFile ? 'Converting PDF…' : draft.artPdfName || 'Choose 9 × 4 in artwork PDF'}</strong><small>{draft.artPdfName ? 'Artwork is ready for inspection.' : 'The PDF becomes the left 9 inches of the production JPG.'}</small></span>
-              </label>
+              <label className="creator-artwork-upload"><input accept="application/pdf,.pdf" onChange={(event) => void chooseArtwork(event.target.files?.[0])} type="file" /><span><strong>{readingFile ? 'Converting PDF…' : draft.artPdfName || 'Choose 9 × 4 in artwork PDF'}</strong><small>{draft.artPdfName ? 'Artwork is ready for inspection.' : 'The PDF becomes the left 9 inches of the production JPG.'}</small></span></label>
             </section>
-
             <section className="creator-work-section">
               <header><div><span className="creator-step">02</span><div><h4>Production Metadata</h4><p>Each badge shows where GraphicsFlow obtained the value.</p></div></div></header>
               <div className="creator-fields">
@@ -235,13 +229,11 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
                 <label><span>Designer <SourceBadge source={defaults.autoFill.sources.designer} value={draft.designer} /></span><input required value={draft.designer} onChange={(event) => update('designer', event.target.value.toUpperCase())} /></label>
               </div>
             </section>
-
-            <label className="replace-option"><input checked={draft.replaceExistingImage} onChange={(event) => update('replaceExistingImage', event.target.checked)} type="checkbox" /><span><strong>Replace Existing Image</strong><small>Without a new PDF, preserve the existing 9-inch artwork and rebuild only the information panel.</small></span></label>
+            <label className="replace-option"><input checked={draft.replaceExistingImage} onChange={(event) => update('replaceExistingImage', event.target.checked)} type="checkbox" /><span><strong>Replace Existing Image</strong><small>Without a new PDF, preserve the existing 9-inch artwork and rebuild only the information panel. No new revision is created.</small></span></label>
             {defaults.history.length > 0 && <section className="creator-history"><div><span className="creator-kicker">Existing Data</span><h4>Recent Print Card Revisions</h4></div><ol>{defaults.history.slice(-4).reverse().map((row, index) => <li key={`${row.id ?? 'legacy'}-${index}`}><strong>Rev {row.revisionLabel || '0'}</strong><span>{row.revisionDate || 'No date'} · {row.description || 'No description'}</span><small>{row.source === 'legacy-import' ? 'Legacy import' : 'GraphicsFlow'}</small></li>)}</ol></section>}
             {error && <div className="creator-error" role="alert">{error}</div>}
             <footer className="creator-actions"><button className="secondary" onClick={close} type="button">Cancel</button><button className="primary" disabled={saving || readingFile || missing.length > 0} type="submit">{saving ? 'Generating Print Card…' : 'Generate Print Card'}</button></footer>
           </section>
-
           <aside className="creator-preview-panel">
             <div className="creator-preview-heading"><div><span className="creator-kicker">Production Thumbnail</span><h3>10 × 4 in · 300 DPI</h3></div><span>9 in art + 1 in info</span></div>
             <button className="creator-thumbnail-button" onClick={openPreview} type="button" aria-label="Open large production preview">{previewCard}<span>Open Production Preview</span></button>
@@ -249,19 +241,10 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
             <button className="open-production-preview" onClick={openPreview} type="button">Open Production Preview</button>
             <p>The large preview uses the converted artwork and the same structured revision data used by the production renderer.</p>
           </aside>
-
           {previewOpen && (
             <div className="production-preview-workspace" role="dialog" aria-modal="true" aria-label="Production Print Card Preview">
               <header><div><span className="creator-kicker">Production Preview</span><h2>{formatGNumber(record.gNumber)} · 10 × 4 in</h2></div><div className="production-preview-controls"><button onClick={() => { setZoom(.75); setPan({ x: 0, y: 0 }); }} type="button">Fit</button>{[1, 2, 4].map((value) => <button className={zoom === value ? 'is-active' : ''} key={value} onClick={() => { setZoom(value); setPan({ x: 0, y: 0 }); }} type="button">{value * 100}%</button>)}<button className="close-preview" onClick={() => setPreviewOpen(false)} type="button">Close</button></div></header>
-              <div
-                className="production-preview-stage"
-                onWheel={(event) => { event.preventDefault(); setZoom((value) => Math.min(4, Math.max(.5, value + (event.deltaY < 0 ? .25 : -.25)))); }}
-                onPointerDown={(event) => { dragOrigin.current = { pointerX: event.clientX, pointerY: event.clientY, panX: pan.x, panY: pan.y }; event.currentTarget.setPointerCapture(event.pointerId); }}
-                onPointerMove={(event) => { if (!dragOrigin.current) return; setPan({ x: dragOrigin.current.panX + event.clientX - dragOrigin.current.pointerX, y: dragOrigin.current.panY + event.clientY - dragOrigin.current.pointerY }); }}
-                onPointerUp={(event) => { dragOrigin.current = null; event.currentTarget.releasePointerCapture(event.pointerId); }}
-              >
-                <div className="production-preview-card" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>{previewCard}</div>
-              </div>
+              <div className="production-preview-stage" onWheel={(event) => { event.preventDefault(); setZoom((value) => Math.min(4, Math.max(.5, value + (event.deltaY < 0 ? .25 : -.25)))); }} onPointerDown={(event) => { dragOrigin.current = { pointerX: event.clientX, pointerY: event.clientY, panX: pan.x, panY: pan.y }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { if (!dragOrigin.current) return; setPan({ x: dragOrigin.current.panX + event.clientX - dragOrigin.current.pointerX, y: dragOrigin.current.panY + event.clientY - dragOrigin.current.pointerY }); }} onPointerUp={(event) => { dragOrigin.current = null; event.currentTarget.releasePointerCapture(event.pointerId); }}><div className="production-preview-card" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>{previewCard}</div></div>
               <footer><span>Scroll to zoom · drag to pan · Esc to close</span><strong>{Math.round(zoom * 100)}%</strong></footer>
             </div>
           )}
