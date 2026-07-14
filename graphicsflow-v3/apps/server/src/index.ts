@@ -149,10 +149,25 @@ app.post('/api/print-card/artwork-preview', async (request, reply) => {
 app.post('/api/graphics/:id/print-card/preview', async (request, reply) => {
   const id = Number((request.params as { id?: string }).id);
   if (!Number.isInteger(id) || id <= 0) return reply.status(400).send({ error: 'Invalid graphics record id.' });
-  const parsed = printCardDraftSchema.safeParse(request.body);
-  if (!parsed.success) return reply.status(400).send({ error: 'The Print Card preview information is invalid.', details: parsed.error.flatten() });
+  const body = (request.body ?? {}) as Record<string, unknown>;
+  const previewDraft = {
+    specificationNumber: String(body.specificationNumber ?? '').trim(),
+    designNumber: String(body.designNumber ?? '').trim(),
+    revisionLabel: String(body.revisionLabel ?? '').trim(),
+    revisionDate: String(body.revisionDate ?? '').trim(),
+    description: String(body.description ?? '').trim(),
+    csr: String(body.csr ?? '').trim(),
+    designer: String(body.designer ?? '').trim(),
+    replaceExistingImage: body.replaceExistingImage === true,
+    artPdfName: String(body.artPdfName ?? '').trim(),
+    artPdfBase64: String(body.artPdfBase64 ?? ''),
+    liveArtworkRelativePath: String(body.liveArtworkRelativePath ?? '').trim(),
+  };
+  if (!previewDraft.artPdfBase64 && !previewDraft.liveArtworkRelativePath) {
+    return reply.status(400).send({ error: 'Select a live artwork PDF or upload a PDF before opening the Print Card Preview.' });
+  }
   try {
-    const image = await renderCompletePrintCardPreview(id, parsed.data);
+    const image = await renderCompletePrintCardPreview(id, previewDraft);
     return reply.header('Content-Type', 'image/png').header('Cache-Control', 'private, no-store').send(image);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'The Print Card preview could not be rendered.';
