@@ -1,3 +1,4 @@
+.modal-body:has(.graphicsflow-loading-overlay) { position: relative; }
 .graphicsflow-loading { display: grid; justify-items: center; align-content: center; gap: 14px; color: #94a3b8; text-align: center; }
 .graphicsflow-loading.is-inline { min-width: 120px; gap: 7px; }
 .graphicsflow-loading.is-panel { min-height: 320px; padding: 34px; }
@@ -13,8 +14,8 @@
 .graphicsflow-loading.is-inline .graphicsflow-loading-copy strong { font-size: 9px; }
 .graphicsflow-loading.is-inline .graphicsflow-loading-copy span { font-size: 8px; }
 .graphicsflow-loading-overlay { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; overflow: hidden; border-radius: inherit; background: rgba(3,8,18,.78); backdrop-filter: blur(5px); }
-.graphicsflow-shimmer-preview { position: relative; width: 100%; min-width: 0; overflow: hidden; }
-.graphicsflow-shimmer-content { width: 100%; transition: filter .18s ease, opacity .18s ease; }
+.graphicsflow-shimmer-preview { position: relative; width: 100%; min-width: 0; overflow: hidden; border-radius: 8px; }
+.graphicsflow-shimmer-content { width: 100%; transition: filter .18s ease, opacity .18s ease, transform .18s ease; }
 .graphicsflow-shimmer-preview.is-loading .graphicsflow-shimmer-content { filter: blur(8px); opacity: .5; transform: scale(1.02); }
 .graphicsflow-shimmer-layer { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; background: rgba(2,6,23,.26); }
 .graphicsflow-shimmer-layer::before { content: ''; position: absolute; inset: -40% -60%; background: linear-gradient(110deg, transparent 36%, rgba(255,255,255,.08) 46%, rgba(45,212,191,.18) 50%, rgba(255,255,255,.08) 54%, transparent 64%); animation: graphicsflow-shimmer 1.45s linear infinite; }
