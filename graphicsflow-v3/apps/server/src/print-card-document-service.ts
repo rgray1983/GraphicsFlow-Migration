@@ -25,7 +25,11 @@ function isInsideRoot(root: string, candidate: string): boolean {
   return normalizedCandidate === normalizedRoot || normalizedCandidate.startsWith(`${normalizedRoot}${sep}`);
 }
 
-export async function readCurrentPrintCard(graphicId: number): Promise<PrintCardDocument | null> {
+function normalizeLookup(value: unknown): string {
+  return String(value ?? '').match(/\d+/g)?.join('').replace(/^0+/, '') ?? '';
+}
+
+export async function readCurrentPrintCard(graphicId: number, requestedSpecificationNumber = ''): Promise<PrintCardDocument | null> {
   const managed = await readManagedPrintCard(graphicId);
   if (managed) {
     return {
@@ -38,8 +42,8 @@ export async function readCurrentPrintCard(graphicId: number): Promise<PrintCard
   const graphic = getGraphicById(graphicId);
   if (!graphic) return null;
 
-  const lookupNumbers = [graphic.specificationNumber, graphic.gNumber]
-    .map((value) => String(value ?? '').trim())
+  const lookupNumbers = [requestedSpecificationNumber, graphic.specificationNumber, graphic.gNumber]
+    .map(normalizeLookup)
     .filter((value, index, values) => value && values.indexOf(value) === index);
 
   let live = null;
