@@ -52,7 +52,8 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
   useEffect(() => {
     if (!isOpen || !record) return;
     let cancelled = false;
-    setLoading(true); setError(null); setArtPreviewUrl('');
+    setLoading(true); setError(null);
+    setArtPreviewUrl((current) => { if (current) URL.revokeObjectURL(current); return ''; });
     void fetch(`/api/graphics/${record.id}/print-card/defaults`)
       .then(async (response) => {
         if (!response.ok) throw new Error(await readError(response, 'Print Card defaults could not be loaded.'));
@@ -97,8 +98,18 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
     setReadingFile(true); setError(null);
     try {
       const base64 = await fileToBase64(file);
-      if (artPreviewUrl) URL.revokeObjectURL(artPreviewUrl);
-      setArtPreviewUrl(URL.createObjectURL(file));
+      const previewResponse = await fetch('/api/print-card/artwork-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artPdfBase64: base64 }),
+      });
+      if (!previewResponse.ok) throw new Error(await readError(previewResponse, 'The artwork preview could not be generated.'));
+      const previewBlob = await previewResponse.blob();
+      const nextPreviewUrl = URL.createObjectURL(previewBlob);
+      setArtPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return nextPreviewUrl;
+      });
       setDraft((current) => ({ ...current, artPdfName: file.name, artPdfBase64: base64 }));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The artwork PDF could not be read.');
@@ -136,7 +147,7 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
             <label className="creator-artwork-upload">
               <span>9 × 4 in Artwork PDF</span>
               <input accept="application/pdf,.pdf" onChange={(event) => void chooseArtwork(event.target.files?.[0])} type="file" />
-              <small>{readingFile ? 'Reading PDF…' : draft.artPdfName || 'Required for a new Print Card. The PDF becomes the left 9 inches of the production JPG.'}</small>
+              <small>{readingFile ? 'Converting PDF to a 300 DPI preview…' : draft.artPdfName || 'Required for a new Print Card. The PDF becomes the left 9 inches of the production JPG.'}</small>
             </label>
 
             <div className="creator-fields">
@@ -157,10 +168,10 @@ export function PrintCardCreatorModal({ isOpen, onClose, onCreated, record }: Pr
           <aside className="creator-preview-panel">
             <div className="creator-preview-heading"><div><span className="creator-kicker">Production Layout</span><h3>10 × 4 in · 300 DPI</h3></div><span>9 in art + 1 in info</span></div>
             <div className="print-card-production-preview">
-              <div className="print-card-art-preview">{artPreviewUrl ? <object aria-label="Artwork PDF preview" data={artPreviewUrl} type="application/pdf" /> : <span>Upload the 9 × 4 artwork PDF</span>}</div>
+              <div className="print-card-art-preview">{artPreviewUrl ? <img alt="Converted artwork preview" src={artPreviewUrl} /> : <span>{readingFile ? 'Converting artwork…' : 'Upload the 9 × 4 artwork PDF'}</span>}</div>
               <div className="print-card-info-preview" dangerouslySetInnerHTML={{ __html: infoSvg }} />
             </div>
-            <p>The production JPG uses the uploaded PDF at 9 × 4 inches and the PHP-matched revision panel at 1 × 4 inches.</p>
+            <p>The preview and production JPG use the uploaded PDF converted at 300 DPI with the revision panel added as the final 1-inch column.</p>
           </aside>
         </form>
       )}
