@@ -18,6 +18,7 @@ export type PrintCardTemplateData = {
 
 const WIDTH = 300;
 const HEIGHT = 1200;
+const SVG_FONT = 'Arial';
 
 function xml(value: string): string {
   return value
@@ -68,7 +69,7 @@ export function renderPrintCardSvg(data: PrintCardTemplateData): string {
 
   const rowMarkup = revisions.map((revision, index) => {
     const baseline = headerH + rowH * index + 32;
-    return `<g font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400">
+    return `<g font-family="${SVG_FONT}" font-size="22" font-weight="400">
       <text x="28" y="${baseline}">${xml(fit(revision.revisionLabel, 7))}</text>
       <text x="90" y="${baseline}">${xml(fit(revision.revisionDate, 12))}</text>
       <text x="242" y="${baseline}">${xml(fit(revision.description, 42))}</text>
@@ -87,7 +88,7 @@ export function renderPrintCardSvg(data: PrintCardTemplateData): string {
     <rect x="0" y="0" width="${sourceW}" height="${sourceH}"/>
     ${verticalLines}
     ${horizontalLines}
-    <g fill="#000" stroke="none" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700">
+    <g fill="#000" stroke="none" font-family="${SVG_FONT}" font-size="15" font-weight="700">
       <text x="16" y="29">REV</text>
       <text x="103" y="29">DATE</text>
       <text x="410" y="29">DESCRIPTION</text>
@@ -96,7 +97,7 @@ export function renderPrintCardSvg(data: PrintCardTemplateData): string {
     </g>
     <g fill="#000" stroke="none">${rowMarkup}</g>
   </g>
-  <g fill="#000" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400">
+  <g fill="#000" font-family="${SVG_FONT}" font-size="24" font-weight="400">
     <text x="28" y="1045">F#${xml(clean(data.specificationNumber))}</text>
     <text x="28" y="1085">D#${xml(clean(data.designNumber))}</text>
     <text x="28" y="1125">${xml(displayG)}</text>
