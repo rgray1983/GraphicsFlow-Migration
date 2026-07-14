@@ -6,7 +6,6 @@ import { promisify } from 'node:util';
 import {
   createPrintCardResponseSchema,
   printCardDetailsResponseSchema,
-  renderPrintCardSvg,
   type CreatePrintCardResponse,
   type PrintCardDetailsResponse,
   type PrintCardDraft,
@@ -17,6 +16,7 @@ import { database as legacyDatabase } from './database.js';
 import { getGraphicById } from './graphics-repository.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
 import { readLiveArtwork } from './print-card-artwork-service.js';
+import { renderPrintCardInfoPanelPng } from './print-card-info-renderer.js';
 import { settingsDatabasePath } from './settings-store.js';
 
 const execFileAsync = promisify(execFile);
@@ -93,15 +93,6 @@ async function renderPdfArtwork(pdfPath: string, artPath: string): Promise<void>
   await execFileAsync(magick, [artPath, '-filter', 'Lanczos', '-resize', '2700x1200', '-background', 'white', '-gravity', 'center', '-extent', '2700x1200', '-units', 'PixelsPerInch', '-density', '300', artPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
 }
 
-async function renderInfoPanel(svg: string, infoPath: string): Promise<void> {
-  const svgPath = `${infoPath}.svg`;
-  await writeFile(svgPath, svg, 'utf8');
-  try {
-    const magick = await imageMagick();
-    await execFileAsync(magick, ['-background', 'white', '-density', '300', svgPath, '-alpha', 'remove', '-alpha', 'off', '-filter', 'Lanczos', '-resize', '300x1200!', '-units', 'PixelsPerInch', '-density', '300', infoPath], { timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
-  } finally { await rm(svgPath, { force: true }); }
-}
-
 function mapRevision(row: Record<string, unknown> | undefined, legacy = false): PrintCardRevision | null {
   if (!row) return null;
   return {
@@ -163,7 +154,15 @@ export async function createManagedPrintCard(graphicId: number, draft: PrintCard
     const history = revisionHistory(graphicId, graphic.gNumber);
     const currentRevision = { revisionLabel: draft.revisionLabel, revisionDate: draft.revisionDate, description: draft.description, csr: draft.csr, designer: draft.designer };
     const revisions = draft.replaceExistingImage && history.length ? [...history.slice(0, -1), currentRevision].slice(-4) : [...history, currentRevision].slice(-4);
-    await renderInfoPanel(renderPrintCardSvg({ gNumber: graphic.gNumber, customerNumber: graphic.customerNumber, customerName: graphic.customerName, partNumber: graphic.partNumber, specificationNumber: draft.specificationNumber, designNumber: draft.designNumber, revisions }), infoPath);
+    await renderPrintCardInfoPanelPng({
+      gNumber: graphic.gNumber,
+      customerNumber: graphic.customerNumber,
+      customerName: graphic.customerName,
+      partNumber: graphic.partNumber,
+      specificationNumber: draft.specificationNumber,
+      designNumber: draft.designNumber,
+      revisions,
+    }, infoPath, 300, 1200);
     const magick = await imageMagick();
     await execFileAsync(magick, [artPath, infoPath, '+append', '-units', 'PixelsPerInch', '-density', '300', '-sampling-factor', '4:4:4', '-quality', '100', tempPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
 
