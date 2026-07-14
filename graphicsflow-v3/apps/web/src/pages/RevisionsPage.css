@@ -44,9 +44,9 @@
 .revision-primary-actions button.primary { color: white; border-color: rgba(45,212,191,.28); background: linear-gradient(135deg,#14b8a6,#0d9488); }
 .revision-primary-actions button:disabled { opacity: .5; cursor: wait; }
 .revision-journey { min-width: 0; padding: 18px; border: 1px solid rgba(148,163,184,.12); border-radius: 15px; background: rgba(2,6,23,.28); }
-.revision-journey > header { display: grid; gap: 5px; margin-bottom: 18px; }
+.revision-journey > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
 .revision-journey h3 { margin: 3px 0 0; color: #dbe7f2; font-size: 16px; }
-.revision-journey > header > span { color: #64748b; font-size: 9px; }
+.revision-journey > header > span { flex: 0 0 auto; color: #64748b; font-size: 9px; }
 .revision-journey ol { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
 .revision-journey li { position: relative; display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 10px; padding-bottom: 14px; }
 .revision-journey li:not(:last-child)::before { content: ''; position: absolute; left: 16px; top: 30px; bottom: 0; width: 1px; background: rgba(45,212,191,.17); }
@@ -54,14 +54,13 @@
 .revision-journey li.is-current .revision-node { border-color: rgba(45,212,191,.42); color: #042f2e; background: #5eead4; box-shadow: 0 0 24px rgba(45,212,191,.18); }
 .revision-journey article { min-width: 0; padding: 12px; border: 1px solid rgba(148,163,184,.1); border-radius: 11px; background: rgba(10,18,31,.72); }
 .revision-journey article > header, .revision-journey article > footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.revision-journey article > header { align-items: flex-start; flex-direction: column; }
-.revision-journey article > header > div { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.revision-journey article > header > div { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .revision-journey article strong { color: #dbe7f2; font-size: 10px; }
 .revision-journey article em { padding: 3px 5px; border-radius: 999px; color: #99f6e4; background: rgba(20,184,166,.11); font-size: 7px; font-style: normal; font-weight: 850; text-transform: uppercase; }
-.revision-journey time { color: #64748b; font-size: 8px; }
+.revision-journey time { flex: 0 0 auto; color: #64748b; font-size: 8px; }
 .revision-journey article > p { margin: 8px 0 11px; color: #8797ac; font-size: 9px; line-height: 1.45; }
-.revision-journey article > footer { align-items: flex-start; flex-direction: column; color: #64748b; font-size: 8px; }
-.revision-journey article > footer button { margin-left: 0; padding: 3px 0 0; border: 0; color: #5eead4; background: transparent; font-size: 8px; font-weight: 850; cursor: pointer; }
+.revision-journey article > footer { justify-content: flex-start; flex-wrap: wrap; color: #64748b; font-size: 8px; }
+.revision-journey article > footer button { margin-left: auto; padding: 0; border: 0; color: #5eead4; background: transparent; font-size: 8px; font-weight: 850; cursor: pointer; }
 .revision-journey-empty { padding: 24px 16px; border: 1px dashed rgba(148,163,184,.14); border-radius: 11px; color: #64748b; text-align: center; font-size: 10px; }
 .revision-document-workspace { position: sticky; top: 18px; min-height: 620px; display: grid; grid-template-rows: auto minmax(360px,1fr) auto auto; gap: 16px; padding: 20px; border: 1px solid rgba(148,163,184,.12); border-radius: 15px; background: radial-gradient(circle at top right,rgba(20,184,166,.09),transparent 38%),rgba(3,9,19,.6); }
 .revision-workspace-heading h3 { margin: 3px 0 5px; color: #dbe7f2; font-size: 18px; }
@@ -72,4 +71,4 @@
 .revision-workspace-preview small { max-width: 280px; color: #64748b; font-size: 9px; line-height: 1.5; }
 @media (max-width: 1180px) { .revision-main-grid { grid-template-columns: minmax(260px,30%) minmax(0,70%); } }
 @media (max-width: 900px) { .revision-main-grid { grid-template-columns: 1fr; } .revision-document-workspace { position: static; min-height: 0; grid-template-rows: auto minmax(280px,auto) auto auto; } }
-@media (max-width: 760px) { .revisions-heading,.revision-record-hero { display: grid; } .revision-search { grid-template-columns: 1fr; } .revision-type { border-right: 0; border-bottom: 1px solid rgba(148,163,184,.12); } .revision-search > button { min-height: 42px; } .revision-current-summary { min-width: 0; padding: 14px 0 0; border-left: 0; border-top: 1px solid rgba(148,163,184,.12); } .revision-primary-actions { justify-content: flex-start; } }
+@media (max-width: 760px) { .revisions-heading,.revision-record-hero { display: grid; } .revision-search { grid-template-columns: 1fr; } .revision-type { border-right: 0; border-bottom: 1px solid rgba(148,163,184,.12); } .revision-search > button { min-height: 42px; } .revision-current-summary { min-width: 0; padding: 14px 0 0; border-left: 0; border-top: 1px solid rgba(148,163,184,.12); } .revision-primary-actions { justify-content: flex-start; } .revision-journey > header,.revision-journey article > header,.revision-journey article > footer { display: grid; } .revision-journey article > footer button { margin-left: 0; } }
