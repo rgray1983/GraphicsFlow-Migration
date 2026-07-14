@@ -99,15 +99,19 @@ export function RevisionsPage() {
           <div className="revision-current-summary"><span>Current revision</span><strong>{record.currentRevision?.revisionLabel || 'No managed revision'}</strong><small>{record.currentRevision ? displayDate(record.currentRevision.createdAt || record.currentRevision.revisionDate) : 'History will begin with the first managed revision.'}</small></div>
         </section>
 
-        <section className="revision-current-card">
-          <div><p className="eyebrow">Current document</p><h3>{record.currentRevision ? `Revision ${record.currentRevision.revisionLabel}` : 'Live document record'}</h3><p>{record.currentRevision?.description || 'The document exists, but no structured revision history has been recorded yet.'}</p>{viewerError && <span className="revision-open-error">{viewerError}</span>}</div>
-          <div className="revision-primary-actions"><button disabled={viewerLoading} onClick={() => void openCurrent()} type="button">{viewerLoading ? 'Opening…' : 'Open Current'}</button><button className="primary" type="button">Create Revision</button><button type="button">Edit Information</button></div>
-        </section>
+        <div className="revision-main-grid">
+          <section className="revision-journey">
+            <header><div><p className="eyebrow">Revision journey</p><h3>The life of this {record.documentType === 'approval' ? 'Approval' : 'Print Card'}</h3></div><span>{record.journey.length} revision{record.journey.length === 1 ? '' : 's'}</span></header>
+            {record.journey.length === 0 ? <div className="revision-journey-empty">No structured revisions have been recorded. Creating the next revision will begin this journey.</div> : <ol>{record.journey.map((revision, index) => <li className={revision.isCurrent ? 'is-current' : ''} key={`${revision.id ?? 'legacy'}-${index}`}><div className="revision-node"><span>{revision.revisionLabel || index}</span></div><article><header><div><strong>Revision {revision.revisionLabel || index}</strong>{revision.isCurrent && <em>Current</em>}</div><time>{displayDate(revision.createdAt || revision.revisionDate)}</time></header><p>{revision.description || 'No change description was recorded.'}</p><footer><span>{revision.source === 'legacy-import' ? 'Legacy history' : 'GraphicsFlow'}</span><span>{[revision.csr, revision.designer].filter(Boolean).join(' · ') || 'Author not recorded'}</span><button type="button">View Revision</button></footer></article></li>)}</ol>}
+          </section>
 
-        <section className="revision-journey">
-          <header><div><p className="eyebrow">Revision journey</p><h3>The life of this {record.documentType === 'approval' ? 'Approval' : 'Print Card'}</h3></div><span>{record.journey.length} revision{record.journey.length === 1 ? '' : 's'}</span></header>
-          {record.journey.length === 0 ? <div className="revision-journey-empty">No structured revisions have been recorded. Creating the next revision will begin this journey.</div> : <ol>{record.journey.map((revision, index) => <li className={revision.isCurrent ? 'is-current' : ''} key={`${revision.id ?? 'legacy'}-${index}`}><div className="revision-node"><span>{revision.revisionLabel || index}</span></div><article><header><div><strong>Revision {revision.revisionLabel || index}</strong>{revision.isCurrent && <em>Current</em>}</div><time>{displayDate(revision.createdAt || revision.revisionDate)}</time></header><p>{revision.description || 'No change description was recorded.'}</p><footer><span>{revision.source === 'legacy-import' ? 'Legacy history' : 'GraphicsFlow'}</span><span>{[revision.csr, revision.designer].filter(Boolean).join(' · ') || 'Author not recorded'}</span><button type="button">View Revision</button></footer></article></li>)}</ol>}
-        </section>
+          <aside className="revision-document-workspace">
+            <div className="revision-workspace-heading"><p className="eyebrow">Document workspace</p><h3>{record.currentRevision ? `Revision ${record.currentRevision.revisionLabel}` : 'Current document'}</h3><p>{record.currentRevision?.description || 'The document exists, but no structured revision history has been recorded yet.'}</p></div>
+            <div className="revision-workspace-preview"><span>{record.documentType === 'approval' ? 'Approval' : 'Print Card'}</span><strong>{record.documentType === 'approval' ? formatGNumber(record.gNumber) : formatSpecNumber(record.specificationNumber)}</strong><small>The viewer and editor will open from this side of the workspace.</small></div>
+            {viewerError && <span className="revision-open-error">{viewerError}</span>}
+            <div className="revision-primary-actions"><button disabled={viewerLoading} onClick={() => void openCurrent()} type="button">{viewerLoading ? 'Opening…' : 'Open Current'}</button><button className="primary" type="button">Create Revision</button><button type="button">Edit Information</button></div>
+          </aside>
+        </div>
       </div>}
 
       {viewerRecord && <ApprovalViewer approval={viewerFile} isOpen={viewerType === 'approval'} onClose={() => setViewerType(null)} record={viewerRecord} />}
