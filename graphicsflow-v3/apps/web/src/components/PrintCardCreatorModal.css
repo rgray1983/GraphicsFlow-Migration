@@ -1,8 +1,8 @@
 .modal-dialog-creator { width: min(1540px, calc(100vw - 20px)); height: min(980px, calc(100vh - 16px)); }
 .modal-dialog-creator .modal-body { min-height: 0; height: 100%; padding: 0; overflow: hidden; }
-.print-card-creator { height: 100%; display: grid; grid-template-columns: minmax(560px, 1.08fr) minmax(520px, .92fr); }
+.print-card-creator { height: 100%; min-height: 0; display: grid; grid-template-columns: minmax(560px, 1.08fr) minmax(520px, .92fr); }
 .creator-editor { min-height: 0; overflow-y: auto; padding: 18px 28px 20px; scrollbar-width: thin; scrollbar-color: rgba(148,163,184,.28) transparent; }
-.creator-preview-panel { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 18px 28px 92px; border-left: 1px solid rgba(148,163,184,.13); background: radial-gradient(circle at top right, rgba(20,184,166,.1), transparent 38%), rgba(2,6,23,.38); }
+.creator-preview-panel { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto auto auto auto 1fr auto; align-content: stretch; gap: 14px; padding: 18px 28px 20px; border-left: 1px solid rgba(148,163,184,.13); background: radial-gradient(circle at top right, rgba(20,184,166,.1), transparent 38%), rgba(2,6,23,.38); }
 .creator-intro, .creator-preview-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; }
 .creator-intro h3, .creator-preview-heading h3 { margin: 3px 0 0; font-size: 23px; }
 .creator-intro p { max-width: 520px; margin: 6px 0 0; color: #718096; font-size: 10px; line-height: 1.45; }
@@ -80,7 +80,7 @@
 .creator-actions .secondary { border: 1px solid rgba(148,163,184,.16); background: rgba(2,6,23,.4); color: #94a3b8; }
 .creator-actions .primary { border: 1px solid rgba(45,212,191,.28); background: linear-gradient(135deg, #14b8a6, #0d9488); color: white; box-shadow: 0 10px 24px rgba(20,184,166,.14); }
 .creator-actions button:disabled { opacity: .42; cursor: not-allowed; box-shadow: none; }
-.creator-preview-actions { position: absolute; left: 28px; right: 28px; bottom: 20px; width: auto; margin: 0; padding-top: 14px; border-top: 1px solid rgba(148,163,184,.12); }
+.creator-preview-actions { align-self: end; width: 100%; margin: 0; padding-top: 14px; border-top: 1px solid rgba(148,163,184,.12); }
 .creator-preview-actions .secondary { min-width: 100px; }
 .creator-preview-actions .primary { min-width: 170px; }
 .creator-preview-heading > span { padding: 6px 9px; border-radius: 999px; color: #99f6e4; background: rgba(20,184,166,.09); font-size: 8px; font-weight: 700; }
@@ -113,15 +113,13 @@
 .production-preview-card .print-card-production-preview { border-radius: 0; box-shadow: 0 28px 70px rgba(0,0,0,.58); }
 .production-preview-workspace > footer { display: flex; align-items: center; justify-content: space-between; padding: 9px 18px; border-top: 1px solid rgba(148,163,184,.12); color: #64748b; background: #0b111b; font-size: 8px; }
 .production-preview-workspace > footer strong { color: #99f6e4; font-size: 9px; }
-@media (min-width: 1101px) and (min-height: 780px) {
-  .creator-editor { overflow-y: hidden; }
-}
+@media (min-width: 1101px) and (min-height: 780px) { .creator-editor { overflow-y: hidden; } }
 @media (max-width: 1100px) {
   .modal-dialog-creator { height: min(960px, calc(100vh - 20px)); }
   .print-card-creator { grid-template-columns: 1fr; overflow-y: auto; }
   .creator-editor { overflow: visible; }
-  .creator-preview-panel { position: static; min-height: 420px; padding: 18px 28px 20px; border-top: 1px solid rgba(148,163,184,.13); border-left: 0; }
-  .creator-preview-actions { position: static; width: 100%; margin-top: 12px; padding-top: 14px; }
+  .creator-preview-panel { min-height: 420px; display: flex; padding: 18px 28px 20px; border-top: 1px solid rgba(148,163,184,.13); border-left: 0; }
+  .creator-preview-actions { width: 100%; margin-top: 12px; padding-top: 14px; }
 }
 @media (max-width: 700px) {
   .modal-dialog-creator { width: calc(100vw - 12px); height: calc(100vh - 12px); }
