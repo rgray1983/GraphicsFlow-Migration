@@ -12,6 +12,7 @@ import { getPrintCardDefaults } from './print-card-service.js';
 import { getCompanySettings } from './settings-store.js';
 
 const execFileAsync = promisify(execFile);
+const PRINT_CARD_FONT = 'Arial';
 
 function clean(value: unknown): string {
   return String(value ?? '').trim().toUpperCase();
@@ -195,7 +196,7 @@ export async function renderCompletePrintCardPreview(graphicId: number, draft: P
       designNumber: draft.designNumber,
       revisions,
     }), 'utf8');
-    await execFileAsync(renderer, [infoSvgPath, '-resize', '600x2400!', '-background', 'white', '-alpha', 'remove', '-alpha', 'off', infoPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+    await execFileAsync(renderer, ['-font', PRINT_CARD_FONT, infoSvgPath, '-resize', '600x2400!', '-background', 'white', '-alpha', 'remove', '-alpha', 'off', infoPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
     await execFileAsync(renderer, [artPath, infoPath, '+append', '-units', 'PixelsPerInch', '-density', '600', '-define', 'png:compression-level=4', outputPath], { timeout: 120000, maxBuffer: 80 * 1024 * 1024 });
     return await readFile(outputPath);
   } finally {
