@@ -41,7 +41,7 @@ import {
 import { getOrGeneratePreview, readPreviewImage } from './preview-service.js';
 import { findPrintCardArtworkMatches, readLiveArtwork } from './print-card-artwork-service.js';
 import { createManagedPrintCard, getCurrentPrintCardDetails, readManagedPrintCard } from './print-card-managed-production-service.js';
-import { getApprovalRevisionAutofill, renderArtworkPreview } from './print-card-preview-service.js';
+import { getApprovalRevisionAutofill, renderArtworkPreview, renderCompletePrintCardPreview } from './print-card-preview-service.js';
 import { getPrintCardDefaults } from './print-card-service.js';
 import { getCompanySettings, saveCompanySettings, settingsDatabasePath, validateStoragePaths } from './settings-store.js';
 
@@ -142,6 +142,21 @@ app.post('/api/print-card/artwork-preview', async (request, reply) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'The artwork preview could not be generated.';
     request.log.error({ error }, 'Could not generate artwork preview');
+    return reply.status(422).send({ error: message });
+  }
+});
+
+app.post('/api/graphics/:id/print-card/preview', async (request, reply) => {
+  const id = Number((request.params as { id?: string }).id);
+  if (!Number.isInteger(id) || id <= 0) return reply.status(400).send({ error: 'Invalid graphics record id.' });
+  const parsed = printCardDraftSchema.safeParse(request.body);
+  if (!parsed.success) return reply.status(400).send({ error: 'The Print Card preview information is invalid.', details: parsed.error.flatten() });
+  try {
+    const image = await renderCompletePrintCardPreview(id, parsed.data);
+    return reply.header('Content-Type', 'image/png').header('Cache-Control', 'private, no-store').send(image);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'The Print Card preview could not be rendered.';
+    request.log.error({ error, graphicId: id }, 'Could not render complete Print Card preview');
     return reply.status(422).send({ error: message });
   }
 });
