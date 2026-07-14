@@ -27,9 +27,18 @@ export const graphicsQuerySchema = z.object({
 });
 export const graphicsListResponseSchema = z.object({ items: z.array(graphicRecordSchema), total: z.number().int().nonnegative(), query: z.string() });
 
+export const printCardArtworkMatchSchema = z.object({
+  name: z.string(), relativePath: z.string(), size: z.number().int().nonnegative(), modifiedAt: z.string().datetime(),
+  classification: z.enum(['print-card', 'approval', 'other']), rank: z.number().int().nonnegative(),
+});
+export const printCardArtworkMatchesResponseSchema = z.object({
+  graphicId: z.number().int().positive(), rootLabel: z.literal('PDF artwork'), matches: z.array(printCardArtworkMatchSchema),
+  selectedRelativePath: z.string().nullable(), message: z.string(),
+});
 export const printCardRevisionSchema = z.object({
   id: z.number().int().positive().nullable(), revisionLabel: z.string(), revisionDate: z.string(), description: z.string(),
   csr: z.string(), designer: z.string(), specificationNumber: z.string(), designNumber: z.string(),
+  sourceRelativePath: z.string().nullable().default(null), artworkSource: z.enum(['live-pdf', 'uploaded-pdf', 'existing-output', 'legacy']).nullable().default(null),
   renderedRelativePath: z.string().nullable(), createdAt: z.string().datetime().nullable(),
   source: z.enum(['legacy-import', 'graphicsflow', 'approval-autofill']),
 });
@@ -38,7 +47,7 @@ const printCardEditableDraftSchema = z.object({
   revisionLabel: z.string().trim().max(20), revisionDate: z.string().trim().max(30),
   description: z.string().trim().max(240), csr: z.string().trim().max(40), designer: z.string().trim().max(40),
   replaceExistingImage: z.boolean().default(false), artPdfName: z.string().trim().max(255).default(''),
-  artPdfBase64: z.string().max(40_000_000).default(''),
+  artPdfBase64: z.string().max(40_000_000).default(''), liveArtworkRelativePath: z.string().trim().max(1000).default(''),
 });
 export const printCardDraftSchema = printCardEditableDraftSchema.extend({
   specificationNumber: z.string().trim().min(1, 'Spec # is required.').max(80),
@@ -55,9 +64,7 @@ export const printCardDefaultsResponseSchema = z.object({
 export const createPrintCardResponseSchema = z.object({
   graphicId: z.number().int().positive(), revision: printCardRevisionSchema, fileName: z.string(), relativePath: z.string(), replacedExistingImage: z.boolean(),
 });
-export const printCardDetailsResponseSchema = z.object({
-  graphicId: z.number().int().positive(), revision: printCardRevisionSchema.nullable(), canEdit: z.boolean(),
-});
+export const printCardDetailsResponseSchema = z.object({ graphicId: z.number().int().positive(), revision: printCardRevisionSchema.nullable(), canEdit: z.boolean() });
 
 export const graphicFileKindSchema = z.enum(['approval', 'printCard']);
 export const graphicFileMatchSchema = z.object({ kind: graphicFileKindSchema, name: z.string(), extension: z.string(), size: z.number().int().nonnegative(), modifiedAt: z.string().datetime(), relativePath: z.string() });
@@ -88,6 +95,8 @@ export type GraphicsSortField = z.infer<typeof graphicsSortFieldSchema>;
 export type SortDirection = z.infer<typeof sortDirectionSchema>;
 export type GraphicsQuery = z.infer<typeof graphicsQuerySchema>;
 export type GraphicsListResponse = z.infer<typeof graphicsListResponseSchema>;
+export type PrintCardArtworkMatch = z.infer<typeof printCardArtworkMatchSchema>;
+export type PrintCardArtworkMatchesResponse = z.infer<typeof printCardArtworkMatchesResponseSchema>;
 export type PrintCardRevision = z.infer<typeof printCardRevisionSchema>;
 export type PrintCardDraft = z.infer<typeof printCardDraftSchema>;
 export type PrintCardDefaultsResponse = z.infer<typeof printCardDefaultsResponseSchema>;
