@@ -29,6 +29,22 @@ function normalizeLookup(value: unknown): string {
   return String(value ?? '').match(/\d+/g)?.join('').replace(/^0+/, '') ?? '';
 }
 
+async function readLiveImage(root: string, fullPath: string): Promise<PrintCardDocument | null> {
+  if (!isInsideRoot(root, fullPath)) return null;
+  const contentType = imageContentType(extname(fullPath));
+  if (!contentType) return null;
+  try {
+    return {
+      data: await readFile(fullPath),
+      fileName: basename(fullPath),
+      contentType,
+      source: 'live',
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function readCurrentPrintCard(graphicId: number, requestedSpecificationNumber = ''): Promise<PrintCardDocument | null> {
   const managed = await readManagedPrintCard(graphicId);
   if (managed) {
@@ -45,32 +61,23 @@ export async function readCurrentPrintCard(graphicId: number, requestedSpecifica
   const lookupNumbers = [requestedSpecificationNumber, graphic.specificationNumber, graphic.gNumber]
     .map(normalizeLookup)
     .filter((value, index, values) => value && values.indexOf(value) === index);
-
-  let live = null;
-  for (const number of lookupNumbers) {
-    const files = await resolveGraphicFiles(number);
-    live = files.printCard.matches.find((match) => imageContentType(match.extension)) ?? null;
-    if (live) break;
-  }
-  if (!live) return null;
-
   const root = getCompanySettings().storage.printCardsRoot;
   if (!root) return null;
 
-  const fullPath = resolve(root, live.relativePath);
-  if (!isInsideRoot(root, fullPath)) return null;
-
-  const contentType = imageContentType(extname(fullPath));
-  if (!contentType) return null;
-
-  try {
-    return {
-      data: await readFile(fullPath),
-      fileName: basename(fullPath),
-      contentType,
-      source: 'live',
-    };
-  } catch {
-    return null;
+  for (const number of lookupNumbers) {
+    for (const extension of ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG']) {
+      const exact = await readLiveImage(root, resolve(root, `${number}${extension}`));
+      if (exact) return exact;
+    }
   }
+
+  for (const number of lookupNumbers) {
+    const files = await resolveGraphicFiles(number);
+    const live = files.printCard.matches.find((match) => imageContentType(match.extension));
+    if (!live) continue;
+    const indexed = await readLiveImage(root, resolve(root, live.relativePath));
+    if (indexed) return indexed;
+  }
+
+  return null;
 }
