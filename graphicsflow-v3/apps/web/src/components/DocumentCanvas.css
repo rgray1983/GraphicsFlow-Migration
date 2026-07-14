@@ -6,7 +6,7 @@
 .document-canvas-toolbar button:disabled { opacity: .35; cursor: not-allowed; }
 .document-canvas-controls > span { min-width: 52px; color: #cbd5e1; font-size: 9px; font-weight: 800; text-align: center; }
 .document-canvas-stage { min-height: 0; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at center, #263343 0, #141c27 46%, #080c12 100%); cursor: default; touch-action: none; user-select: none; }
-.document-canvas-stage.is-hand-tool { cursor: grab; }
+.document-canvas-stage.is-zoomed { cursor: grab; }
 .document-canvas-stage.is-dragging { cursor: grabbing; }
 .document-canvas-content { transform-origin: center; will-change: transform; }
 .document-canvas-help { display: flex; align-items: center; justify-content: center; gap: 22px; padding: 8px 16px; border-top: 1px solid rgba(148,163,184,.12); color: #64748b; background: #0b111b; font-size: 8px; }
