@@ -204,7 +204,9 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
   const missing = useMemo(() => {
     const fields: string[] = [];
     if (!draft.artPdfBase64 && !draft.liveArtworkRelativePath) fields.push('Artwork PDF');
-    if (!draft.specificationNumber.trim()) fields.push('Spec #');
+    if (!draft.designNumber.trim()) fields.push('Design #');
+    if (!draft.fluteTest.trim()) fields.push('Flute / Test');
+    if (!draft.salesRep.trim()) fields.push('Sales Rep');
     if (!draft.revisionLabel.trim()) fields.push('Revision');
     if (!draft.revisionDate.trim()) fields.push('Revision Date');
     if (!draft.description.trim()) fields.push('Description');
@@ -213,7 +215,7 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
     return fields;
   }, [draft]);
 
-  const readinessTotal = 7;
+  const readinessTotal = 9;
   const readinessPercent = Math.max(0, Math.round(((readinessTotal - missing.length) / readinessTotal) * 100));
 
   const generatePreview = async (event?: FormEvent) => {
@@ -242,8 +244,7 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
         const body = await response.json().catch(() => null) as { error?: string } | null;
         throw new Error(body?.error || 'The Approval preview could not be generated.');
       }
-      const nextUrl = URL.createObjectURL(await response.blob());
-      setPreviewUrl(nextUrl);
+      setPreviewUrl(URL.createObjectURL(await response.blob()));
     } catch (reason) {
       setPreviewOpen(false);
       setError(reason instanceof Error ? reason.message : 'The Approval preview could not be generated.');
@@ -318,7 +319,11 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
   if (!record) return null;
 
   const artworkReady = Boolean(draft.artPdfBase64 || draft.liveArtworkRelativePath);
-  const metadataReady = Boolean(draft.specificationNumber.trim());
+  const metadataReady = Boolean(
+    draft.designNumber.trim()
+    && draft.fluteTest.trim()
+    && draft.salesRep.trim(),
+  );
   const revisionReady = Boolean(
     draft.revisionLabel.trim()
     && draft.revisionDate.trim()
@@ -378,14 +383,14 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
 
           <section className="creator-work-section">
             <header>
-              <div><span className="creator-step">02</span><div><h4>Approval Information</h4><p>Complete the customer-facing production details shown at the top of the HCC form.</p></div></div>
+              <div><span className="creator-step">02</span><div><h4>Approval Information</h4><p>Complete the customer-facing production details shown at the top of the HCC form. Spec # is optional.</p></div></div>
               <span className={`creator-step-state${metadataReady ? ' is-complete' : ''}`}>{metadataReady ? 'Ready' : 'Required'}</span>
             </header>
             <div className="creator-fields">
-              <label><span>Spec # {!draft.specificationNumber.trim() && <b className="approval-required-badge">! Required</b>}</span><input required onInput={(event) => update('specificationNumber', event.currentTarget.value)} value={draft.specificationNumber} /></label>
-              <label><span>Design #</span><input onInput={(event) => update('designNumber', event.currentTarget.value)} value={draft.designNumber} /></label>
-              <label><span>Flute / Test</span><input onInput={(event) => update('fluteTest', event.currentTarget.value)} value={draft.fluteTest} /></label>
-              <label><span>Sales Rep</span><input onInput={(event) => update('salesRep', event.currentTarget.value)} value={draft.salesRep} /></label>
+              <label><span>Spec #</span><input onInput={(event) => update('specificationNumber', event.currentTarget.value)} value={draft.specificationNumber} /></label>
+              <label><span>Design # {!draft.designNumber.trim() && <b className="approval-required-badge">! Required</b>}</span><input required onInput={(event) => update('designNumber', event.currentTarget.value)} value={draft.designNumber} /></label>
+              <label><span>Flute / Test {!draft.fluteTest.trim() && <b className="approval-required-badge">! Required</b>}</span><input required onInput={(event) => update('fluteTest', event.currentTarget.value)} value={draft.fluteTest} /></label>
+              <label><span>Sales Rep {!draft.salesRep.trim() && <b className="approval-required-badge">! Required</b>}</span><input required onInput={(event) => update('salesRep', event.currentTarget.value)} value={draft.salesRep} /></label>
             </div>
           </section>
 
