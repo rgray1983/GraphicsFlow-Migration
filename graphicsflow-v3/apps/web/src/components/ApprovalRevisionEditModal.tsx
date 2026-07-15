@@ -89,7 +89,7 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={saving ? () => undefined : onClose} title={`Edit Approval Revision${detail ? ` · ${detail.revisionLabel}` : ''}`} variant="creator">
+    <Modal isOpen={isOpen} onClose={saving ? () => undefined : onClose} title={`Edit Approval Revision${detail ? ` · ${detail.revisionLabel}` : ''}`}>
       <form className="approval-revision-edit" onSubmit={save}>
         <div className="approval-revision-edit-tabs" role="tablist">
           <button aria-selected={mode === 'information'} className={mode === 'information' ? 'active' : ''} onClick={() => setMode('information')} role="tab" type="button"><strong>Edit Information</strong><span>Revision data and production options</span></button>
@@ -127,7 +127,7 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
             </section>}
           </>}
         </div>
-        <footer><div><strong>{mode === 'artwork' ? 'Artwork-only update' : 'Revision information update'}</strong><span>The finished PDF is regenerated separately after saving.</span></div><button type="button" onClick={onClose} disabled={saving}>Cancel</button><button className="primary" type="submit" disabled={saving || loading || (mode === 'artwork' && !draft.artworkRelativePath)}>{saving ? 'Saving…' : mode === 'artwork' ? 'Save Artwork Change' : 'Save Changes'}</button></footer>
+        {!loading && detail && <footer><div><strong>{mode === 'artwork' ? 'Artwork-only update' : 'Revision information update'}</strong><span>The finished PDF is regenerated separately after saving.</span></div><button type="button" onClick={onClose} disabled={saving}>Cancel</button><button className="primary" type="submit" disabled={saving || (mode === 'artwork' && !draft.artworkRelativePath)}>{saving ? 'Saving…' : mode === 'artwork' ? 'Save Artwork Change' : 'Save Changes'}</button></footer>}
       </form>
     </Modal>
   );
