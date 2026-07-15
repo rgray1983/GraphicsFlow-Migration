@@ -123,14 +123,14 @@ async function renderComposedPage(input: ApprovalPreviewInput, filledPdfPath: st
   const x = Math.round(ARTWORK_LEFT_POINTS * pixelsPerPoint);
   const y = Math.round((APPROVAL_PAGE_HEIGHT_POINTS - ARTWORK_TOP_POINTS) * pixelsPerPoint);
 
-  // Fill the original Approval artwork box from left to right. Preserve the
-  // artwork ratio, crop only the excess top/bottom, and center that crop.
+  // Fit the complete artwork inside the Approval artwork box. Never crop artwork.
+  // Any remaining space is white, with the artwork centered horizontally and vertically.
   await execFileAsync(magick, [
     artPngPath,
     '-background', 'white',
     '-alpha', 'remove',
     '-alpha', 'off',
-    '-resize', `${width}x${height}^`,
+    '-resize', `${width}x${height}`,
     '-gravity', 'center',
     '-extent', `${width}x${height}`,
     preparedArtPath,
