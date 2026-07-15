@@ -142,7 +142,7 @@ export function RevisionsPage() {
 
         {record.documentType === 'printCard'
           ? <PrintCardRevisionWorkspace record={record} viewerError={viewerError} viewerLoading={viewerLoading} onOpenCurrent={() => void openCurrent()} />
-          : <ApprovalRevisionWorkspace record={record} selectedRevision={selectedApprovalRevision} selectedRevisionIndex={selectedApprovalRevisionIndex} viewerError={viewerError} viewerLoading={viewerLoading} onOpenCurrent={() => void openCurrent()} />}
+          : <ApprovalRevisionWorkspace record={record} selectedRevision={selectedApprovalRevision} selectedRevisionIndex={selectedApprovalRevisionIndex} viewerError={viewerError} viewerLoading={viewerLoading} onOpenCurrent={() => void openCurrent()} onRevisionSaved={() => void query.refetch()} />}
       </div></div>}
 
       {viewerRecord && <ApprovalViewer approval={viewerFile} isOpen={viewerType === 'approval'} onClose={() => setViewerType(null)} record={viewerRecord} />}
