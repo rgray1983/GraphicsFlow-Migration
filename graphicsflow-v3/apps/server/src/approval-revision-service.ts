@@ -1,6 +1,7 @@
 import type { ApprovalRevisionDetail, ApprovalRevisionUpdate } from '@graphicsflow/shared';
 import { database as legacyDatabase } from './database.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
+import { getOriginalApprovalRevisionSnapshot } from './print-card-preview-service.js';
 
 const clean = (value: unknown) => String(value ?? '').trim().toUpperCase();
 const normalizedG = (value: unknown) => (String(value ?? '').match(/\d+/g)?.join('') ?? '').replace(/^0+/, '');
@@ -125,6 +126,100 @@ export function importLegacyApprovalRevisions(graphicId: number, gNumber: string
     throw error;
   }
   return imported;
+}
+
+export async function syncOriginalApprovalRevisionRecords(graphicId: number): Promise<number> {
+  const documentId = ensureApprovalDocument(graphicId);
+  const snapshot = await getOriginalApprovalRevisionSnapshot(graphicId);
+  if (!snapshot || snapshot.revisions.length === 0) return 0;
+
+  const findRevision = graphicsStoreDatabase.prepare(`
+    SELECT id FROM document_revisions
+    WHERE document_id=? AND UPPER(TRIM(revision_label))=?
+    ORDER BY CASE WHEN source='graphicsflow' THEN 0 ELSE 1 END, id DESC
+    LIMIT 1
+  `);
+  const insert = graphicsStoreDatabase.prepare(`
+    INSERT INTO document_revisions (
+      document_id, revision_label, revision_date, description, specification_number, design_number,
+      csr, designer, source_relative_path, rendered_relative_path, source, legacy_revision_id,
+      created_at, flute_test, sales_rep, digital_print, digital_cut, digital_die_cut,
+      label_die_cut, label_4c_process, artwork_name, artwork_relative_path
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'legacy-import', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, '')
+  `);
+  const hydrate = graphicsStoreDatabase.prepare(`
+    UPDATE document_revisions SET
+      revision_date=CASE WHEN TRIM(COALESCE(revision_date,''))='' THEN ? ELSE revision_date END,
+      description=CASE WHEN TRIM(COALESCE(description,''))='' THEN ? ELSE description END,
+      specification_number=CASE WHEN TRIM(COALESCE(specification_number,''))='' THEN ? ELSE specification_number END,
+      design_number=CASE WHEN TRIM(COALESCE(design_number,''))='' THEN ? ELSE design_number END,
+      flute_test=CASE WHEN TRIM(COALESCE(flute_test,''))='' THEN ? ELSE flute_test END,
+      sales_rep=CASE WHEN TRIM(COALESCE(sales_rep,''))='' THEN ? ELSE sales_rep END,
+      csr=CASE WHEN TRIM(COALESCE(csr,''))='' THEN ? ELSE csr END,
+      designer=CASE WHEN TRIM(COALESCE(designer,''))='' THEN ? ELSE designer END,
+      digital_print=CASE WHEN digital_print=0 THEN ? ELSE digital_print END,
+      digital_cut=CASE WHEN digital_cut=0 THEN ? ELSE digital_cut END,
+      digital_die_cut=CASE WHEN digital_die_cut=0 THEN ? ELSE digital_die_cut END,
+      label_die_cut=CASE WHEN label_die_cut=0 THEN ? ELSE label_die_cut END,
+      label_4c_process=CASE WHEN label_4c_process=0 THEN ? ELSE label_4c_process END,
+      source_relative_path=CASE WHEN TRIM(COALESCE(source_relative_path,''))='' THEN ? ELSE source_relative_path END,
+      artwork_name=CASE WHEN TRIM(COALESCE(artwork_name,''))='' THEN ? ELSE artwork_name END
+    WHERE id=?
+  `);
+
+  let created = 0;
+  let currentRevisionId: number | null = null;
+  const now = new Date().toISOString();
+  graphicsStoreDatabase.exec('BEGIN IMMEDIATE');
+  try {
+    for (const revision of snapshot.revisions) {
+      const label = clean(revision.revisionLabel || '0');
+      const existing = findRevision.get(documentId, label) as { id: number } | undefined;
+      if (existing) {
+        hydrate.run(
+          normalizeRevisionDate(revision.revisionDate), clean(revision.description), clean(snapshot.specificationNumber),
+          clean(snapshot.designNumber), clean(snapshot.fluteTest), clean(snapshot.salesRep), clean(revision.csr), clean(revision.designer),
+          snapshot.digitalPrint ? 1 : 0, snapshot.digitalCut ? 1 : 0, snapshot.digitalDieCut ? 1 : 0,
+          snapshot.labelDieCut ? 1 : 0, snapshot.label4cProcess ? 1 : 0,
+          snapshot.approvalRelativePath, snapshot.approvalName, existing.id,
+        );
+        currentRevisionId = existing.id;
+        continue;
+      }
+
+      const result = insert.run(
+        documentId,
+        label,
+        normalizeRevisionDate(revision.revisionDate),
+        clean(revision.description),
+        clean(snapshot.specificationNumber),
+        clean(snapshot.designNumber),
+        clean(revision.csr),
+        clean(revision.designer),
+        snapshot.approvalRelativePath,
+        now,
+        clean(snapshot.fluteTest),
+        clean(snapshot.salesRep),
+        snapshot.digitalPrint ? 1 : 0,
+        snapshot.digitalCut ? 1 : 0,
+        snapshot.digitalDieCut ? 1 : 0,
+        snapshot.labelDieCut ? 1 : 0,
+        snapshot.label4cProcess ? 1 : 0,
+        snapshot.approvalName,
+      );
+      currentRevisionId = Number(result.lastInsertRowid);
+      created += 1;
+    }
+
+    if (currentRevisionId) {
+      graphicsStoreDatabase.prepare(`UPDATE graphics_documents SET current_revision_id=?, status='active', updated_at=? WHERE id=?`).run(currentRevisionId, now, documentId);
+    }
+    graphicsStoreDatabase.exec('COMMIT');
+  } catch (error) {
+    graphicsStoreDatabase.exec('ROLLBACK');
+    throw error;
+  }
+  return created;
 }
 
 function mapDetail(row: Record<string, unknown>): ApprovalRevisionDetail {
