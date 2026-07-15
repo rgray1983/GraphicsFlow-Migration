@@ -1,7 +1,7 @@
 .modal-dialog-creator:has(.approval-creator-modal) {
   width: min(1480px, calc(100vw - 32px));
-  height: min(940px, calc(100dvh - 56px));
-  max-height: calc(100dvh - 56px);
+  height: min(970px, calc(100dvh - 24px));
+  max-height: calc(100dvh - 24px);
 }
 .modal-dialog-creator:has(.approval-creator-modal) .modal-body {
   min-height: 0;
@@ -162,7 +162,7 @@
 .approval-creator-preview { overflow: hidden; }
 .approval-creator-preview .document-canvas { height: 100%; min-height: 0; }
 .approval-sheet-preview {
-  width: min(1000px, 100%);
+  width: 100%;
   height: 100%;
   min-height: 0;
   display: grid;
@@ -172,7 +172,7 @@
 .approval-template-preview-image {
   display: block;
   width: auto;
-  height: 100%;
+  height: auto;
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
@@ -199,14 +199,13 @@
   .approval-creator-grid { grid-template-columns: minmax(350px, 43%) minmax(0,57%); }
 }
 @media (max-width: 820px) {
-  .modal-dialog-creator:has(.approval-creator-modal) { height: calc(100dvh - 20px); width: calc(100vw - 20px); max-height: calc(100dvh - 20px); }
+  .modal-dialog-creator:has(.approval-creator-modal) { height: calc(100dvh - 20px); width: calc(100vw - 20px); }
   .approval-creator-modal { overflow-y: auto; grid-template-rows: auto auto; }
   .approval-creator-grid { grid-template-columns: 1fr; }
   .approval-creator-form { overflow: visible; }
   .approval-creator-preview { min-height: 520px; }
   .approval-creator-preview .document-canvas { min-height: 520px; }
-  .approval-sheet-preview { height: auto; min-height: 100%; }
-  .approval-template-preview-image { width: 100%; height: auto; max-height: none; }
+  .approval-template-preview-image { max-height: 100%; }
 }
 @media (max-width: 620px) {
   .approval-creator-heading,
