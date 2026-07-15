@@ -94,6 +94,7 @@ export async function saveManagedApproval(graphicId: number, input: ApprovalPrev
 export async function readManagedApprovalRevision(
   graphicId: number,
   revisionId: number,
+  consume = false,
 ): Promise<{ data: Buffer; fileName: string } | null> {
   const row = graphicsStoreDatabase.prepare(`SELECT r.rendered_relative_path, r.revision_label, g.g_number FROM graphics_documents d INNER JOIN document_revisions r ON r.document_id=d.id INNER JOIN graphics_records g ON g.id=d.graphic_id WHERE d.graphic_id=? AND d.document_type='approval' AND r.id=?`).get(graphicId, revisionId) as { rendered_relative_path: string | null; revision_label: string; g_number: string } | undefined;
   if (!row?.rendered_relative_path) return null;
@@ -106,7 +107,7 @@ export async function readManagedApprovalRevision(
     const cleanG = numberOnly(row.g_number);
     const revision = clean(row.revision_label) || '0';
     const fileName = `${cleanG}_REV_${revision.replace(/[^A-Z0-9_-]/g, '_')}_APPROVAL.pdf`;
-    scheduleTemporaryApprovalRemoval(path, revisionId);
+    if (consume) scheduleTemporaryApprovalRemoval(path, revisionId);
     return { data, fileName: basename(fileName) };
   } catch {
     return null;
