@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { ApprovalRevisionDetail, ApprovalRevisionDetailResponse, ApprovalRevisionUpdate, PrintCardArtworkMatch, PrintCardArtworkMatchesResponse } from '@graphicsflow/shared';
+import { LoadingIndicator } from './LoadingIndicator';
 import { Modal } from './Modal';
 import './ApprovalRevisionEditModal.css';
 
@@ -95,7 +96,7 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
           <button aria-selected={mode === 'artwork'} className={mode === 'artwork' ? 'active' : ''} onClick={() => setMode('artwork')} role="tab" type="button"><strong>Replace Artwork Only</strong><span>Keep every revision field unchanged</span></button>
         </div>
         <div className="approval-revision-edit-body">
-          {loading && <div className="approval-revision-edit-state">Loading revision information…</div>}
+          {loading && <LoadingIndicator title="Loading Revision" message="Loading the saved Approval information and matching artwork PDFs…" size="panel" />}
           {!loading && error && <div className="approval-revision-edit-error" role="alert">{error}</div>}
           {!loading && detail && <>
             <div className="approval-revision-edit-origin"><span>{detail.source === 'legacy-import' ? 'Imported PHP revision' : 'GraphicsFlow revision'}</span><small>{detail.source === 'legacy-import' ? 'Edits are saved only to V3. The PHP database is never changed.' : 'Saved metadata is used whenever this Approval is regenerated.'}</small></div>
@@ -126,7 +127,7 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
             </section>}
           </>}
         </div>
-        <footer><div><strong>{mode === 'artwork' ? 'Artwork-only update' : 'Revision information update'}</strong><span>The finished PDF is regenerated separately after saving.</span></div><button type="button" onClick={onClose} disabled={saving}>Cancel</button><button className="primary" type="submit" disabled={saving || (mode === 'artwork' && !draft.artworkRelativePath)}>{saving ? 'Saving…' : mode === 'artwork' ? 'Save Artwork Change' : 'Save Changes'}</button></footer>
+        <footer><div><strong>{mode === 'artwork' ? 'Artwork-only update' : 'Revision information update'}</strong><span>The finished PDF is regenerated separately after saving.</span></div><button type="button" onClick={onClose} disabled={saving}>Cancel</button><button className="primary" type="submit" disabled={saving || loading || (mode === 'artwork' && !draft.artworkRelativePath)}>{saving ? 'Saving…' : mode === 'artwork' ? 'Save Artwork Change' : 'Save Changes'}</button></footer>
       </form>
     </Modal>
   );
