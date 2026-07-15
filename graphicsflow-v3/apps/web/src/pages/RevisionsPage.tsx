@@ -45,7 +45,7 @@ export function RevisionsPage() {
   const [viewerFile, setViewerFile] = useState<GraphicFileMatch | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
   const [viewerError, setViewerError] = useState<string | null>(null);
-  const [selectedApprovalRevisionIndex, setSelectedApprovalRevisionIndex] = useState(-1);
+  const [selectedRevisionIndex, setSelectedRevisionIndex] = useState(-1);
 
   const query = useQuery({
     queryKey: ['revision-lookup', type, search],
@@ -57,9 +57,9 @@ export function RevisionsPage() {
 
   const record = query.data?.record ?? null;
   const unregisteredPrintCard = query.data?.unregisteredPrintCard ?? null;
-  const selectedApprovalRevision = record?.documentType === 'approval' && selectedApprovalRevisionIndex >= 0
-    ? record.journey[selectedApprovalRevisionIndex] ?? record.currentRevision
-    : record?.documentType === 'approval' ? record.currentRevision : null;
+  const selectedRevision = record && selectedRevisionIndex >= 0
+    ? record.journey[selectedRevisionIndex] ?? record.currentRevision
+    : record?.currentRevision ?? null;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -73,17 +73,17 @@ export function RevisionsPage() {
     setSearch('');
     setViewerType(null);
     setViewerError(null);
-    setSelectedApprovalRevisionIndex(-1);
+    setSelectedRevisionIndex(-1);
   };
 
-  const selectApprovalRevision = (index: number) => {
-    if (record?.documentType === 'approval') setSelectedApprovalRevisionIndex(index);
+  const selectRevision = (index: number) => {
+    if (record) setSelectedRevisionIndex(index);
   };
 
   const handleRevisionCardKeyDown = (event: KeyboardEvent<HTMLElement>, index: number) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
-    selectApprovalRevision(index);
+    selectRevision(index);
   };
 
   const viewerRecord: GraphicRecord | null = record ? {
@@ -101,12 +101,12 @@ export function RevisionsPage() {
 
   useEffect(() => {
     setViewerError(null);
-    if (!record || record.documentType !== 'approval') {
-      setSelectedApprovalRevisionIndex(-1);
+    if (!record) {
+      setSelectedRevisionIndex(-1);
       return;
     }
     const currentIndex = record.journey.findIndex((revision) => revision.isCurrent);
-    setSelectedApprovalRevisionIndex(currentIndex >= 0 ? currentIndex : record.journey.length - 1);
+    setSelectedRevisionIndex(currentIndex >= 0 ? currentIndex : record.journey.length - 1);
   }, [record?.graphicId, record?.documentType, record?.journey.length]);
 
   const openCurrent = async () => {
@@ -144,22 +144,15 @@ export function RevisionsPage() {
           <section className="revision-record-hero"><div><span className="revision-document-label">{record.documentType === 'approval' ? 'Approval' : 'Print Card'}</span><div className="revision-record-identifiers"><h3>{record.documentType === 'approval' ? formatGNumber(record.gNumber) : formatSpecNumber(record.specificationNumber)}</h3>{record.documentType === 'printCard' && <span className="revision-linked-g-number">{formatGNumber(record.gNumber)}</span>}</div><p><strong>{record.customerName}</strong><span aria-hidden="true"> · </span><span>{record.partNumber}</span></p></div><div className="revision-current-summary"><span>Current revision</span><strong>{record.currentRevision?.revisionLabel || '—'}</strong><small>{record.currentRevision ? displayDate(record.currentRevision.revisionDate || record.currentRevision.createdAt) : 'Not recorded'}</small></div></section>
           <section className="revision-journey"><header><div><p className="eyebrow">Revision journey</p><h3>The life of this {record.documentType === 'approval' ? 'Approval' : 'Print Card'}</h3></div><span>{record.journey.length} revision{record.journey.length === 1 ? '' : 's'}</span></header>
             {record.journey.length === 0 ? <div className="revision-journey-empty">No structured revisions have been recorded.</div> : <ol>{record.journey.map((revision, index) => {
-              const approvalSelected = record.documentType === 'approval' && selectedApprovalRevisionIndex === index;
-              const approvalCardProps = record.documentType === 'approval' ? {
-                'aria-pressed': approvalSelected,
-                onClick: () => selectApprovalRevision(index),
-                onKeyDown: (event: KeyboardEvent<HTMLElement>) => handleRevisionCardKeyDown(event, index),
-                role: 'button',
-                tabIndex: 0,
-              } : {};
-              return <li className={`${revision.isCurrent ? 'is-current ' : ''}${approvalSelected ? 'is-selected' : ''}`.trim()} key={`${revision.id ?? 'legacy'}-${index}`}><div className="revision-node"><span>{revision.revisionLabel || index}</span></div><article {...approvalCardProps}><header><div><strong>Revision {revision.revisionLabel || index}</strong>{revision.isCurrent && <em>Current</em>}</div><time>{displayDate(revision.revisionDate || revision.createdAt)}</time></header><p>{revision.description || 'No change description was recorded.'}</p><footer><span>{revision.source === 'legacy-import' ? 'Legacy history' : 'GraphicsFlow'}</span><span>{[revision.csr, revision.designer].filter(Boolean).join(' · ') || 'Author not recorded'}</span>{record.documentType === 'approval' && <span className="revision-card-action">{approvalSelected ? 'Selected' : 'Click to view'}</span>}</footer></article></li>;
+              const isSelected = selectedRevisionIndex === index;
+              return <li className={`${revision.isCurrent ? 'is-current ' : ''}${isSelected ? 'is-selected' : ''}`.trim()} key={`${revision.id ?? 'legacy'}-${index}`}><div className="revision-node"><span>{revision.revisionLabel || index}</span></div><article aria-pressed={isSelected} onClick={() => selectRevision(index)} onKeyDown={(event) => handleRevisionCardKeyDown(event, index)} role="button" tabIndex={0}><header><div><strong>Revision {revision.revisionLabel || index}</strong>{revision.isCurrent && <em>Current</em>}</div><time>{displayDate(revision.revisionDate || revision.createdAt)}</time></header><p>{revision.description || 'No change description was recorded.'}</p><footer><span>{revision.source === 'legacy-import' ? 'Legacy history' : 'GraphicsFlow'}</span><span>{[revision.csr, revision.designer].filter(Boolean).join(' · ') || 'Author not recorded'}</span><span className="revision-card-action">{isSelected ? 'Selected' : 'Click to view'}</span></footer></article></li>;
             })}</ol>}
           </section>
         </div>
 
         {record.documentType === 'printCard'
-          ? <PrintCardRevisionWorkspace record={record} viewerError={viewerError} viewerLoading={viewerLoading} onOpenCurrent={() => void openCurrent()} />
-          : <ApprovalRevisionWorkspace record={record} selectedRevision={selectedApprovalRevision} selectedRevisionIndex={selectedApprovalRevisionIndex} viewerError={viewerError} viewerLoading={viewerLoading} onOpenCurrent={() => void openCurrent()} onRevisionSaved={() => void query.refetch()} />}
+          ? <PrintCardRevisionWorkspace record={record} selectedRevision={selectedRevision} selectedRevisionIndex={selectedRevisionIndex} viewerError={viewerError} viewerLoading={viewerLoading} onOpenCurrent={() => void openCurrent()} />
+          : <ApprovalRevisionWorkspace record={record} selectedRevision={selectedRevision} selectedRevisionIndex={selectedRevisionIndex} viewerError={viewerError} viewerLoading={viewerLoading} onOpenCurrent={() => void openCurrent()} onRevisionSaved={() => void query.refetch()} />}
       </div></div>}
 
       {viewerRecord && <ApprovalViewer approval={viewerFile} isOpen={viewerType === 'approval'} onClose={() => setViewerType(null)} record={viewerRecord} />}
