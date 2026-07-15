@@ -114,7 +114,7 @@
 }
 
 .approval-full-preview {
-  width: min(1120px, 86vw);
+  width: min(1120px, 86vw, calc((100dvh - 250px) * 1.44));
 }
 
 .approval-full-preview img {
@@ -132,7 +132,7 @@
 
 .approval-preview-workspace {
   width: min(1320px, calc(100vw - 72px));
-  height: min(860px, calc(100vh - 72px));
+  height: min(860px, calc(100dvh - 40px));
 }
 
 @media (min-width: 1101px) and (min-height: 780px) {
@@ -148,6 +148,10 @@
 
   .approval-preview-workspace {
     width: calc(100vw - 12px);
-    height: calc(100vh - 20px);
+    height: calc(100dvh - 20px);
+  }
+
+  .approval-full-preview {
+    width: min(1120px, 86vw, calc((100dvh - 210px) * 1.44));
   }
 }
