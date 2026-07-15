@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatGNumber, formatSpecNumber, type GraphicFileMatch, type GraphicRecord } from '@graphicsflow/shared';
+import { formatGNumber, type GraphicFileMatch, type GraphicRecord } from '@graphicsflow/shared';
 import { DocumentCanvas } from './DocumentCanvas';
 import { LoadingIndicator } from './LoadingIndicator';
 import { Modal } from './Modal';
@@ -24,6 +24,10 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+}
+
+function identifierValue(value: string): string {
+  return value.trim().replace(/^[GSF]\s*#?\s*/i, '') || value.trim();
 }
 
 export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalViewerProps) {
@@ -77,9 +81,8 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
     setHighQuality((current) => !current);
   };
 
-  const specNumber = approvalSpecNumber
-    ? formatSpecNumber(approvalSpecNumber)
-    : 'NONE';
+  const gNumber = identifierValue(record.gNumber);
+  const specNumber = approvalSpecNumber ? identifierValue(approvalSpecNumber) : 'NONE';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`${formatGNumber(record.gNumber)} Approval`} variant="viewer">
@@ -130,7 +133,7 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
             <p className="eyebrow">Approval details</p>
             <h3>{record.customerName || 'Customer not recorded'}</h3>
             <dl>
-              <div><dt>G#</dt><dd>{formatGNumber(record.gNumber)}</dd></div>
+              <div><dt>G#</dt><dd>{gNumber}</dd></div>
               <div><dt>Customer #</dt><dd>{record.customerNumber || 'Not recorded'}</dd></div>
               <div><dt>Spec #</dt><dd>{specNumber}</dd></div>
               <div><dt>Part Number</dt><dd>{record.partNumber || 'Not recorded'}</dd></div>
