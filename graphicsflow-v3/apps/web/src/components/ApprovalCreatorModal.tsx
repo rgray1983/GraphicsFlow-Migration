@@ -67,20 +67,22 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
   }, [previewUrl]);
 
   const update = (key: keyof ApprovalDraft, value: string | boolean) => {
-    setDraft((current) => ({ ...current, [key]: value }));
+    const normalized = typeof value === 'string' && key !== 'revisionDate' ? value.toUpperCase() : value;
+    setDraft((current) => ({ ...current, [key]: normalized }));
     setPreviewError(null);
   };
 
   const generatePreview = async (event: FormEvent) => {
     event.preventDefault();
     if (!record) return;
+    const previewDraft: ApprovalDraft = { ...draft };
     setPreviewLoading(true);
     setPreviewError(null);
     try {
       const response = await fetch(`/api/graphics/${record.id}/approval/preview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(draft),
+        body: JSON.stringify(previewDraft),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => null) as { error?: string } | null;
