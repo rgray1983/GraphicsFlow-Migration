@@ -1,6 +1,6 @@
 import type { RevisionJourneyEntry, RevisionLookupQuery, RevisionLookupResponse } from '@graphicsflow/shared';
 import type { SQLInputValue } from 'node:sqlite';
-import { importLegacyApprovalRevisions } from './approval-revision-service.js';
+import { importLegacyApprovalRevisions, syncOriginalApprovalRevisionRecords } from './approval-revision-service.js';
 import { database as legacyDatabase } from './database.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
 import { findLivePrintCardBySpecification } from './print-card-document-service.js';
@@ -38,6 +38,7 @@ export async function lookupRevisionWorkspace(query: RevisionLookupQuery): Promi
     if (!graphic) return { query, record: null, unregisteredPrintCard: null, message: 'No Approval history was found for that G#.' };
     const graphicId = Number(graphic.id);
     importLegacyApprovalRevisions(graphicId, clean(graphic.g_number));
+    await syncOriginalApprovalRevisionRecords(graphicId);
     const { journey, current } = finalizeJourney(v3Journey(graphicId, 'approval'));
     return { query, unregisteredPrintCard: null, message: null, record: { documentType: 'approval', graphicId, gNumber: clean(graphic.g_number), specificationNumber: '', customerNumber: clean(graphic.customer_number), customerName: clean(graphic.customer_name), partNumber: clean(graphic.part_number), status: journey.length ? 'active' : 'live file only', currentRevision: current, journey } };
   }
