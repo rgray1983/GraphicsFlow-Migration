@@ -6,6 +6,32 @@ const clean = (value: unknown) => String(value ?? '').trim().toUpperCase();
 const normalizedG = (value: unknown) => (String(value ?? '').match(/\d+/g)?.join('') ?? '').replace(/^0+/, '');
 const truthy = (value: unknown) => ['1', 'YES', 'ON', 'TRUE'].includes(clean(value));
 
+function normalizeRevisionDate(value: unknown): string {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+
+  const isoMatch = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  const usMatch = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
+  if (usMatch) {
+    const [, month, day, rawYear] = usMatch;
+    const yearNumber = Number(rawYear);
+    const year = rawYear.length === 2 ? String(yearNumber >= 70 ? 1900 + yearNumber : 2000 + yearNumber) : rawYear;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function ensureApprovalDocument(graphicId: number): number {
   const now = new Date().toISOString();
   graphicsStoreDatabase.prepare(`
@@ -55,7 +81,7 @@ export function importLegacyApprovalRevisions(graphicId: number, gNumber: string
       insert.run(
         documentId,
         clean(row.rev || '0'),
-        String(row.rev_date ?? row.approval_date ?? '').trim(),
+        normalizeRevisionDate(row.rev_date ?? row.approval_date),
         clean(row.description),
         clean(row.spec_number),
         clean(row.d_number),
@@ -76,6 +102,18 @@ export function importLegacyApprovalRevisions(graphicId: number, gNumber: string
       );
       imported += 1;
     }
+
+    const importedRows = graphicsStoreDatabase.prepare(`
+      SELECT id, revision_date
+      FROM document_revisions
+      WHERE document_id=? AND source='legacy-import'
+    `).all(documentId) as Array<{ id: number; revision_date: string | null }>;
+    const updateDate = graphicsStoreDatabase.prepare('UPDATE document_revisions SET revision_date=? WHERE id=?');
+    for (const row of importedRows) {
+      const normalized = normalizeRevisionDate(row.revision_date);
+      if (normalized && normalized !== String(row.revision_date ?? '')) updateDate.run(normalized, row.id);
+    }
+
     const current = graphicsStoreDatabase.prepare(`SELECT current_revision_id FROM graphics_documents WHERE id=?`).get(documentId) as { current_revision_id: number | null };
     if (!current.current_revision_id) {
       const newest = graphicsStoreDatabase.prepare(`SELECT id FROM document_revisions WHERE document_id=? ORDER BY id DESC LIMIT 1`).get(documentId) as { id: number } | undefined;
@@ -92,7 +130,7 @@ export function importLegacyApprovalRevisions(graphicId: number, gNumber: string
 function mapDetail(row: Record<string, unknown>): ApprovalRevisionDetail {
   return {
     id: Number(row.id), graphicId: Number(row.graphic_id), revisionLabel: clean(row.revision_label),
-    revisionDate: String(row.revision_date ?? ''), description: clean(row.description),
+    revisionDate: normalizeRevisionDate(row.revision_date), description: clean(row.description),
     specificationNumber: clean(row.specification_number), designNumber: clean(row.design_number),
     fluteTest: clean(row.flute_test), salesRep: clean(row.sales_rep), csr: clean(row.csr), designer: clean(row.designer),
     digitalPrint: Number(row.digital_print) === 1, digitalCut: Number(row.digital_cut) === 1,
@@ -130,7 +168,7 @@ export function updateApprovalRevision(graphicId: number, revisionId: number, in
       label_die_cut=?, label_4c_process=?, artwork_name=?, artwork_relative_path=?
     WHERE id=?
   `).run(
-    clean(input.revisionLabel), input.revisionDate.trim(), clean(input.description), clean(input.specificationNumber),
+    clean(input.revisionLabel), normalizeRevisionDate(input.revisionDate), clean(input.description), clean(input.specificationNumber),
     clean(input.designNumber), clean(input.fluteTest), clean(input.salesRep), clean(input.csr), clean(input.designer),
     input.digitalPrint ? 1 : 0, input.digitalCut ? 1 : 0, input.digitalDieCut ? 1 : 0,
     input.labelDieCut ? 1 : 0, input.label4cProcess ? 1 : 0, input.artworkName.trim(), input.artworkRelativePath.trim(), revisionId,
