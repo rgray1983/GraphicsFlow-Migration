@@ -4,7 +4,7 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
-import type { PrintCardDraft } from '@graphicsflow/shared';
+import type { PrintCardDraft, RevisionJourneyEntry } from '@graphicsflow/shared';
 import { getGraphicById } from './graphics-repository.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
 import { readLiveArtwork } from './print-card-artwork-service.js';
@@ -101,10 +101,46 @@ async function readApprovalFields(graphicId: number): Promise<Record<string, str
   }
 }
 
+function pickHeaderField(fields: Record<string, string>, aliases: string[]): string {
+  const entries = Object.entries(fields).map(([key, value]) => ({ key, normalized: normalize(key), value: clean(value) }));
+  for (const alias of aliases) {
+    const exact = entries.find((entry) => entry.normalized === normalize(alias) && entry.value);
+    if (exact) return exact.value;
+  }
+  return '';
+}
+
+export async function getApprovalHeaderMetadata(graphicId: number): Promise<{ specificationNumber: string }> {
+  const fields = await readApprovalFields(graphicId);
+  if (!fields) return { specificationNumber: '' };
+
+  let specificationNumber = pickHeaderField(fields, [
+    'SPEC #',
+    'SPEC#',
+    'SPEC',
+    'SPEC NUMBER',
+    'SPECIFICATION #',
+    'SPECIFICATION NUMBER',
+    'SPECIFICATION',
+  ]);
+
+  if (!specificationNumber) {
+    const fallback = Object.entries(fields).find(([key, value]) => {
+      const fieldName = normalize(key);
+      return Boolean(clean(value))
+        && (fieldName === 'SPEC' || fieldName.startsWith('SPECNUMBER') || fieldName.startsWith('SPECIFICATION'))
+        && !fieldName.includes('REV');
+    });
+    specificationNumber = clean(fallback?.[1]);
+  }
+
+  return { specificationNumber };
+}
+
 function pick(fields: Record<string, string>, aliases: string[], suffix: number): string {
   const normalized = new Map(Object.entries(fields).map(([key, value]) => [normalize(key), clean(value)]));
   for (const alias of aliases) {
-    for (const candidate of [`${alias} ${suffix}`, `${alias}${suffix}`]) {
+    for (const candidate of [`${alias} ${suffix}`, `${alias}${suffix}`, `${alias}_${suffix}`]) {
       const value = normalized.get(normalize(candidate));
       if (value) return value;
     }
@@ -112,26 +148,43 @@ function pick(fields: Record<string, string>, aliases: string[], suffix: number)
   return '';
 }
 
-export async function getApprovalRevisionAutofill(graphicId: number): Promise<{ csr: string; designer: string; description: string } | null> {
-  const fields = await readApprovalFields(graphicId);
-  if (!fields) return null;
-
-  const rows = Array.from({ length: 4 }, (_, index) => ({
+function approvalRows(fields: Record<string, string>) {
+  return Array.from({ length: 10 }, (_, index) => ({
     index,
     revision: pick(fields, ['ART REV', 'REV', 'REVISION'], index),
+    revisionDate: pick(fields, ['REV DATE', 'DATE', 'REVISION DATE'], index),
     description: pick(fields, ['DESCR', 'DESC', 'DESCRIPTION'], index),
     csr: pick(fields, ['CSR', 'CUSTOMER SERVICE', 'CUSTOMER SERVICE REP'], index),
     designer: pick(fields, ['DSR', 'DES', 'DESIGNER', 'DESIGNER INITIALS'], index),
-  })).filter((row) => row.revision || row.description || row.csr || row.designer);
+  })).filter((row) => row.revision || row.revisionDate || row.description || row.csr || row.designer);
+}
 
-  if (!rows.length) return null;
-  rows.sort((a, b) => {
-    const aNumeric = /^\d+$/.test(a.revision) ? Number(a.revision) : -1;
-    const bNumeric = /^\d+$/.test(b.revision) ? Number(b.revision) : -1;
-    if (aNumeric !== bNumeric) return aNumeric - bNumeric;
-    return a.index - b.index;
-  });
-  const latest = rows.at(-1)!;
+function revisionRank(value: string, fallback: number): number {
+  const numeric = value.match(/\d+/)?.[0];
+  return numeric ? Number(numeric) : fallback;
+}
+
+export async function getApprovalRevisionJourney(graphicId: number): Promise<RevisionJourneyEntry[]> {
+  const fields = await readApprovalFields(graphicId);
+  if (!fields) return [];
+  const rows = approvalRows(fields).sort((a, b) => revisionRank(a.revision, a.index) - revisionRank(b.revision, b.index) || a.index - b.index);
+  return rows.map((row) => ({
+    id: null,
+    revisionLabel: row.revision || String(row.index),
+    revisionDate: row.revisionDate,
+    description: row.description,
+    csr: row.csr,
+    designer: row.designer,
+    source: 'legacy-import',
+    createdAt: null,
+    isCurrent: false,
+  }));
+}
+
+export async function getApprovalRevisionAutofill(graphicId: number): Promise<{ csr: string; designer: string; description: string } | null> {
+  const journey = await getApprovalRevisionJourney(graphicId);
+  if (!journey.length) return null;
+  const latest = journey.at(-1)!;
   return { csr: latest.csr, designer: latest.designer, description: latest.description };
 }
 

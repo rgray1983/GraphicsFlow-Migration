@@ -1,0 +1,34 @@
+.revision-record-identifiers {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.revision-record-identifiers h3 {
+  margin-right: 0;
+}
+
+.revision-linked-g-number {
+  color: #5eead4;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+
+.revision-record-hero p strong {
+  color: #cbd5e1;
+  font-weight: 850;
+}
+
+@media (max-width: 760px) {
+  .revision-record-identifiers {
+    gap: 6px;
+  }
+
+  .revision-linked-g-number {
+    font-size: 11px;
+  }
+}

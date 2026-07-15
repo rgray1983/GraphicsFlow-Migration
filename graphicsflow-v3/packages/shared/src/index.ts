@@ -3,6 +3,26 @@ import { z } from 'zod';
 export { formatDNumber, formatGNumber, formatRevision, formatSpecNumber } from './formatters.js';
 export { renderPrintCardSvg } from './print-card-template.js';
 export type { PrintCardTemplateData, PrintCardTemplateRevision } from './print-card-template.js';
+export {
+  onboardPrintCardInputSchema,
+  onboardPrintCardResponseSchema,
+  revisionDocumentTypeSchema,
+  revisionJourneyEntrySchema,
+  revisionLookupQuerySchema,
+  revisionLookupResponseSchema,
+  revisionWorkspaceRecordSchema,
+  unregisteredPrintCardSchema,
+} from './revision-workspace.js';
+export type {
+  OnboardPrintCardInput,
+  OnboardPrintCardResponse,
+  RevisionDocumentType,
+  RevisionJourneyEntry,
+  RevisionLookupQuery,
+  RevisionLookupResponse,
+  RevisionWorkspaceRecord,
+  UnregisteredPrintCard,
+} from './revision-workspace.js';
 
 export const healthResponseSchema = z.object({ status: z.literal('ok'), service: z.string(), version: z.string(), timestamp: z.string().datetime() });
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
