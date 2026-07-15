@@ -1,23 +1,35 @@
 import type { OnboardPrintCardInput, RevisionWorkspaceRecord } from '@graphicsflow/shared';
 import { graphicsStoreDatabase } from './graphics-store.js';
+import { getCompanySettings } from './settings-store.js';
 
 function clean(value: unknown): string { return String(value ?? '').trim().toUpperCase(); }
 function digits(value: unknown): string { return String(value ?? '').match(/\d+/g)?.join('').replace(/^0+/, '') ?? ''; }
 function revisionNumber(label: string): number { const match = clean(label).match(/\d+/)?.[0]; return match == null ? -1 : Number(match); }
+function configuredGNumber(number: number): string {
+  const identifier = getCompanySettings().identifiers.graphics;
+  return `${identifier.prefix}${identifier.separator}${number}`.trim();
+}
 
 export function onboardPrintCard(input: OnboardPrintCardInput): RevisionWorkspaceRecord {
-  const normalizedG = digits(input.gNumber);
-  if (!normalizedG) throw new Error('Enter a valid G#.');
+  const requestedG = digits(input.gNumber);
   const now = new Date().toISOString();
   graphicsStoreDatabase.exec('BEGIN IMMEDIATE');
   try {
-    let graphic = graphicsStoreDatabase.prepare('SELECT id, g_number, customer_number, customer_name, part_number FROM graphics_records WHERE normalized_g_number = ?').get(normalizedG) as Record<string, unknown> | undefined;
-    if (!graphic) {
-      const result = graphicsStoreDatabase.prepare(`INSERT INTO graphics_records (g_number, normalized_g_number, customer_number, customer_name, part_number, preview_image, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NULL, 'graphicsflow', ?, ?)`).run(clean(input.gNumber), normalizedG, clean(input.customerNumber), clean(input.customerName), clean(input.partNumber), now, now);
-      graphic = { id: Number(result.lastInsertRowid), g_number: clean(input.gNumber), customer_number: clean(input.customerNumber), customer_name: clean(input.customerName), part_number: clean(input.partNumber) };
+    let graphic: Record<string, unknown> | undefined;
+
+    if (requestedG) {
+      graphic = graphicsStoreDatabase.prepare('SELECT id, g_number, customer_number, customer_name, part_number FROM graphics_records WHERE normalized_g_number = ?').get(requestedG) as Record<string, unknown> | undefined;
+      if (!graphic) throw new Error('That G# does not exist. Enter an existing G# to link it, or leave G# blank and GraphicsFlow will create the next one.');
     } else {
-      graphicsStoreDatabase.prepare('UPDATE graphics_records SET customer_number=?, customer_name=?, part_number=?, updated_at=? WHERE id=?').run(clean(input.customerNumber), clean(input.customerName), clean(input.partNumber), now, Number(graphic.id));
-      graphic = { ...graphic, customer_number: clean(input.customerNumber), customer_name: clean(input.customerName), part_number: clean(input.partNumber) };
+      if (!clean(input.customerNumber) || !clean(input.customerName) || !clean(input.partNumber)) {
+        throw new Error('Customer #, Customer Name, and Part # are required when creating a new G#.');
+      }
+      const nextRow = graphicsStoreDatabase.prepare(`SELECT COALESCE(MAX(CAST(normalized_g_number AS INTEGER)), 0) + 1 AS next_number FROM graphics_records`).get() as { next_number: number };
+      const nextNumber = Number(nextRow.next_number);
+      const normalizedG = String(nextNumber);
+      const gNumber = configuredGNumber(nextNumber);
+      const result = graphicsStoreDatabase.prepare(`INSERT INTO graphics_records (g_number, normalized_g_number, customer_number, customer_name, part_number, preview_image, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NULL, 'graphicsflow', ?, ?)`).run(gNumber, normalizedG, clean(input.customerNumber), clean(input.customerName), clean(input.partNumber), now, now);
+      graphic = { id: Number(result.lastInsertRowid), g_number: gNumber, customer_number: clean(input.customerNumber), customer_name: clean(input.customerName), part_number: clean(input.partNumber) };
     }
 
     const existing = graphicsStoreDatabase.prepare(`SELECT id FROM graphics_documents WHERE graphic_id=? AND document_type='printCard'`).get(Number(graphic.id));
