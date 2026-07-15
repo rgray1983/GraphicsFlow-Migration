@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, resolve, sep } from 'node:path';
 import { settingsDatabasePath } from './settings-store.js';
 
@@ -14,12 +14,12 @@ function safeName(value: string): string {
   return cleaned.toLowerCase().endsWith('.pdf') ? cleaned : `${cleaned}.pdf`;
 }
 
-export async function storeApprovalRevisionArtwork(
+export function storeApprovalRevisionArtwork(
   graphicId: number,
   revisionId: number,
   fileName: string,
   base64: string,
-): Promise<{ artworkName: string; artworkRelativePath: string }> {
+): { artworkName: string; artworkRelativePath: string } {
   const data = Buffer.from(base64, 'base64');
   if (data.length < 5 || data.subarray(0, 5).toString('ascii') !== '%PDF-') {
     throw new Error('The uploaded Approval artwork is not a valid PDF.');
@@ -27,15 +27,13 @@ export async function storeApprovalRevisionArtwork(
 
   const directory = resolve(root, String(graphicId), String(revisionId));
   if (!safePath(directory)) throw new Error('The managed Approval artwork path is invalid.');
-  await mkdir(directory, { recursive: true });
+  rmSync(directory, { recursive: true, force: true });
+  mkdirSync(directory, { recursive: true });
 
   const name = safeName(fileName);
   const path = resolve(directory, name);
   if (!safePath(path)) throw new Error('The managed Approval artwork path is invalid.');
-
-  await rm(directory, { recursive: true, force: true });
-  await mkdir(directory, { recursive: true });
-  await writeFile(path, data);
+  writeFileSync(path, data);
 
   return {
     artworkName: name,
@@ -43,13 +41,13 @@ export async function storeApprovalRevisionArtwork(
   };
 }
 
-export async function readApprovalRevisionArtwork(relativePath: string): Promise<Buffer | null> {
+export function readApprovalRevisionArtwork(relativePath: string): Buffer | null {
   if (!relativePath.startsWith(markerPrefix)) return null;
   const local = relativePath.slice(markerPrefix.length);
   const path = resolve(root, local);
   if (!safePath(path)) return null;
   try {
-    return await readFile(path);
+    return readFileSync(path);
   } catch {
     return null;
   }
