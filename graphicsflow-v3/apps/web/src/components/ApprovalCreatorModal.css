@@ -82,6 +82,7 @@
   font-weight: 850;
   cursor: pointer;
 }
+.approval-creator-form button:disabled,
 .approval-creator-preview button:disabled { opacity: .4; cursor: not-allowed; }
 .approval-record-summary {
   display: grid;
@@ -114,7 +115,6 @@
   color: #dbe7f2;
   background: rgba(15,23,42,.72);
   font: inherit;
-  text-transform: none;
 }
 .approval-creator-form input:focus { border-color: rgba(45,212,191,.45); box-shadow: 0 0 0 3px rgba(20,184,166,.08); }
 .approval-revision-entry { display: grid; gap: 10px; padding-top: 2px; }
@@ -129,6 +129,15 @@
 .approval-revision-grid label:nth-child(3) { grid-column: span 3; }
 .approval-revision-grid label:nth-child(4),
 .approval-revision-grid label:nth-child(5) { grid-column: span 3; }
+.approval-preview-error {
+  padding: 10px 12px;
+  border: 1px solid rgba(248,113,113,.22);
+  border-radius: 9px;
+  color: #fecaca;
+  background: rgba(127,29,29,.15);
+  font-size: 9px;
+  line-height: 1.5;
+}
 .approval-creator-policy {
   display: grid;
   gap: 4px;
@@ -141,7 +150,24 @@
 .approval-creator-policy span { color: #718096; font-size: 9px; line-height: 1.5; }
 .approval-creator-preview { overflow: hidden; }
 .approval-creator-preview .document-canvas { height: 100%; min-height: 0; }
-.approval-sheet-preview { width: min(880px,100%); display: grid; place-items: center; }
+.approval-sheet-preview {
+  width: min(1000px, 100%);
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+}
+.approval-sheet-preview > .graphicsflow-loading { min-height: 420px; }
+.approval-template-preview-image {
+  display: block;
+  width: min(100%, 1050px);
+  max-height: calc(100dvh - 230px);
+  object-fit: contain;
+  border-radius: 3px;
+  background: white;
+  box-shadow: 0 28px 80px rgba(0,0,0,.46);
+  user-select: none;
+  pointer-events: none;
+}
 .approval-preview-prompt {
   min-width: 260px;
   display: grid;
@@ -155,31 +181,8 @@
 }
 .approval-preview-prompt strong { color: #dbe7f2; font-size: 11px; }
 .approval-preview-prompt span { font-size: 9px; }
-.approval-sheet-preview article {
-  width: 820px;
-  min-height: 530px;
-  padding: 18px;
-  color: #111827;
-  background: #fff;
-  box-shadow: 0 24px 70px rgba(0,0,0,.46);
-  font-family: Arial,sans-serif;
-}
-.approval-sheet-preview article header { display: grid; grid-template-columns: 2fr .7fr .7fr .7fr .8fr; border: 1px solid #111; }
-.approval-sheet-preview article header > div,
-.approval-sheet-subhead > div,
-.approval-sheet-preview article footer > div { display: grid; gap: 3px; padding: 6px; border-right: 1px solid #111; }
-.approval-sheet-preview article header > div:last-child,
-.approval-sheet-subhead > div:last-child,
-.approval-sheet-preview article footer > div:last-child { border-right: 0; }
-.approval-sheet-preview article b { font-size: 8px; text-transform: uppercase; }
-.approval-sheet-preview article span { font-size: 10px; }
-.approval-sheet-subhead { display: grid; grid-template-columns: 2fr 1fr .7fr .7fr; border: 1px solid #111; border-top: 0; }
-.approval-art-placeholder { height: 385px; display: grid; place-items: center; border: 1px solid #111; border-top: 0; color: #9ca3af; background: linear-gradient(135deg,#fff,#f8fafc); }
-.approval-art-placeholder span { font-size: 12px; }
-.approval-sheet-preview article footer { display: grid; grid-template-columns: 60px 90px minmax(0,1fr) 60px 70px; border: 1px solid #111; border-top: 0; }
 @media (max-width: 1050px) {
   .approval-creator-grid { grid-template-columns: minmax(350px, 43%) minmax(0,57%); }
-  .approval-sheet-preview article { width: 700px; }
 }
 @media (max-width: 820px) {
   .modal-dialog-creator:has(.approval-creator-modal) { height: calc(100dvh - 20px); width: calc(100vw - 20px); }
@@ -188,6 +191,7 @@
   .approval-creator-form { overflow: visible; }
   .approval-creator-preview { min-height: 520px; }
   .approval-creator-preview .document-canvas { min-height: 520px; }
+  .approval-template-preview-image { max-height: none; }
 }
 @media (max-width: 620px) {
   .approval-creator-heading,
@@ -195,5 +199,4 @@
   .approval-field-grid { grid-template-columns: 1fr; }
   .approval-revision-grid { grid-template-columns: 1fr; }
   .approval-revision-grid label:nth-child(n) { grid-column: auto; }
-  .approval-sheet-preview article { width: 620px; }
 }
