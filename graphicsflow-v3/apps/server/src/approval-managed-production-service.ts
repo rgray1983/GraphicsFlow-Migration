@@ -60,15 +60,33 @@ export async function saveManagedApproval(graphicId: number, input: ApprovalPrev
     if (duplicate) throw new Error(`Revision ${cleanRevision} already exists for this Approval.`);
 
     const temporaryRelativePath = `temporary/${temporaryName}`;
-    const result = graphicsStoreDatabase.prepare(`INSERT INTO document_revisions (document_id, revision_label, revision_date, description, specification_number, design_number, csr, designer, rendered_relative_path, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'graphicsflow', ?)`).run(
+    const result = graphicsStoreDatabase.prepare(`
+      INSERT INTO document_revisions (
+        document_id, revision_label, revision_date, description,
+        specification_number, design_number, flute_test, sales_rep,
+        csr, designer,
+        digital_print, digital_cut, digital_die_cut, label_die_cut, label_4c_process,
+        artwork_name, artwork_relative_path,
+        rendered_relative_path, source, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'graphicsflow', ?)
+    `).run(
       document.id,
       cleanRevision,
       clean(input.revisionDate),
       clean(input.description),
       clean(input.specificationNumber),
       clean(input.designNumber),
+      clean(input.fluteTest),
+      clean(input.salesRep),
       clean(input.csr),
       clean(input.designer),
+      input.digitalPrint ? 1 : 0,
+      input.digitalCut ? 1 : 0,
+      input.digitalDieCut ? 1 : 0,
+      input.labelDieCut ? 1 : 0,
+      input.label4cProcess ? 1 : 0,
+      clean(input.artPdfName),
+      input.liveArtworkRelativePath.trim(),
       temporaryRelativePath,
       now,
     );
