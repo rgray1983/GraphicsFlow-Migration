@@ -11,6 +11,8 @@ type ApprovalViewerProps = {
   record: GraphicRecord;
 };
 
+type ApprovalHeaderMetadata = { specificationNumber?: string };
+
 function formatDate(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
@@ -27,6 +29,7 @@ function formatFileSize(bytes: number): string {
 export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalViewerProps) {
   const [highQuality, setHighQuality] = useState(false);
   const [qualityLoading, setQualityLoading] = useState(false);
+  const [approvalSpecNumber, setApprovalSpecNumber] = useState('');
   const variant = highQuality ? 'large' : 'medium';
   const imageUrl = `/api/previews/${record.id}/${variant}/image`;
   const pdfUrl = `/api/graphics/${record.id}/approval.pdf`;
@@ -35,7 +38,24 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
     if (!isOpen) return;
     setHighQuality(false);
     setQualityLoading(false);
-  }, [isOpen, record.id]);
+    setApprovalSpecNumber(record.specificationNumber.trim());
+
+    const controller = new AbortController();
+    void fetch(`/api/graphics/${record.id}/approval/metadata`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json() as Promise<ApprovalHeaderMetadata>;
+      })
+      .then((metadata) => {
+        const extracted = metadata?.specificationNumber?.trim();
+        if (extracted) setApprovalSpecNumber(extracted);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+      });
+
+    return () => controller.abort();
+  }, [isOpen, record.id, record.specificationNumber]);
 
   const printApproval = () => {
     const iframe = document.createElement('iframe');
@@ -57,8 +77,8 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
     setHighQuality((current) => !current);
   };
 
-  const specNumber = record.specificationNumber.trim()
-    ? formatSpecNumber(record.specificationNumber)
+  const specNumber = approvalSpecNumber
+    ? formatSpecNumber(approvalSpecNumber)
     : 'NONE';
 
   return (
