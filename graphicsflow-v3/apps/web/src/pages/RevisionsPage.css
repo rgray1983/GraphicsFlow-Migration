@@ -52,8 +52,11 @@
 .revision-journey li:not(:last-child)::before { content: ''; position: absolute; left: 16px; top: 30px; bottom: 0; width: 1px; background: rgba(45,212,191,.17); }
 .revision-node { position: relative; z-index: 1; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(148,163,184,.16); border-radius: 50%; color: #718096; background: #09111e; font-size: 8px; font-weight: 900; }
 .revision-journey li.is-current .revision-node { border-color: rgba(45,212,191,.42); color: #042f2e; background: #5eead4; box-shadow: 0 0 24px rgba(45,212,191,.18); }
-.revision-journey article { min-width: 0; padding: 12px; border: 1px solid rgba(148,163,184,.1); border-radius: 11px; background: rgba(10,18,31,.72); transition: border-color .16s ease, background .16s ease, box-shadow .16s ease; }
-.revision-journey li.is-selected article { border-color: rgba(45,212,191,.35); background: linear-gradient(135deg,rgba(20,184,166,.1),rgba(10,18,31,.82)); box-shadow: 0 12px 30px rgba(0,0,0,.18), inset 3px 0 0 rgba(45,212,191,.72); }
+.revision-journey article { min-width: 0; padding: 12px; border: 1px solid rgba(148,163,184,.1); border-radius: 11px; background: rgba(10,18,31,.72); transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease; }
+.revision-journey article[role="button"] { cursor: pointer; outline: none; }
+.revision-journey article[role="button"]:hover { border-color: rgba(45,212,191,.24); background: rgba(12,24,39,.88); transform: translateY(-1px); }
+.revision-journey article[role="button"]:focus-visible { border-color: rgba(94,234,212,.65); box-shadow: 0 0 0 2px rgba(45,212,191,.2); }
+.revision-journey li.is-selected article { border-color: rgba(45,212,191,.35); background: linear-gradient(135deg,rgba(20,184,166,.1),rgba(10,18,31,.82)); box-shadow: 0 12px 30px rgba(0,0,0,.18), inset 3px 0 0 rgba(45,212,191,.72); transform: none; }
 .revision-journey article > header, .revision-journey article > footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .revision-journey article > header > div { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .revision-journey article strong { color: #dbe7f2; font-size: 10px; }
@@ -61,8 +64,8 @@
 .revision-journey time { flex: 0 0 auto; color: #64748b; font-size: 8px; }
 .revision-journey article > p { margin: 8px 0 11px; color: #8797ac; font-size: 9px; line-height: 1.45; }
 .revision-journey article > footer { justify-content: flex-start; flex-wrap: wrap; color: #64748b; font-size: 8px; }
-.revision-journey article > footer button { margin-left: auto; padding: 0; border: 0; color: #5eead4; background: transparent; font-size: 8px; font-weight: 850; cursor: pointer; }
-.revision-journey article > footer button[aria-pressed="true"] { color: #99f6e4; cursor: default; }
+.revision-card-action { margin-left: auto; color: #5eead4; font-size: 8px; font-weight: 850; }
+.revision-journey li.is-selected .revision-card-action { color: #99f6e4; }
 .revision-journey-empty { padding: 24px 16px; border: 1px dashed rgba(148,163,184,.14); border-radius: 11px; color: #64748b; text-align: center; font-size: 10px; }
 .revision-document-workspace { position: sticky; top: 18px; min-height: 680px; display: grid; grid-template-rows: auto minmax(470px,1fr) auto auto auto; gap: 14px; padding: 20px; border: 1px solid rgba(148,163,184,.12); border-radius: 15px; background: radial-gradient(circle at top right,rgba(20,184,166,.09),transparent 38%),rgba(3,9,19,.6); }
 .revision-workspace-heading h3 { margin: 3px 0 5px; color: #dbe7f2; font-size: 18px; }
