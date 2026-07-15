@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { formatGNumber, type GraphicRecord } from '@graphicsflow/shared';
 import { DocumentCanvas } from './DocumentCanvas';
+import { LoadingIndicator } from './LoadingIndicator';
 import { Modal } from './Modal';
 import './ApprovalCreatorModal.css';
 
@@ -36,28 +37,55 @@ const emptyDraft = (record: GraphicRecord | null): ApprovalDraft => ({
 
 export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreatorModalProps) {
   const [draft, setDraft] = useState<ApprovalDraft>(() => emptyDraft(record));
-  const [previewReady, setPreviewReady] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setDraft(emptyDraft(record));
-    setPreviewReady(false);
+    setPreviewLoading(false);
+    setPreviewError(null);
+    setPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return '';
+    });
   }, [isOpen, record?.id]);
 
-  const displayDate = useMemo(() => {
-    if (!draft.revisionDate) return '';
-    const parsed = new Date(`${draft.revisionDate}T12:00:00`);
-    return Number.isNaN(parsed.getTime()) ? draft.revisionDate : parsed.toLocaleDateString('en-US');
-  }, [draft.revisionDate]);
+  useEffect(() => () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   const update = (key: keyof ApprovalDraft, value: string) => {
     setDraft((current) => ({ ...current, [key]: value }));
-    setPreviewReady(false);
+    setPreviewError(null);
   };
 
-  const generatePreview = (event: FormEvent) => {
+  const generatePreview = async (event: FormEvent) => {
     event.preventDefault();
-    setPreviewReady(true);
+    if (!record) return;
+    setPreviewLoading(true);
+    setPreviewError(null);
+    try {
+      const response = await fetch(`/api/graphics/${record.id}/approval/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(draft),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(body?.error || 'The Approval preview could not be generated.');
+      }
+      const nextUrl = URL.createObjectURL(await response.blob());
+      setPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return nextUrl;
+      });
+    } catch (error) {
+      setPreviewError(error instanceof Error ? error.message : 'The Approval preview could not be generated.');
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   if (!record) return null;
@@ -72,7 +100,7 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
 
         <div className="approval-creator-grid">
           <form className="approval-creator-form" onSubmit={generatePreview}>
-            <header><div><p className="eyebrow">Approval information</p><h3>{formatGNumber(record.gNumber)}</h3></div><button type="submit">Generate Preview</button></header>
+            <header><div><p className="eyebrow">Approval information</p><h3>{formatGNumber(record.gNumber)}</h3></div><button disabled={previewLoading} type="submit">{previewLoading ? 'Generating…' : 'Generate Preview'}</button></header>
             <div className="approval-record-summary"><strong>{record.customerName}</strong><span>{record.customerNumber} · {record.partNumber}</span></div>
             <div className="approval-field-grid">
               <label>Spec #<input onChange={(event) => update('specificationNumber', event.target.value)} value={draft.specificationNumber} /></label>
@@ -90,18 +118,14 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
                 <label>Designer<input onChange={(event) => update('designer', event.target.value)} value={draft.designer} /></label>
               </div>
             </section>
-            <div className="approval-creator-policy"><strong>No automatic server writes</strong><span>Generate Preview only updates this workspace. Saving and publishing remain separate, deliberate actions.</span></div>
+            {previewError && <div className="approval-preview-error" role="alert">{previewError}</div>}
+            <div className="approval-creator-policy"><strong>No automatic server writes</strong><span>Generate Preview creates a temporary image from the V3 HCC Approval template. Nothing is saved or published.</span></div>
           </form>
 
           <aside className="approval-creator-preview">
-            <DocumentCanvas ariaLabel={`${formatGNumber(record.gNumber)} Approval preview`} fitScale={1} isActive={isOpen} key={`${record.id}-${previewReady}`} renderAtLayoutScale={false} toolbarEnd={<button disabled={!previewReady} type="button">Save Approval…</button>}>
+            <DocumentCanvas ariaLabel={`${formatGNumber(record.gNumber)} Approval preview`} fitScale={1} isActive={isOpen} key={`${record.id}-${previewUrl}`} renderAtLayoutScale={false} toolbarEnd={<button disabled={!previewUrl || previewLoading} type="button">Save Approval…</button>}>
               <div className="approval-sheet-preview">
-                {!previewReady ? <div className="approval-preview-prompt"><strong>Preview not generated</strong><span>Complete the information and choose Generate Preview.</span></div> : <article>
-                  <header><div><b>Customer</b><span>{record.customerName}</span></div><div><b>Cust. #</b><span>{record.customerNumber}</span></div><div><b>Spec #</b><span>{draft.specificationNumber || '—'}</span></div><div><b>Design #</b><span>{draft.designNumber || '—'}</span></div><div><b>Graphics #</b><span>{record.gNumber}</span></div></header>
-                  <section className="approval-sheet-subhead"><div><b>Item Description</b><span>{record.partNumber}</span></div><div><b>Test & Flute</b><span>{draft.fluteTest || '—'}</span></div><div><b>Sales Rep</b><span>{draft.salesRep || '—'}</span></div><div><b>Date</b><span>{displayDate || '—'}</span></div></section>
-                  <div className="approval-art-placeholder"><span>Artwork preview area</span></div>
-                  <footer><div><b>Rev</b><span>{draft.revisionLabel}</span></div><div><b>Date</b><span>{displayDate}</span></div><div><b>Description</b><span>{draft.description}</span></div><div><b>CSR</b><span>{draft.csr || '—'}</span></div><div><b>Designer</b><span>{draft.designer || '—'}</span></div></footer>
-                </article>}
+                {previewLoading ? <LoadingIndicator message="Filling HCC APPROVAL FORM-2026.pdf and rendering a temporary preview…" size="viewer" title="Generating Approval Preview" /> : previewUrl ? <img alt={`${formatGNumber(record.gNumber)} HCC Approval preview`} className="approval-template-preview-image" draggable={false} src={previewUrl} /> : <div className="approval-preview-prompt"><strong>Preview not generated</strong><span>Complete the information and choose Generate Preview.</span></div>}
               </div>
             </DocumentCanvas>
           </aside>
