@@ -1,12 +1,12 @@
-import { constants } from 'node:fs';
-import { access, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { basename, dirname, extname, resolve } from 'node:path';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { basename, dirname, resolve, sep } from 'node:path';
 import { renderHccApprovalPdf, type ApprovalPreviewInput } from './approval-creator-preview-service.js';
 import { getGraphicById } from './graphics-repository.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
 import { settingsDatabasePath } from './settings-store.js';
 
 const managedRoot = resolve(dirname(settingsDatabasePath), 'generated-documents', 'approvals');
+const temporaryRoot = resolve(managedRoot, 'temporary');
 const clean = (value: unknown) => String(value ?? '').trim().toUpperCase();
 const numberOnly = (value: unknown) => String(value ?? '').match(/\d+/g)?.join('') ?? '';
 
@@ -19,30 +19,27 @@ export type SavedApprovalResult = {
   downloadUrl: string;
 };
 
+function isTemporaryApprovalPath(path: string): boolean {
+  return path === temporaryRoot || path.startsWith(`${temporaryRoot}${sep}`);
+}
+
 export async function saveManagedApproval(graphicId: number, input: ApprovalPreviewInput): Promise<SavedApprovalResult> {
   const graphic = getGraphicById(graphicId);
   if (!graphic) throw new Error('Graphics record not found.');
 
-  await mkdir(managedRoot, { recursive: true });
+  await mkdir(temporaryRoot, { recursive: true });
   const cleanG = numberOnly(graphic.gNumber);
   const cleanRevision = clean(input.revisionLabel) || '0';
   if (!cleanG) throw new Error('The G# cannot be converted into a valid Approval filename.');
 
   const fileName = `${cleanG}_REV_${cleanRevision.replace(/[^A-Z0-9_-]/g, '_')}_APPROVAL.pdf`;
-  const finalPath = resolve(managedRoot, fileName);
-  if (dirname(finalPath) !== managedRoot || extname(finalPath).toLowerCase() !== '.pdf') throw new Error('The managed Approval output path is invalid.');
+  const token = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 10)}`;
+  const temporaryName = `${cleanG}.${cleanRevision.replace(/[^A-Z0-9_-]/g, '_')}.${token}.pdf`;
+  const temporaryPath = resolve(temporaryRoot, temporaryName);
+  if (!isTemporaryApprovalPath(temporaryPath)) throw new Error('The temporary Approval output path is invalid.');
 
-  try {
-    await access(finalPath, constants.F_OK);
-    throw new Error(`Revision ${cleanRevision} already exists for this Approval.`);
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('already exists')) throw error;
-  }
-
-  const token = `${process.pid}.${Date.now()}`;
-  const tempPath = resolve(managedRoot, `.${fileName}.${token}.tmp`);
   const pdf = await renderHccApprovalPdf(input);
-  await writeFile(tempPath, pdf);
+  await writeFile(temporaryPath, pdf);
 
   graphicsStoreDatabase.exec('BEGIN IMMEDIATE');
   try {
@@ -52,6 +49,7 @@ export async function saveManagedApproval(graphicId: number, input: ApprovalPrev
     const duplicate = graphicsStoreDatabase.prepare(`SELECT id FROM document_revisions WHERE document_id=? AND UPPER(TRIM(revision_label))=?`).get(document.id, cleanRevision);
     if (duplicate) throw new Error(`Revision ${cleanRevision} already exists for this Approval.`);
 
+    const temporaryRelativePath = `temporary/${temporaryName}`;
     const result = graphicsStoreDatabase.prepare(`INSERT INTO document_revisions (document_id, revision_label, revision_date, description, specification_number, design_number, csr, designer, rendered_relative_path, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'graphicsflow', ?)`).run(
       document.id,
       cleanRevision,
@@ -61,12 +59,11 @@ export async function saveManagedApproval(graphicId: number, input: ApprovalPrev
       clean(input.designNumber),
       clean(input.csr),
       clean(input.designer),
-      fileName,
+      temporaryRelativePath,
       now,
     );
     const revisionId = Number(result.lastInsertRowid);
     graphicsStoreDatabase.prepare('UPDATE graphics_documents SET current_revision_id=?, updated_at=? WHERE id=?').run(revisionId, now, document.id);
-    await rename(tempPath, finalPath);
     graphicsStoreDatabase.exec('COMMIT');
 
     return {
@@ -79,16 +76,35 @@ export async function saveManagedApproval(graphicId: number, input: ApprovalPrev
     };
   } catch (error) {
     graphicsStoreDatabase.exec('ROLLBACK');
-    await rm(tempPath, { force: true });
-    await rm(finalPath, { force: true });
+    await rm(temporaryPath, { force: true });
     throw error;
   }
 }
 
-export async function readManagedApprovalRevision(graphicId: number, revisionId: number): Promise<{ data: Buffer; fileName: string } | null> {
-  const row = graphicsStoreDatabase.prepare(`SELECT r.rendered_relative_path FROM graphics_documents d INNER JOIN document_revisions r ON r.document_id=d.id WHERE d.graphic_id=? AND d.document_type='approval' AND r.id=?`).get(graphicId, revisionId) as { rendered_relative_path: string | null } | undefined;
+export async function readManagedApprovalRevision(
+  graphicId: number,
+  revisionId: number,
+  consume = false,
+): Promise<{ data: Buffer; fileName: string } | null> {
+  const row = graphicsStoreDatabase.prepare(`SELECT r.rendered_relative_path, r.revision_label, g.g_number FROM graphics_documents d INNER JOIN document_revisions r ON r.document_id=d.id INNER JOIN graphics_records g ON g.id=d.graphic_id WHERE d.graphic_id=? AND d.document_type='approval' AND r.id=?`).get(graphicId, revisionId) as { rendered_relative_path: string | null; revision_label: string; g_number: string } | undefined;
   if (!row?.rendered_relative_path) return null;
+
   const path = resolve(managedRoot, row.rendered_relative_path);
-  if (dirname(path) !== managedRoot || extname(path).toLowerCase() !== '.pdf') return null;
-  try { return { data: await readFile(path), fileName: basename(path) }; } catch { return null; }
+  if (!isTemporaryApprovalPath(path)) return null;
+
+  try {
+    const data = await readFile(path);
+    const cleanG = numberOnly(row.g_number);
+    const revision = clean(row.revision_label) || '0';
+    const fileName = `${cleanG}_REV_${revision.replace(/[^A-Z0-9_-]/g, '_')}_APPROVAL.pdf`;
+
+    if (consume) {
+      await rm(path, { force: true });
+      graphicsStoreDatabase.prepare('UPDATE document_revisions SET rendered_relative_path=NULL WHERE id=?').run(revisionId);
+    }
+
+    return { data, fileName: basename(fileName) };
+  } catch {
+    return null;
+  }
 }
