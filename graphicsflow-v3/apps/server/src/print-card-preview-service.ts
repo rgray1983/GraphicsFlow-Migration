@@ -101,6 +101,42 @@ async function readApprovalFields(graphicId: number): Promise<Record<string, str
   }
 }
 
+function pickHeaderField(fields: Record<string, string>, aliases: string[]): string {
+  const entries = Object.entries(fields).map(([key, value]) => ({ key, normalized: normalize(key), value: clean(value) }));
+  for (const alias of aliases) {
+    const exact = entries.find((entry) => entry.normalized === normalize(alias) && entry.value);
+    if (exact) return exact.value;
+  }
+  return '';
+}
+
+export async function getApprovalHeaderMetadata(graphicId: number): Promise<{ specificationNumber: string }> {
+  const fields = await readApprovalFields(graphicId);
+  if (!fields) return { specificationNumber: '' };
+
+  let specificationNumber = pickHeaderField(fields, [
+    'SPEC #',
+    'SPEC#',
+    'SPEC',
+    'SPEC NUMBER',
+    'SPECIFICATION #',
+    'SPECIFICATION NUMBER',
+    'SPECIFICATION',
+  ]);
+
+  if (!specificationNumber) {
+    const fallback = Object.entries(fields).find(([key, value]) => {
+      const fieldName = normalize(key);
+      return Boolean(clean(value))
+        && (fieldName === 'SPEC' || fieldName.startsWith('SPECNUMBER') || fieldName.startsWith('SPECIFICATION'))
+        && !fieldName.includes('REV');
+    });
+    specificationNumber = clean(fallback?.[1]);
+  }
+
+  return { specificationNumber };
+}
+
 function pick(fields: Record<string, string>, aliases: string[], suffix: number): string {
   const normalized = new Map(Object.entries(fields).map(([key, value]) => [normalize(key), clean(value)]));
   for (const alias of aliases) {
