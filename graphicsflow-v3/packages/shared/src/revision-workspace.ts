@@ -51,13 +51,18 @@ const onboardingRevisionSchema = z.object({
 });
 export const onboardPrintCardInputSchema = z.object({
   specificationNumber: z.string().trim().min(1).max(80),
-  gNumber: z.string().trim().min(1, 'G# is required.').max(80),
-  customerNumber: z.string().trim().min(1, 'Customer # is required.').max(80),
-  customerName: z.string().trim().min(1, 'Customer name is required.').max(160),
-  partNumber: z.string().trim().min(1, 'Part # is required.').max(160),
+  gNumber: z.string().trim().max(80).default(''),
+  customerNumber: z.string().trim().max(80).default(''),
+  customerName: z.string().trim().max(160).default(''),
+  partNumber: z.string().trim().max(160).default(''),
   designNumber: z.string().trim().max(80).default(''),
   liveRelativePath: z.string().trim().min(1).max(1000),
   revisions: z.array(onboardingRevisionSchema).min(1, 'Add at least one revision.').max(100),
+}).superRefine((value, context) => {
+  if (value.gNumber) return;
+  if (!value.customerNumber) context.addIssue({ code: z.ZodIssueCode.custom, path: ['customerNumber'], message: 'Customer # is required when creating a new G#.' });
+  if (!value.customerName) context.addIssue({ code: z.ZodIssueCode.custom, path: ['customerName'], message: 'Customer name is required when creating a new G#.' });
+  if (!value.partNumber) context.addIssue({ code: z.ZodIssueCode.custom, path: ['partNumber'], message: 'Part # is required when creating a new G#.' });
 });
 export const onboardPrintCardResponseSchema = z.object({ record: revisionWorkspaceRecordSchema });
 
