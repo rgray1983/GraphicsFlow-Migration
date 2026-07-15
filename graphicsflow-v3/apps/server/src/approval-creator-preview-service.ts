@@ -140,29 +140,45 @@ function approvalCheckboxes(input: ApprovalPreviewInput): Record<string, boolean
   };
 }
 
-export async function renderHccApprovalPreview(input: ApprovalPreviewInput): Promise<Buffer> {
+async function createFilledApprovalPdf(input: ApprovalPreviewInput, directory: string): Promise<string> {
   await access(templatePath, constants.R_OK).catch(() => {
     throw new Error(`The V3 HCC Approval template is missing: ${templatePath}`);
   });
 
-  const [pdftk, ghostscript] = await Promise.all([findPdftk(), findGhostscript()]);
+  const pdftk = await findPdftk();
   if (!pdftk) throw new Error('pdftk is required to fill the HCC Approval template.');
+
+  const fdfPath = join(directory, 'approval.fdf');
+  const filledPdfPath = join(directory, 'approval.pdf');
+  await writeFile(fdfPath, buildFdf(approvalFields(input), approvalCheckboxes(input)), 'utf8');
+  await execFileAsync(pdftk, [
+    templatePath,
+    'fill_form', fdfPath,
+    'output', filledPdfPath,
+    'need_appearances',
+  ], { timeout: 30000, maxBuffer: 10 * 1024 * 1024 });
+  return filledPdfPath;
+}
+
+export async function renderHccApprovalPdf(input: ApprovalPreviewInput): Promise<Buffer> {
+  const directory = await mkdtemp(join(tmpdir(), 'graphicsflow-approval-pdf-'));
+  try {
+    const filledPdfPath = await createFilledApprovalPdf(input, directory);
+    return await readFile(filledPdfPath);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+export async function renderHccApprovalPreview(input: ApprovalPreviewInput): Promise<Buffer> {
+  const ghostscript = await findGhostscript();
   if (!ghostscript) throw new Error('Ghostscript is required to render the Approval preview.');
 
   const directory = await mkdtemp(join(tmpdir(), 'graphicsflow-approval-preview-'));
-  const fdfPath = join(directory, 'approval.fdf');
-  const filledPdfPath = join(directory, 'approval.pdf');
   const previewPath = join(directory, 'approval.png');
 
   try {
-    await writeFile(fdfPath, buildFdf(approvalFields(input), approvalCheckboxes(input)), 'utf8');
-    await execFileAsync(pdftk, [
-      templatePath,
-      'fill_form', fdfPath,
-      'output', filledPdfPath,
-      'need_appearances',
-    ], { timeout: 30000, maxBuffer: 10 * 1024 * 1024 });
-
+    const filledPdfPath = await createFilledApprovalPdf(input, directory);
     await execFileAsync(ghostscript, [
       '-dSAFER', '-dBATCH', '-dNOPAUSE',
       '-dFirstPage=1', '-dLastPage=1',
