@@ -6,13 +6,13 @@ import {
   type GraphicFileMatch,
   type GraphicFilesResponse,
   type GraphicRecord,
-  type PreviewResponse,
   type RevisionDocumentType,
   type RevisionLookupResponse,
 } from '@graphicsflow/shared';
+import { ApprovalRevisionWorkspace } from '../components/ApprovalRevisionWorkspace';
 import { ApprovalViewer } from '../components/ApprovalViewer';
-import { DocumentCanvas } from '../components/DocumentCanvas';
 import { LoadingIndicator } from '../components/LoadingIndicator';
+import { PrintCardRevisionWorkspace } from '../components/PrintCardRevisionWorkspace';
 import { PrintCardViewer } from '../components/PrintCardViewer';
 import { UnregisteredPrintCardOnboarding } from '../components/UnregisteredPrintCardOnboarding';
 import './RevisionsPage.css';
@@ -24,16 +24,13 @@ async function lookup(type: RevisionDocumentType, identifier: string): Promise<R
   if (!response.ok) throw new Error('Revision history could not be searched.');
   return response.json() as Promise<RevisionLookupResponse>;
 }
+
 async function loadFiles(graphicId: number): Promise<GraphicFilesResponse> {
   const response = await fetch(`/api/graphics/${graphicId}/files`);
   if (!response.ok) throw new Error('Current document files could not be loaded.');
   return response.json() as Promise<GraphicFilesResponse>;
 }
-async function prepareApprovalPreview(graphicId: number, variant: 'medium' | 'large'): Promise<PreviewResponse> {
-  const response = await fetch(`/api/previews/${graphicId}/${variant}`);
-  if (!response.ok) throw new Error('The Approval preview could not be prepared.');
-  return response.json() as Promise<PreviewResponse>;
-}
+
 function displayDate(value: string | null): string {
   if (!value) return 'Date not recorded';
   const date = new Date(value);
@@ -48,11 +45,8 @@ export function RevisionsPage() {
   const [viewerFile, setViewerFile] = useState<GraphicFileMatch | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
   const [viewerError, setViewerError] = useState<string | null>(null);
-  const [highQuality, setHighQuality] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-  const [approvalPreviewReady, setApprovalPreviewReady] = useState(false);
-  const [selectedRevisionIndex, setSelectedRevisionIndex] = useState(-1);
+  const [selectedApprovalRevisionIndex, setSelectedApprovalRevisionIndex] = useState(-1);
+
   const query = useQuery({
     queryKey: ['revision-lookup', type, search],
     queryFn: () => lookup(type, search),
@@ -60,45 +54,65 @@ export function RevisionsPage() {
     retry: false,
     refetchOnWindowFocus: false,
   });
+
   const record = query.data?.record ?? null;
   const unregisteredPrintCard = query.data?.unregisteredPrintCard ?? null;
-  const selectedRevision = record && selectedRevisionIndex >= 0 ? record.journey[selectedRevisionIndex] ?? null : record?.currentRevision ?? null;
-  const submit = (event: FormEvent) => { event.preventDefault(); const next = input.trim(); if (next) setSearch(next); };
-  const changeType = (next: RevisionDocumentType) => { setType(next); setInput(''); setSearch(''); setViewerType(null); setViewerError(null); setPreviewError(null); setSelectedRevisionIndex(-1); };
+  const selectedApprovalRevision = record?.documentType === 'approval' && selectedApprovalRevisionIndex >= 0
+    ? record.journey[selectedApprovalRevisionIndex] ?? record.currentRevision
+    : record?.documentType === 'approval' ? record.currentRevision : null;
 
-  const viewerRecord: GraphicRecord | null = record ? {
-    id: record.graphicId, gNumber: record.gNumber, customerNumber: record.customerNumber, customerName: record.customerName,
-    specificationNumber: record.specificationNumber, partNumber: record.partNumber, previewImage: null, createdAt: null,
-    source: 'graphicsflow', canDelete: false,
-  } : null;
-
-  useEffect(() => { setHighQuality(false); setPreviewError(null); setApprovalPreviewReady(false); }, [record?.graphicId, record?.documentType]);
-  useEffect(() => {
-    if (!record) { setSelectedRevisionIndex(-1); return; }
-    const currentIndex = record.journey.findIndex((revision) => revision.isCurrent);
-    setSelectedRevisionIndex(currentIndex >= 0 ? currentIndex : record.journey.length - 1);
-  }, [record?.graphicId, record?.documentType, record?.journey.length]);
-  useEffect(() => {
-    if (!record || record.documentType !== 'approval') return;
-    let cancelled = false; setPreviewLoading(true); setPreviewError(null); setApprovalPreviewReady(false);
-    void prepareApprovalPreview(record.graphicId, highQuality ? 'large' : 'medium')
-      .then((preview) => { if (cancelled) return; if (preview.status !== 'ready') throw new Error(preview.message || 'The Approval preview is not available.'); setApprovalPreviewReady(true); })
-      .catch((reason) => { if (!cancelled) setPreviewError(reason instanceof Error ? reason.message : 'The Approval preview could not be loaded.'); })
-      .finally(() => { if (!cancelled) setPreviewLoading(false); });
-    return () => { cancelled = true; };
-  }, [record?.graphicId, record?.documentType, highQuality]);
-
-  const openCurrent = async () => {
-    if (!record || viewerLoading) return; setViewerLoading(true); setViewerError(null);
-    try { const files = await loadFiles(record.graphicId); setViewerFile(record.documentType === 'approval' ? files.approval.latest : files.printCard.latest); setViewerType(record.documentType); }
-    catch (reason) { setViewerError(reason instanceof Error ? reason.message : 'The current document could not be opened.'); }
-    finally { setViewerLoading(false); }
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const next = input.trim();
+    if (next) setSearch(next);
   };
 
-  const printCardParams = record?.documentType === 'printCard' ? new URLSearchParams({ specificationNumber: record.specificationNumber }).toString() : '';
-  const embeddedImageUrl = record?.documentType === 'approval'
-    ? `/api/previews/${record.graphicId}/${highQuality ? 'large' : 'medium'}/image`
-    : record ? `/api/graphics/${record.graphicId}/print-card.jpg?${printCardParams}` : '';
+  const changeType = (next: RevisionDocumentType) => {
+    setType(next);
+    setInput('');
+    setSearch('');
+    setViewerType(null);
+    setViewerError(null);
+    setSelectedApprovalRevisionIndex(-1);
+  };
+
+  const viewerRecord: GraphicRecord | null = record ? {
+    id: record.graphicId,
+    gNumber: record.gNumber,
+    customerNumber: record.customerNumber,
+    customerName: record.customerName,
+    specificationNumber: record.specificationNumber,
+    partNumber: record.partNumber,
+    previewImage: null,
+    createdAt: null,
+    source: 'graphicsflow',
+    canDelete: false,
+  } : null;
+
+  useEffect(() => {
+    setViewerError(null);
+    if (!record || record.documentType !== 'approval') {
+      setSelectedApprovalRevisionIndex(-1);
+      return;
+    }
+    const currentIndex = record.journey.findIndex((revision) => revision.isCurrent);
+    setSelectedApprovalRevisionIndex(currentIndex >= 0 ? currentIndex : record.journey.length - 1);
+  }, [record?.graphicId, record?.documentType, record?.journey.length]);
+
+  const openCurrent = async () => {
+    if (!record || viewerLoading) return;
+    setViewerLoading(true);
+    setViewerError(null);
+    try {
+      const files = await loadFiles(record.graphicId);
+      setViewerFile(record.documentType === 'approval' ? files.approval.latest : files.printCard.latest);
+      setViewerType(record.documentType);
+    } catch (reason) {
+      setViewerError(reason instanceof Error ? reason.message : 'The current document could not be opened.');
+    } finally {
+      setViewerLoading(false);
+    }
+  };
 
   return (
     <section className="revisions-page">
@@ -119,15 +133,18 @@ export function RevisionsPage() {
         <div className="revision-history-column">
           <section className="revision-record-hero"><div><span className="revision-document-label">{record.documentType === 'approval' ? 'Approval' : 'Print Card'}</span><div className="revision-record-identifiers"><h3>{record.documentType === 'approval' ? formatGNumber(record.gNumber) : formatSpecNumber(record.specificationNumber)}</h3>{record.documentType === 'printCard' && <span className="revision-linked-g-number">{formatGNumber(record.gNumber)}</span>}</div><p><strong>{record.customerName}</strong><span aria-hidden="true"> · </span><span>{record.partNumber}</span></p></div><div className="revision-current-summary"><span>Current revision</span><strong>{record.currentRevision?.revisionLabel || '—'}</strong><small>{record.currentRevision ? displayDate(record.currentRevision.revisionDate || record.currentRevision.createdAt) : 'Not recorded'}</small></div></section>
           <section className="revision-journey"><header><div><p className="eyebrow">Revision journey</p><h3>The life of this {record.documentType === 'approval' ? 'Approval' : 'Print Card'}</h3></div><span>{record.journey.length} revision{record.journey.length === 1 ? '' : 's'}</span></header>
-            {record.journey.length === 0 ? <div className="revision-journey-empty">No structured revisions have been recorded.</div> : <ol>{record.journey.map((revision, index) => <li className={`${revision.isCurrent ? 'is-current ' : ''}${selectedRevisionIndex === index ? 'is-selected' : ''}`.trim()} key={`${revision.id ?? 'legacy'}-${index}`}><div className="revision-node"><span>{revision.revisionLabel || index}</span></div><article><header><div><strong>Revision {revision.revisionLabel || index}</strong>{revision.isCurrent && <em>Current</em>}</div><time>{displayDate(revision.revisionDate || revision.createdAt)}</time></header><p>{revision.description || 'No change description was recorded.'}</p><footer><span>{revision.source === 'legacy-import' ? 'Legacy history' : 'GraphicsFlow'}</span><span>{[revision.csr, revision.designer].filter(Boolean).join(' · ') || 'Author not recorded'}</span><button aria-pressed={selectedRevisionIndex === index} onClick={() => setSelectedRevisionIndex(index)} type="button">{selectedRevisionIndex === index ? 'Selected' : 'View Revision'}</button></footer></article></li>)}</ol>}
+            {record.journey.length === 0 ? <div className="revision-journey-empty">No structured revisions have been recorded.</div> : <ol>{record.journey.map((revision, index) => {
+              const approvalSelected = record.documentType === 'approval' && selectedApprovalRevisionIndex === index;
+              return <li className={`${revision.isCurrent ? 'is-current ' : ''}${approvalSelected ? 'is-selected' : ''}`.trim()} key={`${revision.id ?? 'legacy'}-${index}`}><div className="revision-node"><span>{revision.revisionLabel || index}</span></div><article><header><div><strong>Revision {revision.revisionLabel || index}</strong>{revision.isCurrent && <em>Current</em>}</div><time>{displayDate(revision.revisionDate || revision.createdAt)}</time></header><p>{revision.description || 'No change description was recorded.'}</p><footer><span>{revision.source === 'legacy-import' ? 'Legacy history' : 'GraphicsFlow'}</span><span>{[revision.csr, revision.designer].filter(Boolean).join(' · ') || 'Author not recorded'}</span><button aria-pressed={approvalSelected || undefined} onClick={record.documentType === 'approval' ? () => setSelectedApprovalRevisionIndex(index) : undefined} type="button">{approvalSelected ? 'Selected' : 'View Revision'}</button></footer></article></li>;
+            })}</ol>}
           </section>
         </div>
-        <aside className="revision-document-workspace"><div className="revision-workspace-heading"><p className="eyebrow">Document workspace</p><h3>{selectedRevision ? `Revision ${selectedRevision.revisionLabel}` : 'Current document'}</h3><p>{selectedRevision?.description || 'The selected document revision is shown below.'}</p>{selectedRevision && !selectedRevision.isCurrent && <span className="revision-workspace-mode">Historical revision selected</span>}</div>
-          <div className="revision-embedded-viewer"><DocumentCanvas ariaLabel={`Selected ${record.documentType === 'approval' ? 'Approval' : 'Print Card'} viewer`} className="revision-document-stage" fitScale={1} isActive key={`${record.documentType}-${record.graphicId}-${selectedRevisionIndex}-${highQuality ? 'large' : 'medium'}`} renderAtLayoutScale={false} toolbarEnd={<>{record.documentType === 'approval' && <label className="revision-quality-toggle"><input checked={highQuality} onChange={(event) => setHighQuality(event.target.checked)} type="checkbox" /><span>High Quality</span></label>}<button disabled={viewerLoading} onClick={() => void openCurrent()} type="button">{viewerLoading ? 'Opening…' : 'Full Screen'}</button></>}><div className="revision-document-sheet">{previewLoading && <LoadingIndicator message="Preparing selected document…" size="panel" title="Loading Preview" />}{!previewLoading && previewError && <div className="revision-preview-message"><strong>Preview unavailable</strong><span>{previewError}</span></div>}{!previewLoading && !previewError && (record.documentType === 'printCard' || approvalPreviewReady) && <img alt={`Selected ${record.documentType === 'approval' ? 'Approval' : 'Print Card'}`} draggable={false} onError={() => setPreviewError('The selected document image could not be loaded.')} src={embeddedImageUrl} />}</div></DocumentCanvas></div>
-          {selectedRevision && !selectedRevision.isCurrent && <div className="revision-workspace-notice"><strong>Revision {selectedRevision.revisionLabel} metadata selected</strong><span>Historical PDF regeneration and revision-specific print/download actions will be connected inside this Document Workspace during PR 011.</span></div>}
-          {viewerError && <span className="revision-open-error">{viewerError}</span>}<div className="revision-primary-actions"><button className="primary" type="button">Create Revision</button><button type="button">Edit Revision Information</button></div>
-        </aside>
+
+        {record.documentType === 'printCard'
+          ? <PrintCardRevisionWorkspace record={record} viewerError={viewerError} viewerLoading={viewerLoading} onOpenCurrent={() => void openCurrent()} />
+          : <ApprovalRevisionWorkspace record={record} selectedRevision={selectedApprovalRevision} selectedRevisionIndex={selectedApprovalRevisionIndex} viewerError={viewerError} viewerLoading={viewerLoading} onOpenCurrent={() => void openCurrent()} />}
       </div></div>}
+
       {viewerRecord && <ApprovalViewer approval={viewerFile} isOpen={viewerType === 'approval'} onClose={() => setViewerType(null)} record={viewerRecord} />}
       {viewerRecord && <PrintCardViewer file={viewerFile} isOpen={viewerType === 'printCard'} onClose={() => setViewerType(null)} record={viewerRecord} />}
     </section>
