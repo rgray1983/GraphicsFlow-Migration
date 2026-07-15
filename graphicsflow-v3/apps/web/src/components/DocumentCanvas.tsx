@@ -43,6 +43,7 @@ export function DocumentCanvas({
   const [scale, setScale] = useState(fitScale);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(null);
   const pointersRef = useRef(new Map<number, ActivePointer>());
   const pinchRef = useRef<{ distance: number; scale: number } | null>(null);
@@ -78,15 +79,35 @@ export function DocumentCanvas({
   }, [isActive, onEscape, fitScale]);
 
   const clampScale = (value: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
-  const changeScale = (next: number) => {
+  const changeScale = (next: number, anchor?: { x: number; y: number }) => {
     const clamped = clampScale(next);
+    if (clamped === scale) return;
+
+    if (clamped <= fitScale) {
+      setScale(clamped);
+      setOffset({ x: 0, y: 0 });
+      return;
+    }
+
+    if (anchor) {
+      const ratio = clamped / scale;
+      setOffset({
+        x: anchor.x - (anchor.x - offset.x) * ratio,
+        y: anchor.y - (anchor.y - offset.y) * ratio,
+      });
+    }
+
     setScale(clamped);
-    if (clamped <= fitScale) setOffset({ x: 0, y: 0 });
   };
 
   const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
     event.preventDefault();
-    changeScale(scale + (event.deltaY < 0 ? SCALE_STEP : -SCALE_STEP));
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const anchor = {
+      x: event.clientX - bounds.left - bounds.width / 2,
+      y: event.clientY - bounds.top - bounds.height / 2,
+    };
+    changeScale(scale + (event.deltaY < 0 ? SCALE_STEP : -SCALE_STEP), anchor);
   };
 
   const beginDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -180,6 +201,7 @@ export function DocumentCanvas({
         onPointerMove={handlePointerMove}
         onPointerUp={stopPointer}
         onWheel={handleWheel}
+        ref={stageRef}
       >
         <div className="document-canvas-content" style={contentStyle}>
           {children}
