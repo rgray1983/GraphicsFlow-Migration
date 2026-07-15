@@ -1,18 +1,52 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { OnboardPrintCardInput, OnboardPrintCardResponse, UnregisteredPrintCard } from '@graphicsflow/shared';
 import { DocumentCanvas } from './DocumentCanvas';
 
 type RevisionDraft = OnboardPrintCardInput['revisions'][number];
+type FormDraft = Pick<OnboardPrintCardInput, 'gNumber' | 'customerNumber' | 'customerName' | 'partNumber' | 'designNumber'>;
+type SavedDraft = { form: FormDraft; revisions: RevisionDraft[] };
 type Props = { printCard: UnregisteredPrintCard; onCreated: () => void };
 
+const emptyForm = (): FormDraft => ({ gNumber: '', customerNumber: '', customerName: '', partNumber: '', designNumber: '' });
 const emptyRevision = (label = '0'): RevisionDraft => ({ revisionLabel: label, revisionDate: '', description: '', csr: '', designer: '' });
+const storageKey = (printCard: UnregisteredPrintCard) => `graphicsflow:print-card-onboarding:${printCard.specificationNumber}:${printCard.relativePath}`;
+
+function readSavedDraft(printCard: UnregisteredPrintCard): SavedDraft {
+  try {
+    const saved = window.sessionStorage.getItem(storageKey(printCard));
+    if (!saved) return { form: emptyForm(), revisions: [emptyRevision('0')] };
+    const parsed = JSON.parse(saved) as Partial<SavedDraft>;
+    const form = { ...emptyForm(), ...(parsed.form ?? {}) };
+    const revisions = Array.isArray(parsed.revisions) && parsed.revisions.length ? parsed.revisions : [emptyRevision('0')];
+    return { form, revisions };
+  } catch {
+    return { form: emptyForm(), revisions: [emptyRevision('0')] };
+  }
+}
 
 export function UnregisteredPrintCardOnboarding({ printCard, onCreated }: Props) {
-  const [form, setForm] = useState({ gNumber: '', customerNumber: '', customerName: '', partNumber: '', designNumber: '' });
-  const [revisions, setRevisions] = useState<RevisionDraft[]>([emptyRevision('0')]);
+  const initialDraft = useMemo(() => readSavedDraft(printCard), [printCard.specificationNumber, printCard.relativePath]);
+  const [form, setForm] = useState<FormDraft>(initialDraft.form);
+  const [revisions, setRevisions] = useState<RevisionDraft[]>(initialDraft.revisions);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const imageUrl = useMemo(() => `/api/revisions/unregistered-print-card?${new URLSearchParams({ relativePath: printCard.relativePath })}`, [printCard.relativePath]);
+  const draftStorageKey = useMemo(() => storageKey(printCard), [printCard.specificationNumber, printCard.relativePath]);
+
+  useEffect(() => {
+    const saved = readSavedDraft(printCard);
+    setForm(saved.form);
+    setRevisions(saved.revisions);
+    setError(null);
+  }, [printCard.specificationNumber, printCard.relativePath]);
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(draftStorageKey, JSON.stringify({ form, revisions } satisfies SavedDraft));
+    } catch {
+      // Draft persistence is a convenience; the form remains usable when browser storage is unavailable.
+    }
+  }, [draftStorageKey, form, revisions]);
 
   const updateRevision = (index: number, key: keyof RevisionDraft, value: string) => {
     setRevisions((current) => current.map((revision, position) => position === index ? { ...revision, [key]: value } : revision));
@@ -29,6 +63,7 @@ export function UnregisteredPrintCardOnboarding({ printCard, onCreated }: Props)
       const response = await fetch('/api/revisions/onboard-print-card', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const payload = await response.json() as OnboardPrintCardResponse | { error?: string };
       if (!response.ok) throw new Error('error' in payload && payload.error ? payload.error : 'The Print Card record could not be created.');
+      try { window.sessionStorage.removeItem(draftStorageKey); } catch { /* no-op */ }
       onCreated();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'The Print Card record could not be created.'); }
     finally { setSaving(false); }
