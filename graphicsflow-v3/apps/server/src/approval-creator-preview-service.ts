@@ -11,6 +11,14 @@ const execFileAsync = promisify(execFile);
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const templatePath = resolve(moduleDirectory, '../assets/approval-templates/HCC APPROVAL FORM-2026.pdf');
 
+// Artwork box from the original PHP Approval workflow, in PDF points.
+// PDF coordinates use a bottom-left origin; raster images use a top-left origin.
+const APPROVAL_PAGE_HEIGHT_POINTS = 612;
+const ARTWORK_LEFT_POINTS = 26;
+const ARTWORK_RIGHT_POINTS = 740;
+const ARTWORK_BOTTOM_POINTS = 150;
+const ARTWORK_TOP_POINTS = 385;
+
 export type ApprovalPreviewInput = {
   gNumber: string;
   customerNumber: string;
@@ -100,15 +108,34 @@ async function renderComposedPage(input: ApprovalPreviewInput, filledPdfPath: st
   const pagePath = join(directory, `approval-${dpi}.png`);
   await execFileAsync(gs, ['-dSAFER','-dBATCH','-dNOPAUSE','-dFirstPage=1','-dLastPage=1','-sDEVICE=png16m',`-r${dpi}`,'-dGraphicsAlphaBits=4','-dTextAlphaBits=4',`-sOutputFile=${pagePath}`,filledPdfPath], { timeout: 60000, maxBuffer: 30 * 1024 * 1024 });
   const art = await artworkPdf(input); if (!art) return pagePath;
+
   const artPdfPath = join(directory, 'artwork.pdf');
   const artPngPath = join(directory, `artwork-${dpi}.png`);
   const preparedArtPath = join(directory, `artwork-prepared-${dpi}.png`);
   const composedPagePath = join(directory, `approval-composed-${dpi}.png`);
   await writeFile(artPdfPath, art);
   await execFileAsync(gs, ['-dSAFER','-dBATCH','-dNOPAUSE','-dFirstPage=1','-dLastPage=1','-sDEVICE=png16m',`-r${dpi}`,'-dGraphicsAlphaBits=4','-dTextAlphaBits=4',`-sOutputFile=${artPngPath}`,artPdfPath], { timeout: 60000, maxBuffer: 30 * 1024 * 1024 });
+
   const magick = await findImageMagick(); if (!magick) throw new Error('ImageMagick is required to place artwork on the Approval.');
-  const scale = dpi / 180; const width = Math.round(1420 * scale); const height = Math.round(465 * scale); const x = Math.round(55 * scale); const y = Math.round(689 * scale);
-  await execFileAsync(magick, [artPngPath,'-background','white','-alpha','remove','-alpha','off','-resize',`${width}x${height}`,'-gravity','center','-extent',`${width}x${height}`,preparedArtPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+  const pixelsPerPoint = dpi / 72;
+  const width = Math.round((ARTWORK_RIGHT_POINTS - ARTWORK_LEFT_POINTS) * pixelsPerPoint);
+  const height = Math.round((ARTWORK_TOP_POINTS - ARTWORK_BOTTOM_POINTS) * pixelsPerPoint);
+  const x = Math.round(ARTWORK_LEFT_POINTS * pixelsPerPoint);
+  const y = Math.round((APPROVAL_PAGE_HEIGHT_POINTS - ARTWORK_TOP_POINTS) * pixelsPerPoint);
+
+  // Fill the original Approval artwork box from left to right. Preserve the
+  // artwork ratio, crop only the excess top/bottom, and center that crop.
+  await execFileAsync(magick, [
+    artPngPath,
+    '-background', 'white',
+    '-alpha', 'remove',
+    '-alpha', 'off',
+    '-resize', `${width}x${height}^`,
+    '-gravity', 'center',
+    '-extent', `${width}x${height}`,
+    preparedArtPath,
+  ], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+
   await execFileAsync(magick, [pagePath, preparedArtPath, '-geometry', `+${x}+${y}`, '-composite', composedPagePath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
   return composedPagePath;
 }
