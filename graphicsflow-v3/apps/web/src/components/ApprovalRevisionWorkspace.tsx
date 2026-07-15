@@ -1,6 +1,7 @@
 import type { PreviewResponse, RevisionJourneyEntry, RevisionLookupResponse } from '@graphicsflow/shared';
 import { useEffect, useState } from 'react';
 import { ApprovalRevisionEditModal } from './ApprovalRevisionEditModal';
+import { ApprovalRevisionRegenerateModal } from './ApprovalRevisionRegenerateModal';
 import { DocumentCanvas } from './DocumentCanvas';
 import { LoadingIndicator } from './LoadingIndicator';
 
@@ -22,45 +23,29 @@ async function prepareApprovalPreview(graphicId: number, variant: 'medium' | 'la
   return response.json() as Promise<PreviewResponse>;
 }
 
-export function ApprovalRevisionWorkspace({
-  record,
-  selectedRevision,
-  selectedRevisionIndex,
-  viewerLoading,
-  viewerError,
-  onOpenCurrent,
-  onRevisionSaved,
-}: ApprovalRevisionWorkspaceProps) {
+export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRevisionIndex, viewerLoading, viewerError, onOpenCurrent, onRevisionSaved }: ApprovalRevisionWorkspaceProps) {
   const [highQuality, setHighQuality] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewReady, setPreviewReady] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
 
   useEffect(() => {
-    setHighQuality(false);
-    setPreviewError(null);
-    setPreviewReady(false);
-    setEditOpen(false);
+    setHighQuality(false); setPreviewError(null); setPreviewReady(false); setEditOpen(false); setRegenerateOpen(false);
   }, [record.graphicId]);
 
   useEffect(() => {
     let cancelled = false;
-    setPreviewLoading(true);
-    setPreviewError(null);
-    setPreviewReady(false);
+    setPreviewLoading(true); setPreviewError(null); setPreviewReady(false);
     void prepareApprovalPreview(record.graphicId, highQuality ? 'large' : 'medium')
       .then((preview) => {
         if (cancelled) return;
         if (preview.status !== 'ready') throw new Error(preview.message || 'The Approval preview is not available.');
         setPreviewReady(true);
       })
-      .catch((reason: unknown) => {
-        if (!cancelled) setPreviewError(reason instanceof Error ? reason.message : 'The Approval preview could not be loaded.');
-      })
-      .finally(() => {
-        if (!cancelled) setPreviewLoading(false);
-      });
+      .catch((reason: unknown) => { if (!cancelled) setPreviewError(reason instanceof Error ? reason.message : 'The Approval preview could not be loaded.'); })
+      .finally(() => { if (!cancelled) setPreviewLoading(false); });
     return () => { cancelled = true; };
   }, [record.graphicId, highQuality, selectedRevisionIndex]);
 
@@ -77,17 +62,8 @@ export function ApprovalRevisionWorkspace({
           <p>{selectedRevision?.description || 'The selected Approval revision is shown below.'}</p>
           {isHistorical && <span className="revision-workspace-mode">Historical revision selected</span>}
         </div>
-
         <div className="revision-embedded-viewer">
-          <DocumentCanvas
-            ariaLabel="Selected Approval viewer"
-            className="revision-document-stage"
-            fitScale={1}
-            isActive
-            key={`approval-${record.graphicId}-${selectedRevisionIndex}-${highQuality ? 'large' : 'medium'}`}
-            renderAtLayoutScale={false}
-            toolbarEnd={<><label className="revision-quality-toggle"><input checked={highQuality} onChange={(event) => setHighQuality(event.target.checked)} type="checkbox" /><span>High Quality</span></label><button disabled={viewerLoading} onClick={onOpenCurrent} type="button">{viewerLoading ? 'Opening…' : 'Full Screen'}</button></>}
-          >
+          <DocumentCanvas ariaLabel="Selected Approval viewer" className="revision-document-stage" fitScale={1} isActive key={`approval-${record.graphicId}-${selectedRevisionIndex}-${highQuality ? 'large' : 'medium'}`} renderAtLayoutScale={false} toolbarEnd={<><label className="revision-quality-toggle"><input checked={highQuality} onChange={(event) => setHighQuality(event.target.checked)} type="checkbox" /><span>High Quality</span></label><button disabled={viewerLoading} onClick={onOpenCurrent} type="button">{viewerLoading ? 'Opening…' : 'Full Screen'}</button></>}>
             <div className="revision-document-sheet">
               {previewLoading && <LoadingIndicator message="Preparing selected Approval…" size="panel" title="Loading Preview" />}
               {!previewLoading && previewError && <div className="revision-preview-message"><strong>Preview unavailable</strong><span>{previewError}</span></div>}
@@ -95,22 +71,16 @@ export function ApprovalRevisionWorkspace({
             </div>
           </DocumentCanvas>
         </div>
-
-        {isHistorical && <div className="revision-workspace-notice"><strong>Revision {selectedRevision?.revisionLabel} selected</strong><span>This revision is now stored in the V3 revision database. Editing changes the V3 copy only and never writes back to the PHP database.</span></div>}
+        {isHistorical && <div className="revision-workspace-notice"><strong>Revision {selectedRevision?.revisionLabel} selected</strong><span>This revision is stored in V3. Edit its metadata or regenerate a fresh temporary PDF without changing the PHP database or live Approval server.</span></div>}
         {viewerError && <span className="revision-open-error">{viewerError}</span>}
         <div className="revision-primary-actions">
           <button className="primary" type="button">Create Revision</button>
-          <button disabled={!selectedRevisionId} onClick={() => setEditOpen(true)} type="button">Edit Revision Information</button>
+          <button disabled={!selectedRevisionId} onClick={() => setEditOpen(true)} type="button">Edit Revision</button>
+          <button disabled={!selectedRevisionId} onClick={() => setRegenerateOpen(true)} type="button">Regenerate Approval</button>
         </div>
       </aside>
-
-      <ApprovalRevisionEditModal
-        graphicId={record.graphicId}
-        isOpen={editOpen}
-        onClose={() => setEditOpen(false)}
-        onSaved={onRevisionSaved}
-        revisionId={selectedRevisionId}
-      />
+      <ApprovalRevisionEditModal graphicId={record.graphicId} isOpen={editOpen} onClose={() => setEditOpen(false)} onSaved={onRevisionSaved} revisionId={selectedRevisionId} />
+      <ApprovalRevisionRegenerateModal graphicId={record.graphicId} isOpen={regenerateOpen} onClose={() => setRegenerateOpen(false)} revisionId={selectedRevisionId} revisionLabel={selectedRevision?.revisionLabel ?? ''} />
     </>
   );
 }
