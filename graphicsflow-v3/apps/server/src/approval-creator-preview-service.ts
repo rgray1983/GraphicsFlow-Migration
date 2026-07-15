@@ -11,13 +11,17 @@ const execFileAsync = promisify(execFile);
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const templatePath = resolve(moduleDirectory, '../assets/approval-templates/HCC APPROVAL FORM-2026.pdf');
 
-// Artwork box from the original PHP Approval workflow, in PDF points.
-// PDF coordinates use a bottom-left origin; raster images use a top-left origin.
-const APPROVAL_PAGE_HEIGHT_POINTS = 612;
-const ARTWORK_LEFT_POINTS = 26;
-const ARTWORK_RIGHT_POINTS = 740;
-const ARTWORK_BOTTOM_POINTS = 150;
-const ARTWORK_TOP_POINTS = 385;
+// Exact HCC Approval artwork area supplied from the production template:
+// 10 in wide × 5.75 in tall, centered horizontally on an 11 in page,
+// with the top edge 1.25 in from the top of the 8.5 in page.
+const POINTS_PER_INCH = 72;
+const APPROVAL_PAGE_WIDTH_POINTS = 11 * POINTS_PER_INCH;
+const APPROVAL_PAGE_HEIGHT_POINTS = 8.5 * POINTS_PER_INCH;
+const ARTWORK_WIDTH_POINTS = 10 * POINTS_PER_INCH;
+const ARTWORK_HEIGHT_POINTS = 5.75 * POINTS_PER_INCH;
+const ARTWORK_LEFT_POINTS = (APPROVAL_PAGE_WIDTH_POINTS - ARTWORK_WIDTH_POINTS) / 2;
+const ARTWORK_TOP_OFFSET_POINTS = 1.25 * POINTS_PER_INCH;
+const ARTWORK_SOURCE_DPI = 600;
 
 export type ApprovalPreviewInput = {
   gNumber: string;
@@ -110,33 +114,35 @@ async function renderComposedPage(input: ApprovalPreviewInput, filledPdfPath: st
   const art = await artworkPdf(input); if (!art) return pagePath;
 
   const artPdfPath = join(directory, 'artwork.pdf');
-  const artPngPath = join(directory, `artwork-${dpi}.png`);
+  const artPngPath = join(directory, `artwork-${ARTWORK_SOURCE_DPI}.png`);
   const preparedArtPath = join(directory, `artwork-prepared-${dpi}.png`);
   const composedPagePath = join(directory, `approval-composed-${dpi}.png`);
   await writeFile(artPdfPath, art);
-  await execFileAsync(gs, ['-dSAFER','-dBATCH','-dNOPAUSE','-dFirstPage=1','-dLastPage=1','-sDEVICE=png16m',`-r${dpi}`,'-dGraphicsAlphaBits=4','-dTextAlphaBits=4',`-sOutputFile=${artPngPath}`,artPdfPath], { timeout: 60000, maxBuffer: 30 * 1024 * 1024 });
+
+  // Render directly from the source PDF at high resolution so linework and type stay crisp.
+  await execFileAsync(gs, ['-dSAFER','-dBATCH','-dNOPAUSE','-dFirstPage=1','-dLastPage=1','-sDEVICE=png16m',`-r${ARTWORK_SOURCE_DPI}`,'-dGraphicsAlphaBits=4','-dTextAlphaBits=4',`-sOutputFile=${artPngPath}`,artPdfPath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
 
   const magick = await findImageMagick(); if (!magick) throw new Error('ImageMagick is required to place artwork on the Approval.');
-  const pixelsPerPoint = dpi / 72;
-  const width = Math.round((ARTWORK_RIGHT_POINTS - ARTWORK_LEFT_POINTS) * pixelsPerPoint);
-  const height = Math.round((ARTWORK_TOP_POINTS - ARTWORK_BOTTOM_POINTS) * pixelsPerPoint);
+  const pixelsPerPoint = dpi / POINTS_PER_INCH;
+  const width = Math.round(ARTWORK_WIDTH_POINTS * pixelsPerPoint);
+  const height = Math.round(ARTWORK_HEIGHT_POINTS * pixelsPerPoint);
   const x = Math.round(ARTWORK_LEFT_POINTS * pixelsPerPoint);
-  const y = Math.round((APPROVAL_PAGE_HEIGHT_POINTS - ARTWORK_TOP_POINTS) * pixelsPerPoint);
+  const y = Math.round(ARTWORK_TOP_OFFSET_POINTS * pixelsPerPoint);
 
-  // Fit the complete artwork inside the Approval artwork box. Never crop artwork.
-  // Any remaining space is white, with the artwork centered horizontally and vertically.
+  // Preserve the complete PDF page. Scale it proportionally to fit inside the
+  // exact 10 × 5.75 in artwork area, then center it vertically and horizontally.
+  // The transparent extent only establishes positioning; it does not crop the art
+  // or add a white border to the source artwork.
   await execFileAsync(magick, [
     artPngPath,
-    '-background', 'white',
-    '-alpha', 'remove',
-    '-alpha', 'off',
     '-resize', `${width}x${height}`,
+    '-background', 'none',
     '-gravity', 'center',
     '-extent', `${width}x${height}`,
     preparedArtPath,
-  ], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+  ], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
 
-  await execFileAsync(magick, [pagePath, preparedArtPath, '-geometry', `+${x}+${y}`, '-composite', composedPagePath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+  await execFileAsync(magick, [pagePath, preparedArtPath, '-geometry', `+${x}+${y}`, '-composite', composedPagePath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
   return composedPagePath;
 }
 
@@ -148,7 +154,7 @@ export async function renderHccApprovalPdf(input: ApprovalPreviewInput): Promise
     const pagePath = await renderComposedPage(input, filledPdfPath, directory, 300);
     const outputPath = join(directory, 'approval-complete.pdf'); const magick = await findImageMagick();
     if (!magick) throw new Error('ImageMagick is required to create the finished Approval PDF.');
-    await execFileAsync(magick, [pagePath,'-units','PixelsPerInch','-density','300',outputPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+    await execFileAsync(magick, [pagePath,'-units','PixelsPerInch','-density','300',outputPath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
     return await readFile(outputPath);
   } finally { await rm(directory, { recursive: true, force: true }); }
 }
