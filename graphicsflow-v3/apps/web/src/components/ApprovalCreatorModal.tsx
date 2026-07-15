@@ -4,6 +4,7 @@ import { DocumentCanvas } from './DocumentCanvas';
 import { LoadingIndicator } from './LoadingIndicator';
 import { Modal } from './Modal';
 import './ApprovalCreatorModal.css';
+import './ApprovalSuccessDialog.css';
 
 type ApprovalDraft = {
   specificationNumber: string; designNumber: string; fluteTest: string; salesRep: string;
@@ -111,7 +112,6 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
           </form>
           <aside className="approval-creator-preview"><DocumentCanvas ariaLabel={`${formatGNumber(record.gNumber)} Approval preview`} fitScale={1} isActive={isOpen} key={`${record.id}-${previewUrl}`} renderAtLayoutScale={false} toolbarEnd={<button disabled={!previewUrl || previewLoading || saving} onClick={saveApproval} type="button">{saving ? 'Saving…' : 'Save Approval'}</button>}><div className="approval-sheet-preview">{previewLoading ? <LoadingIndicator message="Filling HCC APPROVAL FORM-2026.pdf and rendering a temporary preview…" size="viewer" title="Generating Approval Preview" /> : previewUrl ? <img alt={`${formatGNumber(record.gNumber)} HCC Approval preview`} className="approval-template-preview-image" draggable={false} src={previewUrl} /> : <div className="approval-preview-prompt"><strong>Preview not generated</strong><span>Complete the information and choose Generate Preview.</span></div>}</div></DocumentCanvas></aside>
         </div>
-
         {savedApproval && <div className="approval-success-backdrop" role="presentation"><section aria-labelledby="approval-success-title" aria-modal="true" className="approval-success-dialog" role="dialog">
           <div className="approval-success-mark" aria-hidden="true">✓</div><p className="eyebrow">Approval saved</p><h3 id="approval-success-title">{formatGNumber(record.gNumber)} · Revision {savedApproval.revisionLabel}</h3>
           <p>The finished PDF and revision information are safely stored in GraphicsFlow. Print or download the Approval before closing.</p>
