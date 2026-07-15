@@ -68,54 +68,44 @@ export function CreateGraphicModal({ isOpen, onClose, onCreated }: CreateGraphic
 
   return (
     <Modal isOpen={isOpen} onClose={requestClose} title="Create G#">
-      <form className="creator-form" onSubmit={handleSubmit}>
-        <div className="creator-intro">
-          <p className="eyebrow">New graphics record</p>
-          <h3>Start a new G#</h3>
-          <p>GraphicsFlow will assign the next available G# using the identifier configured in Company Settings.</p>
+      <form className="create-graphic-modal-form" onSubmit={handleSubmit}>
+        <header className="create-graphic-modal-intro">
+          <div className="create-graphic-modal-icon" aria-hidden="true">G#</div>
+          <div>
+            <p className="eyebrow">New graphics record</p>
+            <h3>Start a new G#</h3>
+            <p>Enter the core job information below. GraphicsFlow will assign the next available G# automatically.</p>
+          </div>
+        </header>
+
+        <div className="create-graphic-modal-note">
+          <span>Automatic identifier</span>
+          <strong>Next G# from Company Settings</strong>
         </div>
 
-        <div className="creator-fields">
+        <div className="create-graphic-modal-fields">
           <label>
             <span>Customer #</span>
-            <input
-              autoFocus
-              disabled={submitting}
-              maxLength={80}
-              onChange={(event) => updateField('customerNumber', event.target.value)}
-              required
-              value={form.customerNumber}
-            />
+            <input autoFocus disabled={submitting} maxLength={80} onChange={(event) => updateField('customerNumber', event.target.value)} placeholder="Enter customer number" required value={form.customerNumber} />
           </label>
           <label>
             <span>Customer Name</span>
-            <input
-              disabled={submitting}
-              maxLength={160}
-              onChange={(event) => updateField('customerName', event.target.value)}
-              required
-              value={form.customerName}
-            />
+            <input disabled={submitting} maxLength={160} onChange={(event) => updateField('customerName', event.target.value)} placeholder="Enter customer name" required value={form.customerName} />
           </label>
-          <label>
+          <label className="create-graphic-modal-wide">
             <span>Part #</span>
-            <input
-              disabled={submitting}
-              maxLength={160}
-              onChange={(event) => updateField('partNumber', event.target.value)}
-              required
-              value={form.partNumber}
-            />
+            <input disabled={submitting} maxLength={160} onChange={(event) => updateField('partNumber', event.target.value)} placeholder="Enter part number" required value={form.partNumber} />
           </label>
         </div>
 
         {error && <div className="creator-message is-error" role="alert">{error}</div>}
 
-        <footer className="creator-actions">
-          <button className="creator-secondary" disabled={submitting} onClick={requestClose} type="button">Cancel</button>
-          <button className="creator-primary" disabled={submitting} type="submit">
-            {submitting ? 'Creating G#…' : 'Create G#'}
-          </button>
+        <footer className="create-graphic-modal-actions">
+          <span>All fields are required.</span>
+          <div>
+            <button className="creator-secondary" disabled={submitting} onClick={requestClose} type="button">Cancel</button>
+            <button className="creator-primary" disabled={submitting} type="submit">{submitting ? 'Creating G#…' : 'Create G#'}</button>
+          </div>
         </footer>
       </form>
     </Modal>

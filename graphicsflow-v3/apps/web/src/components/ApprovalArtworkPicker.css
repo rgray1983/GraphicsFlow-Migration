@@ -1,0 +1,25 @@
+.approval-artwork-section { display: grid; gap: 9px; padding: 11px; border: 1px solid rgba(148,163,184,.12); border-radius: 10px; background: rgba(15,23,42,.34); }
+.approval-artwork-section > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.approval-artwork-section h4 { margin: 2px 0 0; color: #dbe7f2; font-size: 12px; }
+.approval-artwork-state { flex: 0 0 auto; padding: 5px 8px; border: 1px solid rgba(248,113,113,.2); border-radius: 999px; color: #fca5a5; background: rgba(127,29,29,.12); font-size: 7px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.approval-artwork-state.is-ready { border-color: rgba(45,212,191,.24); color: #99f6e4; background: rgba(20,184,166,.08); }
+.approval-artwork-loading { color: #718096; font-size: 9px; }
+.approval-artwork-matches { display: grid; gap: 7px; }
+.approval-artwork-matches > strong { color: #94a3b8; font-size: 9px; font-weight: 650; }
+.approval-artwork-list { display: grid; gap: 6px; max-height: 118px; overflow-y: auto; }
+.approval-artwork-list button { min-height: 0; display: grid; grid-template-columns: 18px minmax(0,1fr); gap: 2px 7px; padding: 8px 9px; border: 1px solid rgba(148,163,184,.12); border-radius: 8px; color: #cbd5e1; background: rgba(8,15,28,.64); text-align: left; }
+.approval-artwork-list button:hover { border-color: rgba(45,212,191,.3); background: rgba(20,184,166,.06); }
+.approval-artwork-list button.is-selected { border-color: rgba(45,212,191,.5); background: rgba(20,184,166,.1); box-shadow: 0 0 0 2px rgba(20,184,166,.06); }
+.approval-artwork-list button > span { grid-row: 1 / 3; color: #2dd4bf; font-weight: 900; }
+.approval-artwork-list button b { overflow: hidden; color: #e2e8f0; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.approval-artwork-list button small { overflow: hidden; color: #64748b; font-size: 7px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.approval-artwork-upload { position: relative; display: flex !important; align-items: center; min-height: 48px; padding: 9px 11px; border: 1px dashed rgba(45,212,191,.24); border-radius: 8px; color: #cbd5e1 !important; background: rgba(20,184,166,.035); cursor: pointer; text-transform: none !important; }
+.approval-artwork-upload:hover { border-color: rgba(45,212,191,.45); background: rgba(20,184,166,.07); }
+.approval-artwork-upload input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.approval-artwork-upload > span { display: grid; gap: 3px; }
+.approval-artwork-upload strong { color: #ccfbf1; font-size: 9px; }
+.approval-artwork-upload small { color: #64748b; font-size: 8px; font-weight: 600; }
+@media (max-height: 900px) and (min-width: 821px) {
+  .approval-artwork-list { max-height: 82px; }
+  .approval-artwork-section { padding: 9px; gap: 7px; }
+}

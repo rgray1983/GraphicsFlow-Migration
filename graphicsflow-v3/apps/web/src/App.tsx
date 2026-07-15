@@ -1,4 +1,5 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
+import type { FormEvent } from 'react';
 import { GraphicsPage } from './pages/GraphicsPage';
 import { RevisionsPage } from './pages/RevisionsPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -6,9 +7,7 @@ import { SettingsPage } from './pages/SettingsPage';
 const navigation = [
   ['/', 'Dashboard'],
   ['/graphics', 'Graphics'],
-  ['/approvals', 'Approvals'],
   ['/vendor-art', 'Vendor Art'],
-  ['/print-cards', 'Print Cards'],
   ['/revisions', 'Revisions'],
   ['/reports', 'Reports'],
   ['/settings', 'Company Settings'],
@@ -39,9 +38,36 @@ function Dashboard() {
   );
 }
 
+function isNoteField(element: HTMLInputElement | HTMLTextAreaElement): boolean {
+  if (element.dataset.noteField === 'true') return true;
+  const identity = [
+    element.name,
+    element.id,
+    element.getAttribute('aria-label') ?? '',
+    element.getAttribute('placeholder') ?? '',
+  ].join(' ').toLowerCase();
+  return /(^|\s|[-_])(note|notes)(\s|$|[-_])/.test(identity);
+}
+
+function enforceUppercaseText(event: FormEvent<HTMLDivElement>) {
+  const element = event.target;
+  if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return;
+  if (isNoteField(element)) return;
+  if (element instanceof HTMLInputElement && !['text', 'search', 'url', 'tel'].includes(element.type)) return;
+
+  const uppercased = element.value.toUpperCase();
+  if (uppercased === element.value) return;
+  const selectionStart = element.selectionStart;
+  const selectionEnd = element.selectionEnd;
+  element.value = uppercased;
+  if (selectionStart !== null && selectionEnd !== null) {
+    element.setSelectionRange(selectionStart, selectionEnd);
+  }
+}
+
 export function App() {
   return (
-    <div className="app-shell">
+    <div className="app-shell" onInputCapture={enforceUppercaseText}>
       <aside className="sidebar">
         <div className="brand-mark">GF</div>
         <div><p className="brand-name">GraphicsFlow</p><p className="brand-version">Version 3</p></div>
@@ -61,7 +87,7 @@ export function App() {
           <Route path="/graphics" element={<GraphicsPage />} />
           <Route path="/revisions" element={<RevisionsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          {navigation.filter(([path]) => ['/approvals', '/vendor-art', '/print-cards', '/reports'].includes(path)).map(([path, title]) => (
+          {navigation.filter(([path]) => ['/vendor-art', '/reports'].includes(path)).map(([path, title]) => (
             <Route key={path} path={path} element={<PlaceholderPage title={title} />} />
           ))}
         </Routes>

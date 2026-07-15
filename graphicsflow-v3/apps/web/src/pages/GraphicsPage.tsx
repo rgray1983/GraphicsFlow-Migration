@@ -10,6 +10,7 @@ import {
   type SortDirection,
 } from '@graphicsflow/shared';
 import { useEffect, useState } from 'react';
+import { ApprovalCreatorModal } from '../components/ApprovalCreatorModal';
 import { CreateGraphicModal } from '../components/CreateGraphicModal';
 import { GraphicsRecordInspector } from '../components/GraphicsRecordInspector';
 import { LoadingIndicator } from '../components/LoadingIndicator';
@@ -48,6 +49,7 @@ export function GraphicsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedRecord, setSelectedRecord] = useState<GraphicRecord | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [approvalOpen, setApprovalOpen] = useState(false);
   const [printCardOpen, setPrintCardOpen] = useState(false);
   const [generatedViewerOpen, setGeneratedViewerOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
@@ -93,6 +95,7 @@ export function GraphicsPage() {
   const handleDeleted = async ({ deletedGNumber }: DeleteGraphicResponse) => {
     setSelectedRecord(null);
     setNewlyCreatedId(null);
+    setApprovalOpen(false);
     setGeneratedViewerOpen(false);
     setNotification(`${formatGNumber(deletedGNumber)} was deleted from the V3 database.`);
     await queryClient.invalidateQueries({ queryKey: ['graphics'] });
@@ -105,6 +108,7 @@ export function GraphicsPage() {
       <div className="graphics-toolbar">
         <label className="search-field"><span className="sr-only">Search graphics records</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" /></svg><input autoComplete="off" onChange={(event) => setSearchInput(event.target.value)} placeholder="Search G#, customer number, customer name, or part number…" type="search" value={searchInput} />{searchInput && <button aria-label="Clear search" onClick={() => setSearchInput('')} type="button">Clear</button>}</label>
         <button className="create-graphic-button" onClick={() => setCreateOpen(true)} type="button"><span aria-hidden="true">＋</span>Create G#</button>
+        <button className="create-approval-button" disabled={!selectedRecord} onClick={() => setApprovalOpen(true)} title={selectedRecord ? `Create Approval for ${formatGNumber(selectedRecord.gNumber)}` : 'Select a G# first'} type="button">Create Approval</button>
         <button className="create-print-card-button" disabled={!selectedRecord} onClick={() => setPrintCardOpen(true)} title={selectedRecord ? `Create Print Card for ${formatGNumber(selectedRecord.gNumber)}` : 'Select a G# first'} type="button">Create Print Card</button>
       </div>
       <div className="graphics-workspace"><div className="graphics-table-card">
@@ -115,6 +119,7 @@ export function GraphicsPage() {
       </div><GraphicsRecordInspector isOpen={drawerOpen} onClose={() => setSelectedRecord(null)} onCreatePrintCard={() => setPrintCardOpen(true)} onDeleted={handleDeleted} record={selectedRecord} /></div>
       {!graphicsQuery.isPending && !graphicsQuery.isError && records.length < total && <p className="result-note">Showing the first {records.length.toLocaleString()} of {total.toLocaleString()} records in the selected sort order.</p>}
       <CreateGraphicModal isOpen={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleCreated} />
+      <ApprovalCreatorModal isOpen={approvalOpen} onClose={() => setApprovalOpen(false)} record={selectedRecord} />
       <PrintCardCreatorModal isOpen={printCardOpen} onClose={() => setPrintCardOpen(false)} onCreated={handlePrintCardCreated} record={selectedRecord} />
       {selectedRecord && <PrintCardViewer file={null} isOpen={generatedViewerOpen} onClose={() => setGeneratedViewerOpen(false)} record={selectedRecord} />}
     </section>
