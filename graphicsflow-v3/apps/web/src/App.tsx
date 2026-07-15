@@ -1,4 +1,5 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
+import { ApprovalCreatorPage } from './pages/ApprovalCreatorPage';
 import { GraphicsPage } from './pages/GraphicsPage';
 import { RevisionsPage } from './pages/RevisionsPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -59,9 +60,10 @@ export function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/graphics" element={<GraphicsPage />} />
+          <Route path="/approvals" element={<ApprovalCreatorPage />} />
           <Route path="/revisions" element={<RevisionsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          {navigation.filter(([path]) => ['/approvals', '/vendor-art', '/print-cards', '/reports'].includes(path)).map(([path, title]) => (
+          {navigation.filter(([path]) => ['/vendor-art', '/print-cards', '/reports'].includes(path)).map(([path, title]) => (
             <Route key={path} path={path} element={<PlaceholderPage title={title} />} />
           ))}
         </Routes>
