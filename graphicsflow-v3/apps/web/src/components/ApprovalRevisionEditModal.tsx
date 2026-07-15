@@ -42,6 +42,7 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
   const [draft, setDraft] = useState<ApprovalRevisionUpdate>(emptyDraft);
   const [mode, setMode] = useState<Mode>('information');
   const [matches, setMatches] = useState<PrintCardArtworkMatch[]>([]);
+  const [artworkChanged, setArtworkChanged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fileLoading, setFileLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -50,7 +51,7 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
   useEffect(() => {
     if (!isOpen || !revisionId) return;
     let cancelled = false;
-    setMode('information'); setLoading(true); setError(null); setDetail(null); setMatches([]); setDraft(emptyDraft);
+    setMode('information'); setArtworkChanged(false); setLoading(true); setError(null); setDetail(null); setMatches([]); setDraft(emptyDraft);
     void Promise.all([
       fetch(`/api/graphics/${graphicId}/approval/revisions/${revisionId}`).then(async (response) => {
         const body = await response.json().catch(() => null) as ApprovalRevisionDetailResponse | { error?: string } | null;
@@ -83,6 +84,7 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
 
   const selectArtwork = (match: PrintCardArtworkMatch) => {
     setDraft((current) => ({ ...current, artworkName: match.name, artworkRelativePath: match.relativePath, artworkPdfBase64: '' }));
+    setArtworkChanged(true);
     setError(null);
   };
 
@@ -97,6 +99,7 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
     try {
       const base64 = await fileToBase64(file);
       setDraft((current) => ({ ...current, artworkName: file.name, artworkRelativePath: '', artworkPdfBase64: base64 }));
+      setArtworkChanged(true);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The artwork PDF could not be read.');
     } finally {
@@ -124,8 +127,6 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
       setSaving(false);
     }
   };
-
-  const replacementSelected = Boolean(draft.artworkRelativePath || draft.artworkPdfBase64);
 
   return (
     <Modal isOpen={isOpen} onClose={saving || fileLoading ? () => undefined : onClose} title={`Edit Approval Revision${detail ? ` · ${detail.revisionLabel}` : ''}`}>
@@ -161,17 +162,17 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
             </div> : <div className="approval-artwork-workflow">
               <section className="approval-artwork-current-section"><header><span>01</span><div><h3>Current Artwork</h3><p>This is the PDF currently connected to Revision {detail.revisionLabel}.</p></div></header><div className="approval-artwork-current"><span>Currently connected</span><strong>{detail.artworkName || 'No artwork file connected'}</strong><small>{detail.artworkRelativePath || 'No saved artwork path is available.'}</small></div></section>
               <section className="approval-artwork-select-section"><header><span>02</span><div><h3>Select Replacement Artwork</h3><p>Choose one live G# PDF below or upload a replacement PDF. The selected file becomes the artwork source for this revision.</p></div></header>
-                <div className={`approval-artwork-selection-status${replacementSelected ? ' is-ready' : ''}`}><strong>{replacementSelected ? 'Replacement selected' : 'Replacement required'}</strong><span>{replacementSelected ? draft.artworkName : 'Select a live PDF or upload one before saving.'}</span></div>
+                <div className={`approval-artwork-selection-status${artworkChanged ? ' is-ready' : ''}`}><strong>{artworkChanged ? 'Replacement selected' : 'Replacement required'}</strong><span>{artworkChanged ? draft.artworkName : 'Select a live PDF or upload one before saving.'}</span></div>
                 <div className="approval-artwork-source-group"><div><span className="approval-artwork-source-kicker">Available Artwork PDFs</span><p>Files from the configured read-only G# artwork folder.</p></div><div className="approval-artwork-list" role="listbox" aria-label="Available replacement artwork PDFs">{matches.length ? matches.map((match) => {
-                  const selected = !draft.artworkPdfBase64 && draft.artworkRelativePath === match.relativePath;
+                  const selected = artworkChanged && !draft.artworkPdfBase64 && draft.artworkRelativePath === match.relativePath;
                   return <button aria-selected={selected} className={selected ? 'selected' : ''} key={match.relativePath} onClick={() => selectArtwork(match)} role="option" type="button"><span>{selected ? '✓' : 'PDF'}</span><div><strong>{match.name}</strong><small>{formatMatch(match)}</small></div></button>;
                 }) : <div className="approval-artwork-empty">No matching live artwork PDFs were found.</div>}</div></div>
-                <label className={`approval-artwork-upload${draft.artworkPdfBase64 ? ' is-selected' : ''}`}><input accept="application/pdf,.pdf" onChange={(event) => void chooseUploadedArtwork(event.target.files?.[0])} type="file" /><span className="approval-artwork-upload-icon">PDF</span><span><strong>{draft.artworkPdfBase64 ? draft.artworkName : 'Choose Uploaded PDF Instead'}</strong><small>{draft.artworkPdfBase64 ? 'Uploaded replacement selected and ready to save with this revision.' : 'Use a local PDF when the correct live G# artwork is not available.'}</small></span></label>
+                <label className={`approval-artwork-upload${artworkChanged && draft.artworkPdfBase64 ? ' is-selected' : ''}`}><input accept="application/pdf,.pdf" onChange={(event) => void chooseUploadedArtwork(event.target.files?.[0])} type="file" /><span className="approval-artwork-upload-icon">PDF</span><span><strong>{artworkChanged && draft.artworkPdfBase64 ? draft.artworkName : 'Choose Uploaded PDF Instead'}</strong><small>{artworkChanged && draft.artworkPdfBase64 ? 'Uploaded replacement selected and ready to save with this revision.' : 'Use a local PDF when the correct live G# artwork is not available.'}</small></span></label>
               </section>
             </div>}
           </>}
         </div>
-        {!loading && !fileLoading && detail && <footer><div><strong>{mode === 'artwork' ? 'Artwork-only update' : 'Revision information update'}</strong><span>{mode === 'artwork' ? 'Select a replacement PDF above. Revision data will remain unchanged.' : 'The finished PDF is regenerated separately after saving.'}</span></div><button type="button" onClick={onClose} disabled={saving}>Cancel</button><button className="primary" type="submit" disabled={saving || (mode === 'artwork' && !replacementSelected)}>{saving ? 'Saving…' : mode === 'artwork' ? 'Save Artwork Change' : 'Save Changes'}</button></footer>}
+        {!loading && !fileLoading && detail && <footer><div><strong>{mode === 'artwork' ? 'Artwork-only update' : 'Revision information update'}</strong><span>{mode === 'artwork' ? 'Select a replacement PDF above. Revision data will remain unchanged.' : 'The finished PDF is regenerated separately after saving.'}</span></div><button type="button" onClick={onClose} disabled={saving}>Cancel</button><button className="primary" type="submit" disabled={saving || (mode === 'artwork' && !artworkChanged)}>{saving ? 'Saving…' : mode === 'artwork' ? 'Save Artwork Change' : 'Save Changes'}</button></footer>}
       </form>
     </Modal>
   );
