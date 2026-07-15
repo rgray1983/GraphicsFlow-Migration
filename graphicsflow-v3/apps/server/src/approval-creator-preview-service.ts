@@ -100,13 +100,17 @@ async function renderComposedPage(input: ApprovalPreviewInput, filledPdfPath: st
   const pagePath = join(directory, `approval-${dpi}.png`);
   await execFileAsync(gs, ['-dSAFER','-dBATCH','-dNOPAUSE','-dFirstPage=1','-dLastPage=1','-sDEVICE=png16m',`-r${dpi}`,'-dGraphicsAlphaBits=4','-dTextAlphaBits=4',`-sOutputFile=${pagePath}`,filledPdfPath], { timeout: 60000, maxBuffer: 30 * 1024 * 1024 });
   const art = await artworkPdf(input); if (!art) return pagePath;
-  const artPdfPath = join(directory, 'artwork.pdf'); const artPngPath = join(directory, `artwork-${dpi}.png`);
+  const artPdfPath = join(directory, 'artwork.pdf');
+  const artPngPath = join(directory, `artwork-${dpi}.png`);
+  const preparedArtPath = join(directory, `artwork-prepared-${dpi}.png`);
+  const composedPagePath = join(directory, `approval-composed-${dpi}.png`);
   await writeFile(artPdfPath, art);
   await execFileAsync(gs, ['-dSAFER','-dBATCH','-dNOPAUSE','-dFirstPage=1','-dLastPage=1','-sDEVICE=png16m',`-r${dpi}`,'-dGraphicsAlphaBits=4','-dTextAlphaBits=4',`-sOutputFile=${artPngPath}`,artPdfPath], { timeout: 60000, maxBuffer: 30 * 1024 * 1024 });
   const magick = await findImageMagick(); if (!magick) throw new Error('ImageMagick is required to place artwork on the Approval.');
   const scale = dpi / 180; const width = Math.round(1420 * scale); const height = Math.round(465 * scale); const x = Math.round(55 * scale); const y = Math.round(689 * scale);
-  await execFileAsync(magick, [artPngPath,'-background','white','-alpha','remove','-alpha','off','-resize',`${width}x${height}`,'-gravity','center','-extent',`${width}x${height}`,pagePath,'-geometry',`+${x}+${y}`,'-composite',pagePath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
-  return pagePath;
+  await execFileAsync(magick, [artPngPath,'-background','white','-alpha','remove','-alpha','off','-resize',`${width}x${height}`,'-gravity','center','-extent',`${width}x${height}`,preparedArtPath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+  await execFileAsync(magick, [pagePath, preparedArtPath, '-geometry', `+${x}+${y}`, '-composite', composedPagePath], { timeout: 120000, maxBuffer: 40 * 1024 * 1024 });
+  return composedPagePath;
 }
 
 export async function renderHccApprovalPdf(input: ApprovalPreviewInput): Promise<Buffer> {
