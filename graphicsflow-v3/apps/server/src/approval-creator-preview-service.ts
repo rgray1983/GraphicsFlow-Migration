@@ -24,6 +24,11 @@ export type ApprovalPreviewInput = {
   description: string;
   csr: string;
   designer: string;
+  digitalPrint: boolean;
+  digitalCut: boolean;
+  digitalDieCut: boolean;
+  labelDieCut: boolean;
+  label4cProcess: boolean;
 };
 
 function uppercase(value: unknown): string {
@@ -55,11 +60,13 @@ function escapeFdf(value: string): string {
     .replace(/\r\n|\r|\n/g, '\\r');
 }
 
-function buildFdf(fields: Record<string, string>): string {
-  const rows = Object.entries(fields)
-    .map(([name, value]) => `<< /T (${escapeFdf(name)}) /V (${escapeFdf(value)}) >>`)
-    .join('\n');
-  return `%FDF-1.2\n1 0 obj\n<<\n/FDF << /Fields [\n${rows}\n] >>\n>>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n`;
+function buildFdf(fields: Record<string, string>, checkboxes: Record<string, boolean>): string {
+  const textRows = Object.entries(fields)
+    .map(([name, value]) => `<< /T (${escapeFdf(name)}) /V (${escapeFdf(value)}) >>`);
+  const checkboxRows = Object.entries(checkboxes)
+    .filter(([, checked]) => checked)
+    .map(([name]) => `<< /T (${escapeFdf(name)}) /V /Yes >>`);
+  return `%FDF-1.2\n1 0 obj\n<<\n/FDF << /Fields [\n${[...textRows, ...checkboxRows].join('\n')}\n] >>\n>>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n`;
 }
 
 async function executable(candidates: string[], fallback: string): Promise<string | null> {
@@ -121,6 +128,18 @@ function approvalFields(input: ApprovalPreviewInput): Record<string, string> {
   };
 }
 
+function approvalCheckboxes(input: ApprovalPreviewInput): Record<string, boolean> {
+  return {
+    'Check Box SAMPLE': false,
+    'Check Box APPROVED': false,
+    'Check Box DIGITAL PRINT': input.digitalPrint,
+    'Check Box DIGITAL CUT': input.digitalCut,
+    'Check Box DIE CUT BAYSEK': input.digitalDieCut,
+    'Check Box DIE CUT LABEL': input.labelDieCut,
+    'Check Box PROCESS': input.label4cProcess,
+  };
+}
+
 export async function renderHccApprovalPreview(input: ApprovalPreviewInput): Promise<Buffer> {
   await access(templatePath, constants.R_OK).catch(() => {
     throw new Error(`The V3 HCC Approval template is missing: ${templatePath}`);
@@ -136,7 +155,7 @@ export async function renderHccApprovalPreview(input: ApprovalPreviewInput): Pro
   const previewPath = join(directory, 'approval.png');
 
   try {
-    await writeFile(fdfPath, buildFdf(approvalFields(input)), 'utf8');
+    await writeFile(fdfPath, buildFdf(approvalFields(input), approvalCheckboxes(input)), 'utf8');
     await execFileAsync(pdftk, [
       templatePath,
       'fill_form', fdfPath,
