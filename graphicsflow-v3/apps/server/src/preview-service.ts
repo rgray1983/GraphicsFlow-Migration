@@ -18,6 +18,7 @@ const execFileAsync = promisify(execFile);
 const database = new DatabaseSync(settingsDatabasePath);
 const cacheRoot = resolve(dirname(settingsDatabasePath), 'preview-cache');
 const activeJobs = new Map<string, Promise<PreviewResponse>>();
+const PREVIEW_RENDER_VERSION = 'approval-preview-v2';
 
 await mkdir(cacheRoot, { recursive: true });
 
@@ -71,7 +72,7 @@ function findLatestApproval(graphicId: number): IndexedApproval | null {
 
 function cacheKey(graphicId: number, variant: PreviewVariant, source: IndexedApproval): string {
   return createHash('sha256')
-    .update(`${graphicId}|${variant}|${source.root}|${source.relative_path}|${source.modified_at}|${source.size}`)
+    .update(`${PREVIEW_RENDER_VERSION}|${graphicId}|${variant}|${source.root}|${source.relative_path}|${source.modified_at}|${source.size}`)
     .digest('hex');
 }
 
@@ -86,31 +87,32 @@ async function commandExists(command: string): Promise<boolean> {
 
 async function renderPdf(sourcePath: string, outputPath: string, variant: PreviewVariant): Promise<string | null> {
   const dimensions: Record<PreviewVariant, { maxPixels: number; density: number }> = {
-    thumb: { maxPixels: 360, density: 130 },
-    medium: { maxPixels: 1100, density: 130 },
-    large: { maxPixels: 2600, density: 220 },
+    thumb: { maxPixels: 720, density: 150 },
+    medium: { maxPixels: 2400, density: 240 },
+    large: { maxPixels: 6000, density: 480 },
   };
   const { maxPixels, density } = dimensions[variant];
 
   if (await commandExists('magick')) {
     await execFileAsync('magick', [
-      '-density', String(density), `${sourcePath}[0]`, '-thumbnail', `${maxPixels}x${maxPixels}>`,
-      '-background', 'white', '-alpha', 'remove', '-strip', outputPath,
-    ], { timeout: 180000, maxBuffer: 20 * 1024 * 1024 });
+      '-density', String(density), `${sourcePath}[0]`, '-resize', `${maxPixels}x${maxPixels}>`,
+      '-background', 'white', '-alpha', 'remove', '-alpha', 'off', outputPath,
+    ], { timeout: 240000, maxBuffer: 40 * 1024 * 1024 });
     return 'ImageMagick';
   }
   if (await commandExists('convert')) {
     await execFileAsync('convert', [
-      '-density', String(density), `${sourcePath}[0]`, '-thumbnail', `${maxPixels}x${maxPixels}>`,
-      '-background', 'white', '-alpha', 'remove', '-strip', outputPath,
-    ], { timeout: 180000, maxBuffer: 20 * 1024 * 1024 });
+      '-density', String(density), `${sourcePath}[0]`, '-resize', `${maxPixels}x${maxPixels}>`,
+      '-background', 'white', '-alpha', 'remove', '-alpha', 'off', outputPath,
+    ], { timeout: 240000, maxBuffer: 40 * 1024 * 1024 });
     return 'ImageMagick';
   }
   if (await commandExists('gs')) {
     await execFileAsync('gs', [
-      '-dSAFER', '-dBATCH', '-dNOPAUSE', '-sDEVICE=pngalpha', `-r${density}`,
+      '-dSAFER', '-dBATCH', '-dNOPAUSE', '-sDEVICE=png16m', `-r${density}`,
+      '-dGraphicsAlphaBits=4', '-dTextAlphaBits=4',
       '-dFirstPage=1', '-dLastPage=1', `-sOutputFile=${outputPath}`, sourcePath,
-    ], { timeout: 180000, maxBuffer: 20 * 1024 * 1024 });
+    ], { timeout: 240000, maxBuffer: 40 * 1024 * 1024 });
     return 'Ghostscript';
   }
   return null;
