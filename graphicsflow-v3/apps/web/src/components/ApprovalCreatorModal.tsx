@@ -15,6 +15,11 @@ type ApprovalDraft = {
   description: string;
   csr: string;
   designer: string;
+  digitalPrint: boolean;
+  digitalCut: boolean;
+  digitalDieCut: boolean;
+  labelDieCut: boolean;
+  label4cProcess: boolean;
 };
 
 type ApprovalCreatorModalProps = {
@@ -33,6 +38,11 @@ const emptyDraft = (record: GraphicRecord | null): ApprovalDraft => ({
   description: 'FOR APPROVAL',
   csr: '',
   designer: '',
+  digitalPrint: false,
+  digitalCut: false,
+  digitalDieCut: false,
+  labelDieCut: false,
+  label4cProcess: false,
 });
 
 export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreatorModalProps) {
@@ -56,7 +66,7 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
     if (previewUrl) URL.revokeObjectURL(previewUrl);
   }, [previewUrl]);
 
-  const update = (key: keyof ApprovalDraft, value: string) => {
+  const update = (key: keyof ApprovalDraft, value: string | boolean) => {
     setDraft((current) => ({ ...current, [key]: value }));
     setPreviewError(null);
   };
@@ -108,6 +118,24 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
               <label>Flute / Test<input onChange={(event) => update('fluteTest', event.target.value)} value={draft.fluteTest} /></label>
               <label>Sales Rep<input onChange={(event) => update('salesRep', event.target.value)} value={draft.salesRep} /></label>
             </div>
+
+            <section className="approval-production-options">
+              <header><p className="eyebrow">Production options</p><h4>Digital and Label</h4></header>
+              <div className="approval-option-groups">
+                <fieldset>
+                  <legend>Digital</legend>
+                  <label className="approval-check-option"><input checked={draft.digitalPrint} onChange={(event) => update('digitalPrint', event.target.checked)} type="checkbox" /><span>Digital Print</span></label>
+                  <label className="approval-check-option"><input checked={draft.digitalCut} onChange={(event) => update('digitalCut', event.target.checked)} type="checkbox" /><span>Die Cut</span></label>
+                  <label className="approval-check-option"><input checked={draft.digitalDieCut} onChange={(event) => update('digitalDieCut', event.target.checked)} type="checkbox" /><span>Die Cut Baysek</span></label>
+                </fieldset>
+                <fieldset>
+                  <legend>Label</legend>
+                  <label className="approval-check-option"><input checked={draft.labelDieCut} onChange={(event) => update('labelDieCut', event.target.checked)} type="checkbox" /><span>Die Cut</span></label>
+                  <label className="approval-check-option"><input checked={draft.label4cProcess} onChange={(event) => update('label4cProcess', event.target.checked)} type="checkbox" /><span>4-C Process</span></label>
+                </fieldset>
+              </div>
+            </section>
+
             <section className="approval-revision-entry">
               <header><div><p className="eyebrow">Revision row</p><h4>Current Approval entry</h4></div></header>
               <div className="approval-revision-grid">
