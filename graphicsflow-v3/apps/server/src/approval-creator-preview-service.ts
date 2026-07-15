@@ -5,15 +5,13 @@ import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { readApprovalRevisionArtwork } from './approval-revision-artwork-service.js';
 import { readLiveArtwork } from './print-card-artwork-service.js';
 
 const execFileAsync = promisify(execFile);
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const templatePath = resolve(moduleDirectory, '../assets/approval-templates/HCC APPROVAL FORM-2026.pdf');
 
-// Exact HCC Approval artwork area supplied from the production template:
-// 10 in wide × 5.75 in tall, centered horizontally on an 11 in page,
-// with the top edge 1.25 in from the top of the 8.5 in page.
 const POINTS_PER_INCH = 72;
 const APPROVAL_PAGE_WIDTH_POINTS = 11 * POINTS_PER_INCH;
 const APPROVAL_PAGE_HEIGHT_POINTS = 8.5 * POINTS_PER_INCH;
@@ -103,7 +101,11 @@ async function artworkPdf(input: ApprovalPreviewInput): Promise<Buffer | null> {
     if (data.length < 5 || data.subarray(0, 5).toString('ascii') !== '%PDF-') throw new Error('The uploaded Approval artwork is not a valid PDF.');
     return data;
   }
-  if (input.liveArtworkRelativePath.trim()) return (await readLiveArtwork(input.liveArtworkRelativePath)).data;
+  if (input.liveArtworkRelativePath.trim()) {
+    const managed = readApprovalRevisionArtwork(input.liveArtworkRelativePath);
+    if (managed) return managed;
+    return (await readLiveArtwork(input.liveArtworkRelativePath)).data;
+  }
   return null;
 }
 
@@ -118,8 +120,6 @@ async function renderComposedPage(input: ApprovalPreviewInput, filledPdfPath: st
   const preparedArtPath = join(directory, `artwork-prepared-${dpi}.png`);
   const composedPagePath = join(directory, `approval-composed-${dpi}.png`);
   await writeFile(artPdfPath, art);
-
-  // Render directly from the source PDF at high resolution so linework and type stay crisp.
   await execFileAsync(gs, ['-dSAFER','-dBATCH','-dNOPAUSE','-dFirstPage=1','-dLastPage=1','-sDEVICE=png16m',`-r${ARTWORK_SOURCE_DPI}`,'-dGraphicsAlphaBits=4','-dTextAlphaBits=4',`-sOutputFile=${artPngPath}`,artPdfPath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
 
   const magick = await findImageMagick(); if (!magick) throw new Error('ImageMagick is required to place artwork on the Approval.');
@@ -129,10 +129,6 @@ async function renderComposedPage(input: ApprovalPreviewInput, filledPdfPath: st
   const x = Math.round(ARTWORK_LEFT_POINTS * pixelsPerPoint);
   const y = Math.round(ARTWORK_TOP_OFFSET_POINTS * pixelsPerPoint);
 
-  // Preserve the complete PDF page. Scale it proportionally to fit inside the
-  // exact 10 × 5.75 in artwork area, then center it vertically and horizontally.
-  // The transparent extent only establishes positioning; it does not crop the art
-  // or add a white border to the source artwork.
   await execFileAsync(magick, [
     artPngPath,
     '-resize', `${width}x${height}`,
