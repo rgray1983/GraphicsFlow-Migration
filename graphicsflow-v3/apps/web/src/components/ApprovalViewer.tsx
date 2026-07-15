@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatGNumber, formatSpecNumber, type GraphicFileMatch, type GraphicRecord } from '@graphicsflow/shared';
 import { DocumentCanvas } from './DocumentCanvas';
+import { LoadingIndicator } from './LoadingIndicator';
 import { Modal } from './Modal';
 
 type ApprovalViewerProps = {
@@ -94,7 +95,13 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
                   onLoad={() => setQualityLoading(false)}
                   src={imageUrl}
                 />
-                {qualityLoading && <div className="viewer-quality-loading">Loading {highQuality ? 'high quality' : 'standard'} preview…</div>}
+                {qualityLoading && <div className="approval-quality-loading">
+                  <LoadingIndicator
+                    message={`Preparing the ${highQuality ? 'high-quality' : 'standard'} Approval preview…`}
+                    size="viewer"
+                    title="Updating Preview"
+                  />
+                </div>}
               </div>
             </DocumentCanvas>
           </div>
@@ -116,7 +123,7 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
               <h4 id="approval-viewer-help-title">Viewer Controls</h4>
               <div className="viewer-hotkey-row">
                 <span className="viewer-hotkey-icon" aria-hidden="true">↕</span>
-                <div><strong>Scroll</strong><span>Zoom in or out anywhere over the document</span></div>
+                <div><strong>Scroll Zoom</strong><span>Zoom toward the pointer anywhere over the document</span></div>
               </div>
               <div className="viewer-hotkey-row">
                 <span className="viewer-hotkey-icon" aria-hidden="true">↔</span>
