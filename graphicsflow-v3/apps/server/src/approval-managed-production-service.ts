@@ -7,6 +7,7 @@ import { settingsDatabasePath } from './settings-store.js';
 
 const managedRoot = resolve(dirname(settingsDatabasePath), 'generated-documents', 'approvals');
 const temporaryRoot = resolve(managedRoot, 'temporary');
+const TEMPORARY_PDF_LIFETIME_MS = 15 * 60 * 1000;
 const clean = (value: unknown) => String(value ?? '').trim().toUpperCase();
 const numberOnly = (value: unknown) => String(value ?? '').match(/\d+/g)?.join('') ?? '';
 
@@ -21,6 +22,15 @@ export type SavedApprovalResult = {
 
 function isTemporaryApprovalPath(path: string): boolean {
   return path === temporaryRoot || path.startsWith(`${temporaryRoot}${sep}`);
+}
+
+function scheduleTemporaryApprovalRemoval(path: string, revisionId: number): void {
+  const timer = setTimeout(() => {
+    void rm(path, { force: true }).finally(() => {
+      graphicsStoreDatabase.prepare('UPDATE document_revisions SET rendered_relative_path=NULL WHERE id=? AND rendered_relative_path IS NOT NULL').run(revisionId);
+    });
+  }, TEMPORARY_PDF_LIFETIME_MS);
+  timer.unref();
 }
 
 export async function saveManagedApproval(graphicId: number, input: ApprovalPreviewInput): Promise<SavedApprovalResult> {
@@ -84,7 +94,6 @@ export async function saveManagedApproval(graphicId: number, input: ApprovalPrev
 export async function readManagedApprovalRevision(
   graphicId: number,
   revisionId: number,
-  consume = false,
 ): Promise<{ data: Buffer; fileName: string } | null> {
   const row = graphicsStoreDatabase.prepare(`SELECT r.rendered_relative_path, r.revision_label, g.g_number FROM graphics_documents d INNER JOIN document_revisions r ON r.document_id=d.id INNER JOIN graphics_records g ON g.id=d.graphic_id WHERE d.graphic_id=? AND d.document_type='approval' AND r.id=?`).get(graphicId, revisionId) as { rendered_relative_path: string | null; revision_label: string; g_number: string } | undefined;
   if (!row?.rendered_relative_path) return null;
@@ -97,12 +106,7 @@ export async function readManagedApprovalRevision(
     const cleanG = numberOnly(row.g_number);
     const revision = clean(row.revision_label) || '0';
     const fileName = `${cleanG}_REV_${revision.replace(/[^A-Z0-9_-]/g, '_')}_APPROVAL.pdf`;
-
-    if (consume) {
-      await rm(path, { force: true });
-      graphicsStoreDatabase.prepare('UPDATE document_revisions SET rendered_relative_path=NULL WHERE id=?').run(revisionId);
-    }
-
+    scheduleTemporaryApprovalRemoval(path, revisionId);
     return { data, fileName: basename(fileName) };
   } catch {
     return null;
