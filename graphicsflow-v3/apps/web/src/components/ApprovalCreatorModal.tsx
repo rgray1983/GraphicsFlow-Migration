@@ -45,6 +45,10 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
     if (previewUrl) clearPreview();
   };
 
+  const updateText = (key: keyof ApprovalDraft) => (event: FormEvent<HTMLInputElement>) => {
+    update(key, event.currentTarget.value);
+  };
+
   const generatePreview = async (event: FormEvent) => {
     event.preventDefault(); if (!record) return;
     const previewDraft = { ...draft };
@@ -97,15 +101,15 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
             <header><div><p className="eyebrow">Approval information</p><h3>{formatGNumber(record.gNumber)}</h3></div><button disabled={previewLoading || saving} type="submit">{previewLoading ? 'Generating…' : 'Generate Preview'}</button></header>
             <div className="approval-record-summary"><strong>{record.customerName}</strong><span>{record.customerNumber} · {record.partNumber}</span></div>
             <div className="approval-field-grid">
-              <label>Spec #<input onChange={(event) => update('specificationNumber', event.target.value)} value={draft.specificationNumber} /></label><label>Design #<input onChange={(event) => update('designNumber', event.target.value)} value={draft.designNumber} /></label>
-              <label>Flute / Test<input onChange={(event) => update('fluteTest', event.target.value)} value={draft.fluteTest} /></label><label>Sales Rep<input onChange={(event) => update('salesRep', event.target.value)} value={draft.salesRep} /></label>
+              <label>Spec #<input onInput={updateText('specificationNumber')} value={draft.specificationNumber} /></label><label>Design #<input onInput={updateText('designNumber')} value={draft.designNumber} /></label>
+              <label>Flute / Test<input onInput={updateText('fluteTest')} value={draft.fluteTest} /></label><label>Sales Rep<input onInput={updateText('salesRep')} value={draft.salesRep} /></label>
             </div>
             <section className="approval-production-options"><header><p className="eyebrow">Production options</p><h4>Digital and Label</h4></header><div className="approval-option-groups">
               <fieldset><legend>Digital</legend><label className="approval-check-option"><input checked={draft.digitalPrint} onChange={(event) => update('digitalPrint', event.target.checked)} type="checkbox" /><span>Digital Print</span></label><label className="approval-check-option"><input checked={draft.digitalCut} onChange={(event) => update('digitalCut', event.target.checked)} type="checkbox" /><span>Die Cut</span></label><label className="approval-check-option"><input checked={draft.digitalDieCut} onChange={(event) => update('digitalDieCut', event.target.checked)} type="checkbox" /><span>Die Cut Baysek</span></label></fieldset>
               <fieldset><legend>Label</legend><label className="approval-check-option"><input checked={draft.labelDieCut} onChange={(event) => update('labelDieCut', event.target.checked)} type="checkbox" /><span>Die Cut</span></label><label className="approval-check-option"><input checked={draft.label4cProcess} onChange={(event) => update('label4cProcess', event.target.checked)} type="checkbox" /><span>4-C Process</span></label></fieldset>
             </div></section>
             <section className="approval-revision-entry"><header><div><p className="eyebrow">Revision row</p><h4>Current Approval entry</h4></div></header><div className="approval-revision-grid">
-              <label>Rev<input required onChange={(event) => update('revisionLabel', event.target.value)} value={draft.revisionLabel} /></label><label>Date<input required onChange={(event) => update('revisionDate', event.target.value)} type="date" value={draft.revisionDate} /></label><label>Description<input required onChange={(event) => update('description', event.target.value)} value={draft.description} /></label><label>CSR<input onChange={(event) => update('csr', event.target.value)} value={draft.csr} /></label><label>Designer<input onChange={(event) => update('designer', event.target.value)} value={draft.designer} /></label>
+              <label>Rev<input required onInput={updateText('revisionLabel')} value={draft.revisionLabel} /></label><label>Date<input required onChange={(event) => update('revisionDate', event.target.value)} type="date" value={draft.revisionDate} /></label><label>Description<input required onInput={updateText('description')} value={draft.description} /></label><label>CSR<input onInput={updateText('csr')} value={draft.csr} /></label><label>Designer<input onInput={updateText('designer')} value={draft.designer} /></label>
             </div></section>
             {previewError && <div className="approval-preview-error" role="alert">{previewError}</div>}
             <div className="approval-creator-policy"><strong>No automatic live-server writes</strong><span>Save Approval stores the revision in GraphicsFlow and holds the finished PDF temporarily until it is downloaded.</span></div>
