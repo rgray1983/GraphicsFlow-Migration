@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { constants } from 'node:fs';
 import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
 import type { PrintCardDraft, RevisionJourneyEntry } from '@graphicsflow/shared';
@@ -24,6 +24,10 @@ function normalize(value: string): string {
 
 function numberOnly(value: string): string {
   return value.match(/\d+/g)?.join('') ?? '';
+}
+
+function checked(value: unknown): boolean {
+  return ['1', 'YES', 'ON', 'TRUE'].includes(clean(value));
 }
 
 async function commandExists(command: string, args: string[] = ['--version']): Promise<boolean> {
@@ -164,13 +168,61 @@ function revisionRank(value: string, fallback: number): number {
   return numeric ? Number(numeric) : fallback;
 }
 
-export async function getApprovalRevisionJourney(graphicId: number): Promise<RevisionJourneyEntry[]> {
+export type OriginalApprovalRevisionSnapshot = {
+  approvalName: string;
+  approvalRelativePath: string;
+  specificationNumber: string;
+  designNumber: string;
+  fluteTest: string;
+  salesRep: string;
+  digitalPrint: boolean;
+  digitalCut: boolean;
+  digitalDieCut: boolean;
+  labelDieCut: boolean;
+  label4cProcess: boolean;
+  revisions: Array<{
+    revisionLabel: string;
+    revisionDate: string;
+    description: string;
+    csr: string;
+    designer: string;
+  }>;
+};
+
+export async function getOriginalApprovalRevisionSnapshot(graphicId: number): Promise<OriginalApprovalRevisionSnapshot | null> {
+  const approval = findIndexedApproval(graphicId);
   const fields = await readApprovalFields(graphicId);
-  if (!fields) return [];
+  if (!approval || !fields) return null;
   const rows = approvalRows(fields).sort((a, b) => revisionRank(a.revision, a.index) - revisionRank(b.revision, b.index) || a.index - b.index);
-  return rows.map((row) => ({
+  const value = (...aliases: string[]) => pickHeaderField(fields, aliases);
+  return {
+    approvalName: basename(approval.relative_path),
+    approvalRelativePath: approval.relative_path,
+    specificationNumber: value('SPEC #', 'SPEC#', 'SPEC NUMBER', 'SPECIFICATION NUMBER'),
+    designNumber: value('DESIGN #', 'DESIGN#', 'DESIGN NUMBER'),
+    fluteTest: value('TEST', 'TEST & FLUTE', 'FLUTE / TEST'),
+    salesRep: value('Sales Rep', 'SALES REP', 'SALESPERSON'),
+    digitalPrint: checked(value('Check Box DIGITAL PRINT')),
+    digitalCut: checked(value('Check Box DIGITAL CUT')),
+    digitalDieCut: checked(value('Check Box DIE CUT BAYSEK')),
+    labelDieCut: checked(value('Check Box DIE CUT LABEL')),
+    label4cProcess: checked(value('Check Box PROCESS')),
+    revisions: rows.map((row) => ({
+      revisionLabel: row.revision || String(row.index),
+      revisionDate: row.revisionDate,
+      description: row.description,
+      csr: row.csr,
+      designer: row.designer,
+    })),
+  };
+}
+
+export async function getApprovalRevisionJourney(graphicId: number): Promise<RevisionJourneyEntry[]> {
+  const snapshot = await getOriginalApprovalRevisionSnapshot(graphicId);
+  if (!snapshot) return [];
+  return snapshot.revisions.map((row) => ({
     id: null,
-    revisionLabel: row.revision || String(row.index),
+    revisionLabel: row.revisionLabel,
     revisionDate: row.revisionDate,
     description: row.description,
     csr: row.csr,
