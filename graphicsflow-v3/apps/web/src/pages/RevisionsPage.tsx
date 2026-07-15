@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   formatGNumber,
@@ -76,6 +76,16 @@ export function RevisionsPage() {
     setSelectedApprovalRevisionIndex(-1);
   };
 
+  const selectApprovalRevision = (index: number) => {
+    if (record?.documentType === 'approval') setSelectedApprovalRevisionIndex(index);
+  };
+
+  const handleRevisionCardKeyDown = (event: KeyboardEvent<HTMLElement>, index: number) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    selectApprovalRevision(index);
+  };
+
   const viewerRecord: GraphicRecord | null = record ? {
     id: record.graphicId,
     gNumber: record.gNumber,
@@ -135,7 +145,14 @@ export function RevisionsPage() {
           <section className="revision-journey"><header><div><p className="eyebrow">Revision journey</p><h3>The life of this {record.documentType === 'approval' ? 'Approval' : 'Print Card'}</h3></div><span>{record.journey.length} revision{record.journey.length === 1 ? '' : 's'}</span></header>
             {record.journey.length === 0 ? <div className="revision-journey-empty">No structured revisions have been recorded.</div> : <ol>{record.journey.map((revision, index) => {
               const approvalSelected = record.documentType === 'approval' && selectedApprovalRevisionIndex === index;
-              return <li className={`${revision.isCurrent ? 'is-current ' : ''}${approvalSelected ? 'is-selected' : ''}`.trim()} key={`${revision.id ?? 'legacy'}-${index}`}><div className="revision-node"><span>{revision.revisionLabel || index}</span></div><article><header><div><strong>Revision {revision.revisionLabel || index}</strong>{revision.isCurrent && <em>Current</em>}</div><time>{displayDate(revision.revisionDate || revision.createdAt)}</time></header><p>{revision.description || 'No change description was recorded.'}</p><footer><span>{revision.source === 'legacy-import' ? 'Legacy history' : 'GraphicsFlow'}</span><span>{[revision.csr, revision.designer].filter(Boolean).join(' · ') || 'Author not recorded'}</span><button aria-pressed={approvalSelected || undefined} onClick={record.documentType === 'approval' ? () => setSelectedApprovalRevisionIndex(index) : undefined} type="button">{approvalSelected ? 'Selected' : 'View Revision'}</button></footer></article></li>;
+              const approvalCardProps = record.documentType === 'approval' ? {
+                'aria-pressed': approvalSelected,
+                onClick: () => selectApprovalRevision(index),
+                onKeyDown: (event: KeyboardEvent<HTMLElement>) => handleRevisionCardKeyDown(event, index),
+                role: 'button',
+                tabIndex: 0,
+              } : {};
+              return <li className={`${revision.isCurrent ? 'is-current ' : ''}${approvalSelected ? 'is-selected' : ''}`.trim()} key={`${revision.id ?? 'legacy'}-${index}`}><div className="revision-node"><span>{revision.revisionLabel || index}</span></div><article {...approvalCardProps}><header><div><strong>Revision {revision.revisionLabel || index}</strong>{revision.isCurrent && <em>Current</em>}</div><time>{displayDate(revision.revisionDate || revision.createdAt)}</time></header><p>{revision.description || 'No change description was recorded.'}</p><footer><span>{revision.source === 'legacy-import' ? 'Legacy history' : 'GraphicsFlow'}</span><span>{[revision.csr, revision.designer].filter(Boolean).join(' · ') || 'Author not recorded'}</span>{record.documentType === 'approval' && <span className="revision-card-action">{approvalSelected ? 'Selected' : 'Click to view'}</span>}</footer></article></li>;
             })}</ol>}
           </section>
         </div>
