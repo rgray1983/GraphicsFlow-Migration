@@ -1,6 +1,7 @@
 .modal-dialog-creator:has(.approval-creator-modal) {
   width: min(1480px, calc(100vw - 32px));
-  height: min(900px, calc(100dvh - 32px));
+  height: calc(100dvh - 16px);
+  max-height: calc(100dvh - 16px);
 }
 .modal-dialog-creator:has(.approval-creator-modal) .modal-body {
   min-height: 0;
@@ -160,7 +161,7 @@
 .approval-template-preview-image {
   display: block;
   width: min(100%, 1050px);
-  max-height: calc(100dvh - 230px);
+  max-height: calc(100dvh - 170px);
   object-fit: contain;
   border-radius: 3px;
   background: white;
