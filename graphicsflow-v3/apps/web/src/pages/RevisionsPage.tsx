@@ -51,7 +51,13 @@ export function RevisionsPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [approvalPreviewReady, setApprovalPreviewReady] = useState(false);
-  const query = useQuery({ queryKey: ['revision-lookup', type, search], queryFn: () => lookup(type, search), enabled: Boolean(search), retry: false });
+  const query = useQuery({
+    queryKey: ['revision-lookup', type, search],
+    queryFn: () => lookup(type, search),
+    enabled: Boolean(search),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
   const record = query.data?.record ?? null;
   const unregisteredPrintCard = query.data?.unregisteredPrintCard ?? null;
   const submit = (event: FormEvent) => { event.preventDefault(); const next = input.trim(); if (next) setSearch(next); };
