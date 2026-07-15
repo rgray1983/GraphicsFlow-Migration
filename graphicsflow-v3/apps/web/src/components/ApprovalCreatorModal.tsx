@@ -27,13 +27,13 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedApproval, setSavedApproval] = useState<SavedApproval | null>(null);
-  const [outputHandled, setOutputHandled] = useState(false);
+  const [downloadCompleted, setDownloadCompleted] = useState(false);
 
   const clearPreview = () => setPreviewUrl((current) => { if (current) URL.revokeObjectURL(current); return ''; });
 
   useEffect(() => {
     if (!isOpen) return;
-    setDraft(emptyDraft(record)); setPreviewLoading(false); setPreviewError(null); setSaving(false); setSavedApproval(null); setOutputHandled(false); clearPreview();
+    setDraft(emptyDraft(record)); setPreviewLoading(false); setPreviewError(null); setSaving(false); setSavedApproval(null); setDownloadCompleted(false); clearPreview();
   }, [isOpen, record?.id]);
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
@@ -65,7 +65,7 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
       const response = await fetch(`/api/graphics/${record.id}/approval`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) });
       const body = await response.json().catch(() => null) as SavedApproval | { error?: string } | null;
       if (!response.ok) throw new Error(body && 'error' in body && body.error ? body.error : 'The Approval could not be saved.');
-      setSavedApproval(body as SavedApproval); setOutputHandled(false);
+      setSavedApproval(body as SavedApproval); setDownloadCompleted(false);
     } catch (error) { setPreviewError(error instanceof Error ? error.message : 'The Approval could not be saved.'); }
     finally { setSaving(false); }
   };
@@ -75,16 +75,16 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
     const frame = document.createElement('iframe');
     frame.style.position = 'fixed'; frame.style.width = '1px'; frame.style.height = '1px'; frame.style.opacity = '0'; frame.style.pointerEvents = 'none';
     frame.src = savedApproval.pdfUrl;
-    frame.onload = () => { setOutputHandled(true); frame.contentWindow?.focus(); frame.contentWindow?.print(); window.setTimeout(() => frame.remove(), 60_000); };
+    frame.onload = () => { frame.contentWindow?.focus(); frame.contentWindow?.print(); window.setTimeout(() => frame.remove(), 60_000); };
     document.body.appendChild(frame);
   };
 
   const downloadApproval = () => {
     if (!savedApproval) return;
-    const link = document.createElement('a'); link.href = savedApproval.downloadUrl; link.download = savedApproval.fileName; document.body.appendChild(link); link.click(); link.remove(); setOutputHandled(true);
+    const link = document.createElement('a'); link.href = savedApproval.downloadUrl; link.download = savedApproval.fileName; document.body.appendChild(link); link.click(); link.remove(); setDownloadCompleted(true);
   };
 
-  const finish = () => { if (!outputHandled) return; setSavedApproval(null); onClose(); };
+  const finish = () => { if (!downloadCompleted) return; setSavedApproval(null); onClose(); };
   const requestClose = () => { if (savedApproval) return; onClose(); };
   if (!record) return null;
 
@@ -108,16 +108,16 @@ export function ApprovalCreatorModal({ isOpen, onClose, record }: ApprovalCreato
               <label>Rev<input required onChange={(event) => update('revisionLabel', event.target.value)} value={draft.revisionLabel} /></label><label>Date<input required onChange={(event) => update('revisionDate', event.target.value)} type="date" value={draft.revisionDate} /></label><label>Description<input required onChange={(event) => update('description', event.target.value)} value={draft.description} /></label><label>CSR<input onChange={(event) => update('csr', event.target.value)} value={draft.csr} /></label><label>Designer<input onChange={(event) => update('designer', event.target.value)} value={draft.designer} /></label>
             </div></section>
             {previewError && <div className="approval-preview-error" role="alert">{previewError}</div>}
-            <div className="approval-creator-policy"><strong>No automatic live-server writes</strong><span>Save Approval stores the PDF and revision in GraphicsFlow managed storage. Publishing to the configured live Approval folder remains separate.</span></div>
+            <div className="approval-creator-policy"><strong>No automatic live-server writes</strong><span>Save Approval stores the revision in GraphicsFlow and holds the finished PDF temporarily until it is downloaded.</span></div>
           </form>
           <aside className="approval-creator-preview"><DocumentCanvas ariaLabel={`${formatGNumber(record.gNumber)} Approval preview`} fitScale={1} isActive={isOpen} key={`${record.id}-${previewUrl}`} renderAtLayoutScale={false} toolbarEnd={<button disabled={!previewUrl || previewLoading || saving} onClick={saveApproval} type="button">{saving ? 'Saving…' : 'Save Approval'}</button>}><div className="approval-sheet-preview">{previewLoading ? <LoadingIndicator message="Filling HCC APPROVAL FORM-2026.pdf and rendering a temporary preview…" size="viewer" title="Generating Approval Preview" /> : previewUrl ? <img alt={`${formatGNumber(record.gNumber)} HCC Approval preview`} className="approval-template-preview-image" draggable={false} src={previewUrl} /> : <div className="approval-preview-prompt"><strong>Preview not generated</strong><span>Complete the information and choose Generate Preview.</span></div>}</div></DocumentCanvas></aside>
         </div>
         {savedApproval && <div className="approval-success-backdrop" role="presentation"><section aria-labelledby="approval-success-title" aria-modal="true" className="approval-success-dialog" role="dialog">
           <div className="approval-success-mark" aria-hidden="true">✓</div><p className="eyebrow">Approval saved</p><h3 id="approval-success-title">{formatGNumber(record.gNumber)} · Revision {savedApproval.revisionLabel}</h3>
-          <p>The finished PDF and revision information are safely stored in GraphicsFlow. Print or download the Approval before closing.</p>
-          <div className="approval-success-file"><span>Saved PDF</span><strong>{savedApproval.fileName}</strong></div>
+          <p>The revision is saved in GraphicsFlow. Download the temporary finished PDF before closing. Printing alone does not complete this step.</p>
+          <div className="approval-success-file"><span>Temporary PDF</span><strong>{savedApproval.fileName}</strong></div>
           <div className="approval-success-actions"><button className="approval-success-secondary" onClick={printApproval} type="button">Print</button><button className="approval-success-primary" onClick={downloadApproval} type="button">Download PDF</button></div>
-          <button className="approval-success-done" disabled={!outputHandled} onClick={finish} type="button">{outputHandled ? 'Done' : 'Print or download to continue'}</button>
+          <button className="approval-success-done" disabled={!downloadCompleted} onClick={finish} type="button">{downloadCompleted ? 'Done' : 'Download PDF to continue'}</button>
         </section></div>}
       </div>
     </Modal>
