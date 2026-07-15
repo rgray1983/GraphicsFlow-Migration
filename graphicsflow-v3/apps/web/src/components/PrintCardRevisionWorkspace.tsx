@@ -1,4 +1,4 @@
-import type { GraphicFileMatch, RevisionLookupResponse } from '@graphicsflow/shared';
+import type { RevisionLookupResponse } from '@graphicsflow/shared';
 import { DocumentCanvas } from './DocumentCanvas';
 
 export type RevisionWorkspaceRecord = NonNullable<RevisionLookupResponse['record']>;
