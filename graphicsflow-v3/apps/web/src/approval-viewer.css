@@ -2,29 +2,24 @@
 .approval-preview-button > span { justify-self: center; color: #99f6e4; font-size: 11px; font-weight: 750; letter-spacing: .03em; }
 .modal-dialog-viewer { width: min(1540px, calc(100vw - 56px)); height: calc(100dvh - 56px); max-height: calc(100dvh - 56px); display: grid; grid-template-rows: auto minmax(0, 1fr); }
 .modal-dialog-viewer .modal-body { min-height: 0; max-height: none; overflow: hidden; padding: 0; }
-.approval-viewer { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
-.approval-viewer-toolbar { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border-bottom: 1px solid rgba(148,163,184,.13); background: rgba(2,6,23,.3); }
-.viewer-control-group { display: flex; align-items: center; gap: 8px; }
-.viewer-control-group button, .viewer-control-group a { min-height: 34px; display: inline-flex; align-items: center; justify-content: center; padding: 7px 11px; border: 1px solid rgba(148,163,184,.16); border-radius: 9px; background: rgba(15,23,42,.72); color: #cbd5e1; text-decoration: none; cursor: pointer; }
-.viewer-control-group button:hover:not(:disabled), .viewer-control-group a:hover { border-color: rgba(45,212,191,.36); color: #e6fffb; background: rgba(20,184,166,.1); }
-.viewer-control-group button:disabled { opacity: .42; cursor: not-allowed; }
-.viewer-control-group > span { min-width: 48px; color: #94a3b8; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
-.viewer-actions a { color: #99f6e4; }
-.viewer-quality-toggle { min-height: 34px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid rgba(148,163,184,.16); border-radius: 9px; background: rgba(15,23,42,.72); cursor: pointer; user-select: none; }
+.approval-viewer { height: 100%; min-height: 0; }
+.approval-viewer-layout { height: 100%; min-height: 0; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+.approval-document-canvas { min-width: 0; min-height: 0; overflow: hidden; background: #070b12; }
+.approval-document-canvas .document-canvas { height: 100%; min-height: 0; }
+.approval-document-stage { padding: 24px; background: radial-gradient(circle at center, rgba(30,41,59,.72), rgba(2,6,23,.94)); }
+.approval-document-sheet { position: relative; min-width: 0; display: grid; place-items: center; }
+.approval-document-sheet img { display: block; max-width: min(100%, 1100px); max-height: calc(100dvh - 190px); object-fit: contain; border-radius: 4px; background: white; box-shadow: 0 28px 80px rgba(0,0,0,.48); user-select: none; pointer-events: none; }
+.document-canvas-actions .viewer-quality-toggle { min-height: 32px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 9px; border: 1px solid rgba(148,163,184,.15); border-radius: 7px; background: rgba(15,23,42,.72); cursor: pointer; user-select: none; }
 .viewer-quality-toggle:hover { border-color: rgba(45,212,191,.36); background: rgba(20,184,166,.08); }
 .viewer-quality-toggle input { position: absolute; opacity: 0; pointer-events: none; }
 .viewer-quality-track { width: 30px; height: 17px; flex: 0 0 auto; padding: 2px; border-radius: 999px; background: rgba(100,116,139,.45); transition: background .18s ease; }
 .viewer-quality-track span { display: block; width: 13px; height: 13px; border-radius: 50%; background: #cbd5e1; transition: transform .18s ease, background .18s ease; }
 .viewer-quality-toggle input:checked + .viewer-quality-track { background: rgba(20,184,166,.7); }
 .viewer-quality-toggle input:checked + .viewer-quality-track span { transform: translateX(13px); background: #ecfeff; }
-.viewer-quality-label { color: #94a3b8; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.viewer-quality-label { color: #94a3b8; font-size: 9px; font-weight: 800; white-space: nowrap; }
 .viewer-quality-toggle input:checked ~ .viewer-quality-label { color: #99f6e4; }
-.approval-viewer-layout { min-height: 0; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
-.approval-canvas { position: relative; min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at center, rgba(30,41,59,.72), rgba(2,6,23,.94)); touch-action: none; user-select: none; cursor: default; }
-.approval-canvas.is-hand-tool { cursor: grab; }
-.approval-canvas.is-dragging { cursor: grabbing; }
-.approval-canvas img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; background: white; box-shadow: 0 28px 80px rgba(0,0,0,.48); transform-origin: center; transition: transform .12s ease-out, opacity .18s ease; pointer-events: none; }
-.approval-canvas.is-zoomed img { transition: none; }
+.document-canvas-actions a { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 6px 9px; border: 1px solid rgba(148,163,184,.15); border-radius: 7px; color: #99f6e4; background: rgba(15,23,42,.72); text-decoration: none; font-size: 9px; font-weight: 800; }
+.document-canvas-actions a:hover { border-color: rgba(45,212,191,.36); color: #e6fffb; background: rgba(20,184,166,.1); }
 .viewer-quality-loading { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); padding: 8px 12px; border: 1px solid rgba(45,212,191,.24); border-radius: 999px; background: rgba(2,6,23,.82); color: #99f6e4; box-shadow: 0 8px 30px rgba(0,0,0,.3); font-size: 11px; font-weight: 700; pointer-events: none; }
 .approval-viewer-details { min-height: 0; overflow-y: auto; padding: 24px; border-left: 1px solid rgba(148,163,184,.13); background: rgba(11,20,36,.96); }
 .approval-viewer-details h3 { margin: 0 0 22px; color: #f1f5f9; font-size: 18px; line-height: 1.35; }
@@ -37,29 +32,21 @@
 .viewer-hotkey-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px 0; }
 .viewer-hotkey-row + .viewer-hotkey-row { border-top: 1px solid rgba(148,163,184,.08); }
 .viewer-hotkey-icon, .viewer-hotkey-row kbd { width: 52px; min-height: 34px; display: grid; place-items: center; border: 1px solid rgba(45,212,191,.22); border-radius: 9px; background: rgba(20,184,166,.08); color: #99f6e4; }
-.viewer-hotkey-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.7; }
 .viewer-hotkey-row kbd { padding: 0 7px; box-shadow: inset 0 -2px 0 rgba(148,163,184,.12); font-family: inherit; font-size: 9px; font-weight: 800; }
 .viewer-hotkey-row div { display: grid; gap: 3px; }
 .viewer-hotkey-row strong { color: #dbe5ef; font-size: 11px; line-height: 1.35; }
 .viewer-hotkey-row span { color: #718096; font-size: 10px; line-height: 1.4; }
 .viewer-touch-help { display: none; }
 .approval-print-frame { position: fixed; width: 1px; height: 1px; right: 0; bottom: 0; border: 0; opacity: 0; pointer-events: none; }
-@media (pointer: coarse) {
-  .viewer-touch-help { display: grid; }
-  .approval-canvas.is-zoomed { cursor: grab; }
-}
+@media (pointer: coarse) { .viewer-touch-help { display: grid; } }
 @media (max-width: 900px) {
   .modal-dialog-viewer { width: calc(100vw - 20px); height: calc(100dvh - 20px); max-height: calc(100dvh - 20px); }
   .approval-viewer-layout { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
   .approval-viewer-details { max-height: 250px; border-left: 0; border-top: 1px solid rgba(148,163,184,.13); }
+  .approval-document-sheet img { max-height: calc(100dvh - 430px); }
 }
 @media (max-width: 700px) {
-  .approval-viewer-toolbar { align-items: stretch; flex-direction: column; }
-  .viewer-control-group { justify-content: center; flex-wrap: wrap; }
-  .viewer-actions { justify-content: stretch; }
-  .viewer-actions button, .viewer-actions a { flex: 1; }
-  .approval-canvas { padding: 14px; }
+  .approval-document-stage { padding: 14px; }
+  .document-canvas-actions { flex-wrap: wrap; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .approval-canvas img, .viewer-quality-track, .viewer-quality-track span { transition: none; }
-}
+@media (prefers-reduced-motion: reduce) { .viewer-quality-track, .viewer-quality-track span { transition: none; } }
