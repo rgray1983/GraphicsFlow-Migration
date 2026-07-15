@@ -1,4 +1,5 @@
 import type { ApprovalRevisionDetail, ApprovalRevisionUpdate } from '@graphicsflow/shared';
+import { storeApprovalRevisionArtwork } from './approval-revision-artwork-service.js';
 import { database as legacyDatabase } from './database.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
 import { getOriginalApprovalRevisionSnapshot } from './print-card-preview-service.js';
@@ -257,6 +258,14 @@ export function updateApprovalRevision(graphicId: number, revisionId: number, in
   `).get(graphicId, clean(input.revisionLabel), revisionId);
   if (duplicate) throw new Error(`Revision ${clean(input.revisionLabel)} already exists for this Approval.`);
 
+  let artworkName = input.artworkName.trim();
+  let artworkRelativePath = input.artworkRelativePath.trim();
+  if (input.artworkPdfBase64.trim()) {
+    const stored = storeApprovalRevisionArtwork(graphicId, revisionId, artworkName, input.artworkPdfBase64);
+    artworkName = stored.artworkName;
+    artworkRelativePath = stored.artworkRelativePath;
+  }
+
   graphicsStoreDatabase.prepare(`
     UPDATE document_revisions SET revision_label=?, revision_date=?, description=?, specification_number=?, design_number=?,
       flute_test=?, sales_rep=?, csr=?, designer=?, digital_print=?, digital_cut=?, digital_die_cut=?,
@@ -266,7 +275,7 @@ export function updateApprovalRevision(graphicId: number, revisionId: number, in
     clean(input.revisionLabel), normalizeRevisionDate(input.revisionDate), clean(input.description), clean(input.specificationNumber),
     clean(input.designNumber), clean(input.fluteTest), clean(input.salesRep), clean(input.csr), clean(input.designer),
     input.digitalPrint ? 1 : 0, input.digitalCut ? 1 : 0, input.digitalDieCut ? 1 : 0,
-    input.labelDieCut ? 1 : 0, input.label4cProcess ? 1 : 0, input.artworkName.trim(), input.artworkRelativePath.trim(), revisionId,
+    input.labelDieCut ? 1 : 0, input.label4cProcess ? 1 : 0, artworkName, artworkRelativePath, revisionId,
   );
   const updated = getApprovalRevisionDetail(graphicId, revisionId);
   if (!updated) throw new Error('The updated Approval revision could not be reloaded.');
