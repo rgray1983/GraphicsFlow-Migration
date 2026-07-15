@@ -100,7 +100,10 @@ const approvalRevisionEditableFields = {
   labelDieCut: z.boolean().default(false), label4cProcess: z.boolean().default(false),
   artworkName: z.string().trim().max(255).default(''), artworkRelativePath: z.string().trim().max(1000).default(''),
 };
-export const approvalRevisionUpdateSchema = z.object(approvalRevisionEditableFields);
+export const approvalRevisionUpdateSchema = z.object({
+  ...approvalRevisionEditableFields,
+  artworkPdfBase64: z.string().max(40_000_000).default(''),
+});
 export const approvalRevisionDetailSchema = z.object({
   id: z.number().int().positive(), graphicId: z.number().int().positive(), ...approvalRevisionEditableFields,
   source: z.enum(['legacy-import', 'graphicsflow']), legacyRevisionId: z.number().int().positive().nullable(), isCurrent: z.boolean(),
