@@ -33,6 +33,18 @@ function clean(value: string): string {
   return value.trim().toUpperCase();
 }
 
+function formatRevisionDate(value: string): string {
+  const text = value.trim();
+  if (!text) return '';
+  const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  const slash = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
+  if (iso) return `${Number(iso[2])}/${Number(iso[3])}/${iso[1].slice(-2)}`;
+  if (slash) return `${Number(slash[1])}/${Number(slash[2])}/${slash[3].slice(-2)}`;
+  const parsed = new Date(text.includes('T') ? text : text.replace(' ', 'T'));
+  if (Number.isNaN(parsed.getTime())) return clean(text);
+  return `${parsed.getMonth() + 1}/${parsed.getDate()}/${String(parsed.getFullYear()).slice(-2)}`;
+}
+
 function fit(value: string, max: number): string {
   const normalized = clean(value);
   return normalized.length > max ? normalized.slice(0, max) : normalized;
@@ -71,7 +83,7 @@ export function renderPrintCardSvg(data: PrintCardTemplateData): string {
     const baseline = headerH + rowH * index + 32;
     return `<g font-family="${SVG_FONT}" font-size="22" font-weight="400">
       <text x="28" y="${baseline}">${xml(fit(revision.revisionLabel, 7))}</text>
-      <text x="90" y="${baseline}">${xml(fit(revision.revisionDate, 12))}</text>
+      <text x="90" y="${baseline}">${xml(fit(formatRevisionDate(revision.revisionDate), 12))}</text>
       <text x="242" y="${baseline}">${xml(fit(revision.description, 42))}</text>
       <text x="772" y="${baseline}">${xml(fit(revision.csr, 8))}</text>
       <text x="897" y="${baseline}">${xml(fit(revision.designer, 8))}</text>
