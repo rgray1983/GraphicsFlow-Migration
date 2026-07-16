@@ -9,7 +9,6 @@ import { settingsDatabasePath } from './settings-store.js';
 
 const managedRoot = resolve(dirname(settingsDatabasePath), 'generated-documents', 'approvals');
 const temporaryRoot = resolve(managedRoot, 'temporary');
-const TEMPORARY_PDF_LIFETIME_MS = 15 * 60 * 1000;
 const clean = (value: unknown) => String(value ?? '').trim().toUpperCase();
 const numberOnly = (value: unknown) => String(value ?? '').match(/\d+/g)?.join('') ?? '';
 
@@ -34,7 +33,7 @@ async function removeTemporaryApproval(path: string, revisionId: number): Promis
 function scheduleTemporaryApprovalRemoval(path: string, revisionId: number): void {
   const timer = setTimeout(() => {
     void removeTemporaryApproval(path, revisionId);
-  }, TEMPORARY_PDF_LIFETIME_MS);
+  }, 0);
   timer.unref();
 }
 
