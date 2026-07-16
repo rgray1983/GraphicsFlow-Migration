@@ -89,7 +89,7 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
         {viewerError && <span className="revision-open-error">{viewerError}</span>}
         <div className="revision-primary-actions">
           <button className="primary" disabled={!selectedRevisionId} onClick={() => setEditOpen(true)} type="button">Edit Revision</button>
-          <button className={regenerationNeeded ? 'needs-attention' : ''} disabled={!selectedRevisionId} onClick={openRegenerate} type="button">Regenerate Approval</button>
+          <button aria-label={regenerationNeeded ? 'Regenerate Approval — changes are waiting' : 'Regenerate Approval'} className={regenerationNeeded ? 'needs-attention' : ''} disabled={!selectedRevisionId} onClick={openRegenerate} type="button">{regenerationNeeded && <span aria-hidden="true" className="regenerate-attention-dot" />}<span>{regenerationNeeded ? 'Regenerate Approval — Changes Ready' : 'Regenerate Approval'}</span></button>
         </div>
       </aside>
       <ApprovalRevisionEditModal graphicId={record.graphicId} isOpen={editOpen} onClose={() => setEditOpen(false)} onSaved={handleRevisionSaved} revisionId={selectedRevisionId} />
