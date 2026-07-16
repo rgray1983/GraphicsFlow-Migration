@@ -1,6 +1,7 @@
 import type { RevisionJourneyEntry, RevisionLookupResponse } from '@graphicsflow/shared';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { DocumentCanvas } from './DocumentCanvas';
+import { LoadingIndicator } from './LoadingIndicator';
 import { PrintCardRevisionEditModal } from './PrintCardRevisionEditModal';
 import { PrintCardRevisionRegenerateModal } from './PrintCardRevisionRegenerateModal';
 import { Toast } from './Toast';
@@ -25,15 +26,35 @@ export function PrintCardRevisionWorkspace({ record, selectedRevision, selectedR
   const [pendingRevisionId, setPendingRevisionId] = useState<number | null>(null);
   const [savedChangeType, setSavedChangeType] = useState<SavedChangeType | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const printCardParams = new URLSearchParams({ specificationNumber: record.specificationNumber }).toString();
-  const imageUrl = `/api/graphics/${record.graphicId}/print-card.jpg?${printCardParams}`;
-  const isHistorical = Boolean(selectedRevision && !selectedRevision.isCurrent);
+  const [adaptiveHighQuality, setAdaptiveHighQuality] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const selectedRevisionId = selectedRevision?.id ?? null;
+  const printCardParams = new URLSearchParams({ specificationNumber: record.specificationNumber }).toString();
+  const currentImageUrl = `/api/graphics/${record.graphicId}/print-card.jpg?${printCardParams}`;
+  const imageUrl = adaptiveHighQuality && selectedRevisionId
+    ? `/api/graphics/${record.graphicId}/print-card/revisions/${selectedRevisionId}.jpg?v=${selectedRevisionIndex}`
+    : currentImageUrl;
+  const isHistorical = Boolean(selectedRevision && !selectedRevision.isCurrent);
   const regenerationNeeded = Boolean(selectedRevisionId && pendingRevisionId === selectedRevisionId);
 
   useEffect(() => {
     setEditOpen(false); setRegenerateOpen(false); setPendingRevisionId(null); setSavedChangeType(null); setToastMessage(null);
   }, [record.graphicId]);
+
+  useEffect(() => {
+    setAdaptiveHighQuality(false);
+    setImageLoading(true);
+    setImageError(false);
+  }, [record.graphicId, selectedRevisionId]);
+
+  const handleScaleChange = useCallback((scale: number) => {
+    if (scale > 3 && selectedRevisionId && !adaptiveHighQuality) {
+      setImageLoading(true);
+      setImageError(false);
+      setAdaptiveHighQuality(true);
+    }
+  }, [adaptiveHighQuality, selectedRevisionId]);
 
   const handleSaved = (revisionId: number, mode: SavedChangeType) => {
     setPendingRevisionId(revisionId);
@@ -43,11 +64,18 @@ export function PrintCardRevisionWorkspace({ record, selectedRevision, selectedR
   };
   const cancelChanges = () => { setPendingRevisionId(null); setSavedChangeType(null); setToastMessage(null); };
   const openRegenerate = () => { setPendingRevisionId(null); setSavedChangeType(null); setToastMessage(null); setRegenerateOpen(true); };
+  const viewerOverlay = imageLoading ? (
+    <LoadingIndicator
+      message={adaptiveHighQuality ? 'Rebuilding a sharper Print Card from the connected PDF…' : 'Loading the selected Print Card image…'}
+      size="viewer"
+      title={adaptiveHighQuality ? 'Sharpening Preview' : 'Opening Print Card'}
+    />
+  ) : imageError ? <div className="revision-open-error">The Print Card image could not be opened.</div> : null;
 
   return <>
     <aside className="revision-document-workspace print-card-revision-workspace approval-revision-workspace">
       <div className="revision-workspace-heading"><p className="eyebrow">Print Card workspace</p><h3>{selectedRevision ? `Revision ${selectedRevision.revisionLabel}` : 'Current document'}</h3><p>{selectedRevision?.description || 'The current Print Card is shown below.'}</p>{isHistorical && <span className="revision-workspace-mode">Historical revision selected</span>}</div>
-      <div className="revision-embedded-viewer"><DocumentCanvas ariaLabel="Selected Print Card viewer" className="revision-document-stage" fitScale={1} isActive key={`printCard-${record.graphicId}-${selectedRevisionIndex}`} renderAtLayoutScale={false} toolbarEnd={<button disabled={viewerLoading} onClick={onOpenCurrent} type="button">{viewerLoading ? 'Opening…' : 'Full Screen'}</button>}><div className="revision-document-sheet"><img alt="Current Print Card" draggable={false} src={imageUrl} /></div></DocumentCanvas></div>
+      <div className="revision-embedded-viewer"><DocumentCanvas ariaLabel="Selected Print Card viewer" className="revision-document-stage" fitScale={1} isActive key={`printCard-${record.graphicId}-${selectedRevisionIndex}`} onScaleChange={handleScaleChange} overlay={viewerOverlay} renderAtLayoutScale={false} toolbarEnd={<><span className="viewer-quality-label">{adaptiveHighQuality ? 'PDF-rendered high quality' : selectedRevisionId ? '300 DPI · Auto sharpens above 300%' : 'Production JPG'}</span><button disabled={viewerLoading} onClick={onOpenCurrent} type="button">{viewerLoading ? 'Opening…' : 'Full Screen'}</button></>}><div className="revision-document-sheet"><img alt="Current Print Card" draggable={false} key={imageUrl} onError={() => { setImageError(true); setImageLoading(false); }} onLoad={() => setImageLoading(false)} src={imageUrl} /></div></DocumentCanvas></div>
       {isHistorical && <div className="revision-workspace-notice"><strong>Revision {selectedRevision?.revisionLabel} selected</strong><span>The selected revision information and connected artwork can be edited or regenerated without replacing the current managed Print Card.</span></div>}
       {regenerationNeeded && <div className="revision-workspace-notice is-regeneration-needed"><strong>{savedChangeType === 'artwork' ? 'Artwork change saved' : 'Revision changes saved'}</strong><span>Regenerate the Print Card to create a fresh temporary JPG with the saved changes.</span></div>}
       {viewerError && <span className="revision-open-error">{viewerError}</span>}
