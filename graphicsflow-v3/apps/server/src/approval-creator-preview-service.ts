@@ -20,6 +20,7 @@ const ARTWORK_HEIGHT_POINTS = 5.75 * POINTS_PER_INCH;
 const ARTWORK_LEFT_POINTS = (APPROVAL_PAGE_WIDTH_POINTS - ARTWORK_WIDTH_POINTS) / 2;
 const ARTWORK_TOP_OFFSET_POINTS = 1.25 * POINTS_PER_INCH;
 const ARTWORK_SOURCE_DPI = 600;
+const FINISHED_PDF_DPI = 300;
 
 export type ApprovalPreviewInput = {
   gNumber: string;
@@ -109,48 +110,64 @@ async function artworkPdf(input: ApprovalPreviewInput): Promise<Buffer | null> {
   return null;
 }
 
-async function renderComposedPage(input: ApprovalPreviewInput, filledPdfPath: string, directory: string, dpi: number): Promise<string> {
-  const gs = await findGhostscript(); if (!gs) throw new Error('Ghostscript is required to render the Approval preview.');
-  const pagePath = join(directory, `approval-${dpi}.png`);
-  await execFileAsync(gs, ['-dSAFER','-dBATCH','-dNOPAUSE','-dFirstPage=1','-dLastPage=1','-sDEVICE=png16m',`-r${dpi}`,'-dGraphicsAlphaBits=4','-dTextAlphaBits=4',`-sOutputFile=${pagePath}`,filledPdfPath], { timeout: 60000, maxBuffer: 30 * 1024 * 1024 });
-  const art = await artworkPdf(input); if (!art) return pagePath;
-
+async function prepareArtworkImage(art: Buffer, directory: string, dpi: number): Promise<{ path: string; width: number; height: number; x: number; y: number }> {
+  const gs = await findGhostscript(); if (!gs) throw new Error('Ghostscript is required to render the Approval artwork.');
+  const magick = await findImageMagick(); if (!magick) throw new Error('ImageMagick is required to place artwork on the Approval.');
   const artPdfPath = join(directory, 'artwork.pdf');
   const artPngPath = join(directory, `artwork-${ARTWORK_SOURCE_DPI}.png`);
   const preparedArtPath = join(directory, `artwork-prepared-${dpi}.png`);
-  const composedPagePath = join(directory, `approval-composed-${dpi}.png`);
   await writeFile(artPdfPath, art);
   await execFileAsync(gs, ['-dSAFER','-dBATCH','-dNOPAUSE','-dFirstPage=1','-dLastPage=1','-sDEVICE=png16m',`-r${ARTWORK_SOURCE_DPI}`,'-dGraphicsAlphaBits=4','-dTextAlphaBits=4',`-sOutputFile=${artPngPath}`,artPdfPath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
 
-  const magick = await findImageMagick(); if (!magick) throw new Error('ImageMagick is required to place artwork on the Approval.');
   const pixelsPerPoint = dpi / POINTS_PER_INCH;
   const width = Math.round(ARTWORK_WIDTH_POINTS * pixelsPerPoint);
   const height = Math.round(ARTWORK_HEIGHT_POINTS * pixelsPerPoint);
   const x = Math.round(ARTWORK_LEFT_POINTS * pixelsPerPoint);
   const y = Math.round(ARTWORK_TOP_OFFSET_POINTS * pixelsPerPoint);
+  await execFileAsync(magick, [artPngPath, '-resize', `${width}x${height}`, '-background', 'none', '-gravity', 'center', '-extent', `${width}x${height}`, preparedArtPath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
+  return { path: preparedArtPath, width, height, x, y };
+}
 
-  await execFileAsync(magick, [
-    artPngPath,
-    '-resize', `${width}x${height}`,
-    '-background', 'none',
-    '-gravity', 'center',
-    '-extent', `${width}x${height}`,
-    preparedArtPath,
-  ], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
-
-  await execFileAsync(magick, [pagePath, preparedArtPath, '-geometry', `+${x}+${y}`, '-composite', composedPagePath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
+async function renderComposedPage(input: ApprovalPreviewInput, filledPdfPath: string, directory: string, dpi: number): Promise<string> {
+  const gs = await findGhostscript(); if (!gs) throw new Error('Ghostscript is required to render the Approval preview.');
+  const pagePath = join(directory, `approval-${dpi}.png`);
+  await execFileAsync(gs, ['-dSAFER','-dBATCH','-dNOPAUSE','-dFirstPage=1','-dLastPage=1','-sDEVICE=png16m',`-r${dpi}`,'-dGraphicsAlphaBits=4','-dTextAlphaBits=4',`-sOutputFile=${pagePath}`,filledPdfPath], { timeout: 60000, maxBuffer: 30 * 1024 * 1024 });
+  const art = await artworkPdf(input); if (!art) return pagePath;
+  const prepared = await prepareArtworkImage(art, directory, dpi);
+  const magick = await findImageMagick(); if (!magick) throw new Error('ImageMagick is required to place artwork on the Approval.');
+  const composedPagePath = join(directory, `approval-composed-${dpi}.png`);
+  await execFileAsync(magick, [pagePath, prepared.path, '-geometry', `+${prepared.x}+${prepared.y}`, '-composite', composedPagePath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
   return composedPagePath;
+}
+
+async function createArtworkOverlayPdf(art: Buffer, directory: string): Promise<string> {
+  const magick = await findImageMagick(); if (!magick) throw new Error('ImageMagick is required to place artwork on the Approval.');
+  const prepared = await prepareArtworkImage(art, directory, FINISHED_PDF_DPI);
+  const pageWidth = Math.round(APPROVAL_PAGE_WIDTH_POINTS * FINISHED_PDF_DPI / POINTS_PER_INCH);
+  const pageHeight = Math.round(APPROVAL_PAGE_HEIGHT_POINTS * FINISHED_PDF_DPI / POINTS_PER_INCH);
+  const overlayPngPath = join(directory, 'approval-artwork-overlay.png');
+  const overlayPdfPath = join(directory, 'approval-artwork-overlay.pdf');
+  await execFileAsync(magick, ['-size', `${pageWidth}x${pageHeight}`, 'canvas:none', prepared.path, '-geometry', `+${prepared.x}+${prepared.y}`, '-composite', overlayPngPath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
+  await execFileAsync(magick, [overlayPngPath, '-units', 'PixelsPerInch', '-density', String(FINISHED_PDF_DPI), overlayPdfPath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
+  return overlayPdfPath;
 }
 
 export async function renderHccApprovalPdf(input: ApprovalPreviewInput): Promise<Buffer> {
   const directory = await mkdtemp(join(tmpdir(), 'graphicsflow-approval-pdf-'));
   try {
     const filledPdfPath = await createFilledApprovalPdf(input, directory);
-    if (!(await artworkPdf(input))) return await readFile(filledPdfPath);
-    const pagePath = await renderComposedPage(input, filledPdfPath, directory, 300);
-    const outputPath = join(directory, 'approval-complete.pdf'); const magick = await findImageMagick();
-    if (!magick) throw new Error('ImageMagick is required to create the finished Approval PDF.');
-    await execFileAsync(magick, [pagePath,'-units','PixelsPerInch','-density','300',outputPath], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
+    const art = await artworkPdf(input);
+    if (!art) return await readFile(filledPdfPath);
+
+    const pdftk = await findPdftk();
+    if (!pdftk) throw new Error('pdftk is required to preserve the editable Approval form fields.');
+    const overlayPdfPath = await createArtworkOverlayPdf(art, directory);
+    const outputPath = join(directory, 'approval-complete.pdf');
+
+    // Stamp only the artwork layer onto the filled AcroForm. This deliberately avoids
+    // rasterizing the HCC template, so every original PDF form field remains intact,
+    // editable in Acrobat, and readable by GraphicsFlow on future lookups.
+    await execFileAsync(pdftk, [filledPdfPath, 'multistamp', overlayPdfPath, 'output', outputPath, 'need_appearances'], { timeout: 120000, maxBuffer: 60 * 1024 * 1024 });
     return await readFile(outputPath);
   } finally { await rm(directory, { recursive: true, force: true }); }
 }
