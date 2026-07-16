@@ -5,6 +5,7 @@ import {
   type GraphicFileMatch,
   type GraphicRecord,
   type PrintCardDetailsResponse,
+  type RevisionJourneyEntry,
 } from '@graphicsflow/shared';
 import { DocumentCanvas } from './DocumentCanvas';
 import { LoadingIndicator } from './LoadingIndicator';
@@ -15,6 +16,7 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   record: GraphicRecord;
+  selectedRevision?: RevisionJourneyEntry | null;
 };
 
 function formatDate(value: string): string {
@@ -28,12 +30,13 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
 }
 
-export function PrintCardViewer({ file, isOpen, onClose, record }: Props) {
+export function PrintCardViewer({ file, isOpen, onClose, record, selectedRevision = null }: Props) {
   const [cacheKey, setCacheKey] = useState(0);
   const [details, setDetails] = useState<PrintCardDetailsResponse | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [resolvedFileSize, setResolvedFileSize] = useState<number | null>(null);
   const params = new URLSearchParams({
     v: String(cacheKey),
     specificationNumber: record.specificationNumber,
@@ -45,7 +48,12 @@ export function PrintCardViewer({ file, isOpen, onClose, record }: Props) {
     setCacheKey(Date.now());
     setImageLoading(true);
     setImageError(false);
-    setDetailsLoading(true);
+    setResolvedFileSize(file?.size ?? null);
+    setDetailsLoading(!selectedRevision);
+    if (selectedRevision) {
+      setDetails(null);
+      return;
+    }
     void fetch(`/api/graphics/${record.id}/print-card/details`)
       .then(async (response) => {
         if (!response.ok) throw new Error('Print Card details could not be loaded.');
@@ -54,7 +62,26 @@ export function PrintCardViewer({ file, isOpen, onClose, record }: Props) {
       .then(setDetails)
       .catch(() => setDetails(null))
       .finally(() => setDetailsLoading(false));
-  }, [isOpen, record.id]);
+  }, [file?.size, isOpen, record.id, selectedRevision]);
+
+  useEffect(() => {
+    if (!isOpen || resolvedFileSize !== null) return;
+    const controller = new AbortController();
+    void fetch(imageUrl, { method: 'HEAD', cache: 'no-store', signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const contentLength = Number(response.headers.get('Content-Length'));
+        if (Number.isFinite(contentLength) && contentLength > 0) return contentLength;
+        const fallback = await fetch(imageUrl, { cache: 'no-store', signal: controller.signal });
+        if (!fallback.ok) return null;
+        return (await fallback.blob()).size;
+      })
+      .then((size) => { if (size) setResolvedFileSize(size); })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+      });
+    return () => controller.abort();
+  }, [imageUrl, isOpen, resolvedFileSize]);
 
   const printCard = () => {
     const iframe = document.createElement('iframe');
@@ -71,7 +98,16 @@ export function PrintCardViewer({ file, isOpen, onClose, record }: Props) {
     window.setTimeout(() => iframe.remove(), 60_000);
   };
 
-  const revision = details?.revision;
+  const storedRevision = details?.revision;
+  const revision = selectedRevision ? {
+    specificationNumber: record.specificationNumber,
+    designNumber: storedRevision?.designNumber ?? '',
+    revisionLabel: selectedRevision.revisionLabel,
+    revisionDate: selectedRevision.revisionDate,
+    description: selectedRevision.description,
+    csr: selectedRevision.csr,
+    designer: selectedRevision.designer,
+  } : storedRevision;
   const downloadParams = new URLSearchParams(params);
   downloadParams.set('download', '1');
   const viewerOverlay = imageLoading ? (
@@ -79,9 +115,11 @@ export function PrintCardViewer({ file, isOpen, onClose, record }: Props) {
   ) : imageError ? (
     <div className="revision-open-error">The Print Card image could not be opened.</div>
   ) : null;
+  const selectedLabel = selectedRevision?.revisionLabel?.trim();
+  const title = selectedLabel ? `${formatGNumber(record.gNumber)} Print Card · Revision ${selectedLabel}` : `${formatGNumber(record.gNumber)} Print Card`;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`${formatGNumber(record.gNumber)} Print Card`} variant="viewer">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} variant="viewer">
       <div className="approval-viewer">
         <div className="approval-viewer-layout">
           <div className="approval-document-canvas">
@@ -126,8 +164,8 @@ export function PrintCardViewer({ file, isOpen, onClose, record }: Props) {
               <div><dt>Designer</dt><dd>{revision?.designer || 'Not recorded'}</dd></div>
               <div><dt>Part Number</dt><dd>{record.partNumber || 'Not recorded'}</dd></div>
               <div><dt>File</dt><dd>{file?.name ?? 'GraphicsFlow production JPG'}</dd></div>
-              <div><dt>Modified</dt><dd>{file ? formatDate(file.modifiedAt) : 'Just generated'}</dd></div>
-              <div><dt>File Size</dt><dd>{file ? formatFileSize(file.size) : 'Not available'}</dd></div>
+              <div><dt>Modified</dt><dd>{file ? formatDate(file.modifiedAt) : selectedRevision?.createdAt ? formatDate(selectedRevision.createdAt) : 'Just generated'}</dd></div>
+              <div><dt>File Size</dt><dd>{resolvedFileSize !== null ? formatFileSize(resolvedFileSize) : 'Calculating…'}</dd></div>
             </dl>
             {detailsLoading && <p className="muted">Loading structured Print Card data…</p>}
 
