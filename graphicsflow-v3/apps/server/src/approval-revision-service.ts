@@ -1,5 +1,6 @@
 import type { ApprovalRevisionDetail, ApprovalRevisionUpdate } from '@graphicsflow/shared';
 import { storeApprovalRevisionArtwork } from './approval-revision-artwork-service.js';
+import { clearApprovalTemporaryFilesSync } from './approval-temporary-service.js';
 import { database as legacyDatabase } from './database.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
 import { getOriginalApprovalRevisionSnapshot } from './print-card-preview-service.js';
@@ -11,13 +12,11 @@ const truthy = (value: unknown) => ['1', 'YES', 'ON', 'TRUE'].includes(clean(val
 function normalizeRevisionDate(value: unknown): string {
   const text = String(value ?? '').trim();
   if (!text) return '';
-
   const isoMatch = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch;
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
-
   const usMatch = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
   if (usMatch) {
     const [, month, day, rawYear] = usMatch;
@@ -25,7 +24,6 @@ function normalizeRevisionDate(value: unknown): string {
     const year = rawYear.length === 2 ? String(yearNumber >= 70 ? 1900 + yearNumber : 2000 + yearNumber) : rawYear;
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
-
   const parsed = new Date(text);
   if (Number.isNaN(parsed.getTime())) return '';
   const year = parsed.getFullYear();
@@ -50,7 +48,6 @@ export function importLegacyApprovalRevisions(graphicId: number, gNumber: string
   const documentId = ensureApprovalDocument(graphicId);
   const g = normalizedG(gNumber);
   if (!g) return 0;
-
   let rows: Array<Record<string, unknown>> = [];
   try {
     rows = legacyDatabase.prepare(`
@@ -61,7 +58,6 @@ export function importLegacyApprovalRevisions(graphicId: number, gNumber: string
   } catch {
     return 0;
   }
-
   const insert = graphicsStoreDatabase.prepare(`
     INSERT INTO document_revisions (
       document_id, revision_label, revision_date, description, specification_number, design_number,
@@ -70,7 +66,6 @@ export function importLegacyApprovalRevisions(graphicId: number, gNumber: string
       label_die_cut, label_4c_process, artwork_name, artwork_relative_path
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'legacy-import', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-
   let imported = 0;
   graphicsStoreDatabase.exec('BEGIN IMMEDIATE');
   try {
@@ -81,41 +76,23 @@ export function importLegacyApprovalRevisions(graphicId: number, gNumber: string
       if (exists) continue;
       const approvalPdf = String(row.approval_pdf ?? '').trim();
       insert.run(
-        documentId,
-        clean(row.rev || '0'),
-        normalizeRevisionDate(row.rev_date ?? row.approval_date),
-        clean(row.description),
-        clean(row.spec_number),
-        clean(row.d_number),
-        clean(row.csr),
-        clean(row.dsr),
-        approvalPdf || null,
-        legacyId,
-        String(row.created_at ?? new Date().toISOString()),
-        clean(row.test_flute),
-        clean(row.sales_rep),
-        truthy(row.digital_print) ? 1 : 0,
-        truthy(row.digital_cut) ? 1 : 0,
-        truthy(row.digital_die_cut) ? 1 : 0,
-        truthy(row.label_die_cut) ? 1 : 0,
-        truthy(row.label_4c_process) ? 1 : 0,
-        approvalPdf ? approvalPdf.split('/').at(-1) ?? '' : '',
-        '',
+        documentId, clean(row.rev || '0'), normalizeRevisionDate(row.rev_date ?? row.approval_date), clean(row.description),
+        clean(row.spec_number), clean(row.d_number), clean(row.csr), clean(row.dsr), approvalPdf || null, legacyId,
+        String(row.created_at ?? new Date().toISOString()), clean(row.test_flute), clean(row.sales_rep),
+        truthy(row.digital_print) ? 1 : 0, truthy(row.digital_cut) ? 1 : 0, truthy(row.digital_die_cut) ? 1 : 0,
+        truthy(row.label_die_cut) ? 1 : 0, truthy(row.label_4c_process) ? 1 : 0,
+        approvalPdf ? approvalPdf.split('/').at(-1) ?? '' : '', '',
       );
       imported += 1;
     }
-
     const importedRows = graphicsStoreDatabase.prepare(`
-      SELECT id, revision_date
-      FROM document_revisions
-      WHERE document_id=? AND source='legacy-import'
+      SELECT id, revision_date FROM document_revisions WHERE document_id=? AND source='legacy-import'
     `).all(documentId) as Array<{ id: number; revision_date: string | null }>;
     const updateDate = graphicsStoreDatabase.prepare('UPDATE document_revisions SET revision_date=? WHERE id=?');
     for (const row of importedRows) {
       const normalized = normalizeRevisionDate(row.revision_date);
       if (normalized && normalized !== String(row.revision_date ?? '')) updateDate.run(normalized, row.id);
     }
-
     const current = graphicsStoreDatabase.prepare(`SELECT current_revision_id FROM graphics_documents WHERE id=?`).get(documentId) as { current_revision_id: number | null };
     if (!current.current_revision_id) {
       const newest = graphicsStoreDatabase.prepare(`SELECT id FROM document_revisions WHERE document_id=? ORDER BY id DESC LIMIT 1`).get(documentId) as { id: number } | undefined;
@@ -133,12 +110,10 @@ export async function syncOriginalApprovalRevisionRecords(graphicId: number): Pr
   const documentId = ensureApprovalDocument(graphicId);
   const snapshot = await getOriginalApprovalRevisionSnapshot(graphicId);
   if (!snapshot || snapshot.revisions.length === 0) return 0;
-
   const findRevision = graphicsStoreDatabase.prepare(`
     SELECT id FROM document_revisions
     WHERE document_id=? AND UPPER(TRIM(revision_label))=?
-    ORDER BY CASE WHEN source='graphicsflow' THEN 0 ELSE 1 END, id DESC
-    LIMIT 1
+    ORDER BY CASE WHEN source='graphicsflow' THEN 0 ELSE 1 END, id DESC LIMIT 1
   `);
   const insert = graphicsStoreDatabase.prepare(`
     INSERT INTO document_revisions (
@@ -167,7 +142,6 @@ export async function syncOriginalApprovalRevisionRecords(graphicId: number): Pr
       artwork_name=CASE WHEN TRIM(COALESCE(artwork_name,''))='' THEN ? ELSE artwork_name END
     WHERE id=?
   `);
-
   let created = 0;
   let currentRevisionId: number | null = null;
   const now = new Date().toISOString();
@@ -187,31 +161,15 @@ export async function syncOriginalApprovalRevisionRecords(graphicId: number): Pr
         currentRevisionId = existing.id;
         continue;
       }
-
       const result = insert.run(
-        documentId,
-        label,
-        normalizeRevisionDate(revision.revisionDate),
-        clean(revision.description),
-        clean(snapshot.specificationNumber),
-        clean(snapshot.designNumber),
-        clean(revision.csr),
-        clean(revision.designer),
-        snapshot.approvalRelativePath,
-        now,
-        clean(snapshot.fluteTest),
-        clean(snapshot.salesRep),
-        snapshot.digitalPrint ? 1 : 0,
-        snapshot.digitalCut ? 1 : 0,
-        snapshot.digitalDieCut ? 1 : 0,
-        snapshot.labelDieCut ? 1 : 0,
-        snapshot.label4cProcess ? 1 : 0,
-        snapshot.approvalName,
+        documentId, label, normalizeRevisionDate(revision.revisionDate), clean(revision.description), clean(snapshot.specificationNumber),
+        clean(snapshot.designNumber), clean(revision.csr), clean(revision.designer), snapshot.approvalRelativePath, now,
+        clean(snapshot.fluteTest), clean(snapshot.salesRep), snapshot.digitalPrint ? 1 : 0, snapshot.digitalCut ? 1 : 0,
+        snapshot.digitalDieCut ? 1 : 0, snapshot.labelDieCut ? 1 : 0, snapshot.label4cProcess ? 1 : 0, snapshot.approvalName,
       );
       currentRevisionId = Number(result.lastInsertRowid);
       created += 1;
     }
-
     if (currentRevisionId) {
       graphicsStoreDatabase.prepare(`UPDATE graphics_documents SET current_revision_id=?, status='active', updated_at=? WHERE id=?`).run(currentRevisionId, now, documentId);
     }
@@ -239,6 +197,7 @@ function mapDetail(row: Record<string, unknown>): ApprovalRevisionDetail {
 }
 
 export function getApprovalRevisionDetail(graphicId: number, revisionId: number): ApprovalRevisionDetail | null {
+  clearApprovalTemporaryFilesSync();
   const row = graphicsStoreDatabase.prepare(`
     SELECT r.*, d.graphic_id, d.current_revision_id
     FROM document_revisions r
@@ -257,7 +216,6 @@ export function updateApprovalRevision(graphicId: number, revisionId: number, in
     WHERE d.graphic_id=? AND d.document_type='approval' AND UPPER(TRIM(r.revision_label))=? AND r.id<>?
   `).get(graphicId, clean(input.revisionLabel), revisionId);
   if (duplicate) throw new Error(`Revision ${clean(input.revisionLabel)} already exists for this Approval.`);
-
   let artworkName = input.artworkName.trim();
   let artworkRelativePath = input.artworkRelativePath.trim();
   if (input.artworkPdfBase64.trim()) {
@@ -265,7 +223,6 @@ export function updateApprovalRevision(graphicId: number, revisionId: number, in
     artworkName = stored.artworkName;
     artworkRelativePath = stored.artworkRelativePath;
   }
-
   graphicsStoreDatabase.prepare(`
     UPDATE document_revisions SET revision_label=?, revision_date=?, description=?, specification_number=?, design_number=?,
       flute_test=?, sales_rep=?, csr=?, designer=?, digital_print=?, digital_cut=?, digital_die_cut=?,
