@@ -20,10 +20,8 @@ async function findPdftk(): Promise<string | null> {
   try { await execFileAsync('pdftk', ['--version'], { timeout: 5000 }); return 'pdftk'; } catch { return null; }
 }
 
-export async function getApprovalDisplayGNumber(graphicId: number): Promise<string | null> {
-  const graphic = getGraphicById(graphicId);
-  if (!graphic) return null;
-  const normalized = numberOnly(graphic.gNumber).replace(/^0+/, '');
+export async function getApprovalDisplayGNumberByBase(gNumber: string): Promise<string | null> {
+  const normalized = numberOnly(gNumber).replace(/^0+/, '');
   const root = getCompanySettings().storage.approvalsRoot;
   if (!root || !normalized) return null;
   const approval = graphicsStoreDatabase.prepare(`
@@ -52,4 +50,9 @@ export async function getApprovalDisplayGNumber(graphicId: number): Promise<stri
   } catch {
     return null;
   }
+}
+
+export async function getApprovalDisplayGNumber(graphicId: number): Promise<string | null> {
+  const graphic = getGraphicById(graphicId);
+  return graphic ? getApprovalDisplayGNumberByBase(graphic.gNumber) : null;
 }
