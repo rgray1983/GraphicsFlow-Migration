@@ -33,10 +33,17 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [editedRevisionId, setEditedRevisionId] = useState<number | null>(null);
   const [savedChangeType, setSavedChangeType] = useState<'information' | 'artwork' | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
-    setHighQuality(false); setPreviewError(null); setPreviewReady(false); setEditOpen(false); setRegenerateOpen(false); setEditedRevisionId(null); setSavedChangeType(null);
+    setHighQuality(false); setPreviewError(null); setPreviewReady(false); setEditOpen(false); setRegenerateOpen(false); setEditedRevisionId(null); setSavedChangeType(null); setToastVisible(false);
   }, [record.graphicId]);
+
+  useEffect(() => {
+    if (!toastVisible) return;
+    const timer = window.setTimeout(() => setToastVisible(false), 4200);
+    return () => window.clearTimeout(timer);
+  }, [toastVisible, savedChangeType]);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,12 +67,14 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
   const handleRevisionSaved = (savedRevisionId: number, mode: 'information' | 'artwork') => {
     setEditedRevisionId(savedRevisionId);
     setSavedChangeType(mode);
+    setToastVisible(true);
     onRevisionSaved();
   };
 
   const openRegenerate = () => {
     setEditedRevisionId(null);
     setSavedChangeType(null);
+    setToastVisible(false);
     setRegenerateOpen(true);
   };
 
@@ -95,6 +104,7 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
           <button aria-label={regenerationNeeded ? 'Regenerate Approval — changes are waiting' : 'Regenerate Approval'} className={regenerationNeeded ? 'needs-attention' : ''} disabled={!selectedRevisionId} onClick={openRegenerate} type="button">{regenerationNeeded && <span aria-hidden="true" className="regenerate-attention-dot" />}<span>{regenerationNeeded ? 'Regenerate Approval — Changes Ready' : 'Regenerate Approval'}</span></button>
         </div>
       </aside>
+      {toastVisible && <div aria-live="polite" className="approval-revision-toast" role="status"><span>✓</span><div><strong>{savedChangeType === 'artwork' ? 'Artwork change saved' : 'Revision changes saved'}</strong><p>Regenerate the Approval to build a fresh PDF with the saved changes.</p></div><button aria-label="Dismiss notification" onClick={() => setToastVisible(false)} type="button">×</button></div>}
       <ApprovalRevisionEditModal graphicId={record.graphicId} isOpen={editOpen} onClose={() => setEditOpen(false)} onSaved={handleRevisionSaved} revisionId={selectedRevisionId} />
       <ApprovalRevisionRegenerateModal graphicId={record.graphicId} isOpen={regenerateOpen} onClose={() => setRegenerateOpen(false)} revisionId={selectedRevisionId} revisionLabel={selectedRevision?.revisionLabel ?? ''} />
     </>
