@@ -287,10 +287,17 @@ export async function renderCompletePrintCardPreview(graphicId: number, draft: P
   const outputPath = join(directory, 'print-card.png');
   try {
     await writeFile(artPath, await renderPdfPage(await readDraftPdf(draft), 5400, 2400));
-    const revisions = [
-      ...defaults.history.map((row) => ({ revisionLabel: row.revisionLabel, revisionDate: row.revisionDate, description: row.description, csr: row.csr, designer: row.designer })),
-      { revisionLabel: draft.revisionLabel, revisionDate: draft.revisionDate, description: draft.description, csr: draft.csr, designer: draft.designer },
-    ].slice(-4);
+    const currentRevision = {
+      revisionLabel: draft.revisionLabel,
+      revisionDate: draft.revisionDate,
+      description: draft.description,
+      csr: draft.csr,
+      designer: draft.designer,
+    };
+    const historyWithoutCurrent = defaults.history
+      .filter((row) => clean(row.revisionLabel) !== clean(draft.revisionLabel))
+      .map((row) => ({ revisionLabel: row.revisionLabel, revisionDate: row.revisionDate, description: row.description, csr: row.csr, designer: row.designer }));
+    const revisions = [...historyWithoutCurrent, currentRevision].slice(-4);
     await renderPrintCardInfoPanelPng({
       gNumber: graphic.gNumber,
       customerNumber: graphic.customerNumber,
