@@ -74,6 +74,11 @@ export function PrintCardViewer({ file, isOpen, onClose, record }: Props) {
   const revision = details?.revision;
   const downloadParams = new URLSearchParams(params);
   downloadParams.set('download', '1');
+  const viewerOverlay = imageLoading ? (
+    <LoadingIndicator message="Loading the selected Print Card image…" size="viewer" title="Opening Print Card" />
+  ) : imageError ? (
+    <div className="revision-open-error">The Print Card image could not be opened.</div>
+  ) : null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`${formatGNumber(record.gNumber)} Print Card`} variant="viewer">
@@ -86,6 +91,7 @@ export function PrintCardViewer({ file, isOpen, onClose, record }: Props) {
               fitScale={1}
               isActive={isOpen}
               onEscape={onClose}
+              overlay={viewerOverlay}
               renderAtLayoutScale={false}
               toolbarEnd={<>
                 <button onClick={printCard} type="button">Print</button>
@@ -101,12 +107,6 @@ export function PrintCardViewer({ file, isOpen, onClose, record }: Props) {
                   onLoad={() => setImageLoading(false)}
                   src={imageUrl}
                 />
-                {imageLoading && <div className="approval-quality-loading">
-                  <LoadingIndicator message="Loading the selected Print Card image…" size="viewer" title="Opening Print Card" />
-                </div>}
-                {imageError && <div className="approval-quality-loading">
-                  <div className="revision-open-error">The Print Card image could not be opened.</div>
-                </div>}
               </div>
             </DocumentCanvas>
           </div>
