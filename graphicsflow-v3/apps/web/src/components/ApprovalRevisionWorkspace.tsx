@@ -4,6 +4,7 @@ import { ApprovalRevisionEditModal } from './ApprovalRevisionEditModal';
 import { ApprovalRevisionRegenerateModal } from './ApprovalRevisionRegenerateModal';
 import { DocumentCanvas } from './DocumentCanvas';
 import { LoadingIndicator } from './LoadingIndicator';
+import './ApprovalRevisionWorkspace.css';
 
 export type ApprovalWorkspaceRecord = NonNullable<RevisionLookupResponse['record']>;
 
