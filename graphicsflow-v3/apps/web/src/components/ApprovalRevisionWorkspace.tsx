@@ -8,6 +8,9 @@ import './ApprovalRevisionWorkspace.css';
 
 export type ApprovalWorkspaceRecord = NonNullable<RevisionLookupResponse['record']>;
 
+type SavedChangeType = 'information' | 'artwork';
+type PendingRegeneration = { graphicId: number; revisionId: number; mode: SavedChangeType };
+
 type ApprovalRevisionWorkspaceProps = {
   record: ApprovalWorkspaceRecord;
   selectedRevision: RevisionJourneyEntry | null;
@@ -17,6 +20,29 @@ type ApprovalRevisionWorkspaceProps = {
   onOpenCurrent: () => void;
   onRevisionSaved: () => void;
 };
+
+const pendingStorageKey = 'graphicsflow-approval-pending-regeneration';
+
+function readPendingRegeneration(): PendingRegeneration | null {
+  try {
+    const raw = window.sessionStorage.getItem(pendingStorageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PendingRegeneration>;
+    if (!Number.isInteger(parsed.graphicId) || !Number.isInteger(parsed.revisionId) || (parsed.mode !== 'information' && parsed.mode !== 'artwork')) return null;
+    return parsed as PendingRegeneration;
+  } catch {
+    return null;
+  }
+}
+
+function writePendingRegeneration(value: PendingRegeneration | null): void {
+  try {
+    if (value) window.sessionStorage.setItem(pendingStorageKey, JSON.stringify(value));
+    else window.sessionStorage.removeItem(pendingStorageKey);
+  } catch {
+    // The visible reminder still works even when session storage is unavailable.
+  }
+}
 
 async function prepareApprovalPreview(graphicId: number, variant: 'medium' | 'large'): Promise<PreviewResponse> {
   const response = await fetch(`/api/previews/${graphicId}/${variant}`);
@@ -31,19 +57,21 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
   const [previewReady, setPreviewReady] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
-  const [editedRevisionId, setEditedRevisionId] = useState<number | null>(null);
-  const [savedChangeType, setSavedChangeType] = useState<'information' | 'artwork' | null>(null);
+  const [pendingRegeneration, setPendingRegeneration] = useState<PendingRegeneration | null>(() => readPendingRegeneration());
   const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
-    setHighQuality(false); setPreviewError(null); setPreviewReady(false); setEditOpen(false); setRegenerateOpen(false); setEditedRevisionId(null); setSavedChangeType(null); setToastVisible(false);
+    setHighQuality(false); setPreviewError(null); setPreviewReady(false); setEditOpen(false); setRegenerateOpen(false);
+    const saved = readPendingRegeneration();
+    setPendingRegeneration(saved?.graphicId === record.graphicId ? saved : null);
+    setToastVisible(false);
   }, [record.graphicId]);
 
   useEffect(() => {
     if (!toastVisible) return;
     const timer = window.setTimeout(() => setToastVisible(false), 4200);
     return () => window.clearTimeout(timer);
-  }, [toastVisible, savedChangeType]);
+  }, [toastVisible, pendingRegeneration?.mode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,18 +90,20 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
   const imageUrl = `/api/previews/${record.graphicId}/${highQuality ? 'large' : 'medium'}/image`;
   const isHistorical = Boolean(selectedRevision && !selectedRevision.isCurrent);
   const selectedRevisionId = selectedRevision?.id ?? null;
-  const regenerationNeeded = Boolean(selectedRevisionId && editedRevisionId === selectedRevisionId);
+  const regenerationNeeded = Boolean(selectedRevisionId && pendingRegeneration?.graphicId === record.graphicId && pendingRegeneration.revisionId === selectedRevisionId);
+  const savedChangeType = regenerationNeeded ? pendingRegeneration?.mode ?? null : null;
 
-  const handleRevisionSaved = (savedRevisionId: number, mode: 'information' | 'artwork') => {
-    setEditedRevisionId(savedRevisionId);
-    setSavedChangeType(mode);
+  const handleRevisionSaved = (savedRevisionId: number, mode: SavedChangeType) => {
+    const pending = { graphicId: record.graphicId, revisionId: savedRevisionId, mode } satisfies PendingRegeneration;
+    writePendingRegeneration(pending);
+    setPendingRegeneration(pending);
     setToastVisible(true);
     onRevisionSaved();
   };
 
   const openRegenerate = () => {
-    setEditedRevisionId(null);
-    setSavedChangeType(null);
+    writePendingRegeneration(null);
+    setPendingRegeneration(null);
     setToastVisible(false);
     setRegenerateOpen(true);
   };
