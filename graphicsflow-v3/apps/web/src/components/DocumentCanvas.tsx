@@ -18,6 +18,7 @@ type DocumentCanvasProps = {
   fitScale?: number;
   className?: string;
   toolbarEnd?: ReactNode;
+  overlay?: ReactNode;
   onEscape?: () => void;
   renderAtLayoutScale?: boolean;
 };
@@ -37,6 +38,7 @@ export function DocumentCanvas({
   fitScale = 1,
   className = '',
   toolbarEnd,
+  overlay,
   onEscape,
   renderAtLayoutScale = true,
 }: DocumentCanvasProps) {
@@ -206,6 +208,7 @@ export function DocumentCanvas({
         <div className="document-canvas-content" style={contentStyle}>
           {children}
         </div>
+        {overlay && <div className="document-canvas-overlay">{overlay}</div>}
       </div>
       <div className="document-canvas-help">
         <span>Scroll to zoom</span>
