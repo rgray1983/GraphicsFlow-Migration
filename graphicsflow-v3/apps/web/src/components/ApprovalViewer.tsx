@@ -41,7 +41,7 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
   useEffect(() => {
     if (!isOpen) return;
     setHighQuality(false);
-    setQualityLoading(false);
+    setQualityLoading(true);
     setApprovalSpecNumber(record.specificationNumber.trim());
 
     const controller = new AbortController();
@@ -83,6 +83,13 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
 
   const gNumber = identifierValue(record.gNumber);
   const specNumber = approvalSpecNumber ? identifierValue(approvalSpecNumber) : 'NONE';
+  const loadingOverlay = qualityLoading ? (
+    <LoadingIndicator
+      message={`Preparing the ${highQuality ? 'high-quality' : 'standard'} Approval preview…`}
+      size="viewer"
+      title={highQuality ? 'Updating Preview' : 'Opening Approval'}
+    />
+  ) : null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`${formatGNumber(record.gNumber)} Approval`} variant="viewer">
@@ -95,6 +102,7 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
               fitScale={1}
               isActive={isOpen}
               onEscape={onClose}
+              overlay={loadingOverlay}
               renderAtLayoutScale={false}
               toolbarEnd={<>
                 <label className="viewer-quality-toggle">
@@ -118,13 +126,6 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
                   onLoad={() => setQualityLoading(false)}
                   src={imageUrl}
                 />
-                {qualityLoading && <div className="approval-quality-loading">
-                  <LoadingIndicator
-                    message={`Preparing the ${highQuality ? 'high-quality' : 'standard'} Approval preview…`}
-                    size="viewer"
-                    title="Updating Preview"
-                  />
-                </div>}
               </div>
             </DocumentCanvas>
           </div>
