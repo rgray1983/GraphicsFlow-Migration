@@ -5,13 +5,17 @@
 .document-canvas-toolbar button:hover:not(:disabled), .document-canvas-toolbar a:hover { border-color: rgba(45,212,191,.34); color: #ccfbf1; background: rgba(20,184,166,.1); }
 .document-canvas-toolbar button:disabled { opacity: .35; cursor: not-allowed; }
 .document-canvas-controls > span { min-width: 52px; color: #cbd5e1; font-size: 9px; font-weight: 800; text-align: center; }
-.document-canvas-stage { min-height: 0; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at center, #263343 0, #141c27 46%, #080c12 100%); cursor: default; touch-action: none; user-select: none; }
+.document-canvas-stage { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at center, #263343 0, #141c27 46%, #080c12 100%); cursor: default; touch-action: none; user-select: none; }
 .document-canvas-stage.is-zoomed { cursor: grab; }
 .document-canvas-stage.is-dragging { cursor: grabbing; }
 .document-canvas-content { transform-origin: center; will-change: transform; }
+.document-canvas-overlay { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; padding: 24px; overflow: hidden; background: rgba(3,8,18,.72); backdrop-filter: blur(4px); pointer-events: auto; }
+.document-canvas-overlay > * { width: min(520px, calc(100% - 32px)); max-width: 100%; max-height: calc(100% - 32px); }
+.document-canvas-overlay .graphicsflow-loading.is-viewer { min-height: 0; }
 .document-canvas-help { display: flex; align-items: center; justify-content: center; gap: 22px; padding: 8px 16px; border-top: 1px solid rgba(148,163,184,.12); color: #64748b; background: #0b111b; font-size: 8px; }
 @media (max-width: 700px) {
   .document-canvas-toolbar { padding: 10px 12px; }
+  .document-canvas-overlay { padding: 14px; }
   .document-canvas-help { justify-content: flex-start; gap: 12px; overflow-x: auto; white-space: nowrap; }
   .document-canvas-actions { margin-left: auto; }
 }
