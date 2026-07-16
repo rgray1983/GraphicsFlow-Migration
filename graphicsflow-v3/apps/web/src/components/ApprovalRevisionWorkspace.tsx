@@ -4,6 +4,7 @@ import { ApprovalRevisionEditModal } from './ApprovalRevisionEditModal';
 import { ApprovalRevisionRegenerateModal } from './ApprovalRevisionRegenerateModal';
 import { DocumentCanvas } from './DocumentCanvas';
 import { LoadingIndicator } from './LoadingIndicator';
+import { Toast } from './Toast';
 import './ApprovalRevisionWorkspace.css';
 
 export type ApprovalWorkspaceRecord = NonNullable<RevisionLookupResponse['record']>;
@@ -58,20 +59,14 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
   const [editOpen, setEditOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [pendingRegeneration, setPendingRegeneration] = useState<PendingRegeneration | null>(() => readPendingRegeneration());
-  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setHighQuality(false); setPreviewError(null); setPreviewReady(false); setEditOpen(false); setRegenerateOpen(false);
     const saved = readPendingRegeneration();
     setPendingRegeneration(saved?.graphicId === record.graphicId ? saved : null);
-    setToastVisible(false);
+    setToastMessage(null);
   }, [record.graphicId]);
-
-  useEffect(() => {
-    if (!toastVisible) return;
-    const timer = window.setTimeout(() => setToastVisible(false), 4200);
-    return () => window.clearTimeout(timer);
-  }, [toastVisible, pendingRegeneration?.mode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,14 +92,16 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
     const pending = { graphicId: record.graphicId, revisionId: savedRevisionId, mode } satisfies PendingRegeneration;
     writePendingRegeneration(pending);
     setPendingRegeneration(pending);
-    setToastVisible(true);
+    setToastMessage(mode === 'artwork'
+      ? 'Artwork change saved. Regenerate the Approval to build a fresh PDF.'
+      : 'Revision changes saved. Regenerate the Approval to build a fresh PDF.');
     onRevisionSaved();
   };
 
   const openRegenerate = () => {
     writePendingRegeneration(null);
     setPendingRegeneration(null);
-    setToastVisible(false);
+    setToastMessage(null);
     setRegenerateOpen(true);
   };
 
@@ -134,7 +131,7 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
           <button aria-label={regenerationNeeded ? 'Regenerate Approval — changes are waiting' : 'Regenerate Approval'} className={regenerationNeeded ? 'needs-attention' : ''} disabled={!selectedRevisionId} onClick={openRegenerate} type="button">{regenerationNeeded && <span aria-hidden="true" className="regenerate-attention-dot" />}<span>{regenerationNeeded ? 'Regenerate Approval — Changes Ready' : 'Regenerate Approval'}</span></button>
         </div>
       </aside>
-      {toastVisible && <div aria-live="polite" className="approval-revision-toast" role="status"><span>✓</span><div><strong>{savedChangeType === 'artwork' ? 'Artwork change saved' : 'Revision changes saved'}</strong><p>Regenerate the Approval to build a fresh PDF with the saved changes.</p></div><button aria-label="Dismiss notification" onClick={() => setToastVisible(false)} type="button">×</button></div>}
+      <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} tone="success" />
       <ApprovalRevisionEditModal graphicId={record.graphicId} isOpen={editOpen} onClose={() => setEditOpen(false)} onSaved={handleRevisionSaved} revisionId={selectedRevisionId} />
       <ApprovalRevisionRegenerateModal graphicId={record.graphicId} isOpen={regenerateOpen} onClose={() => setRegenerateOpen(false)} revisionId={selectedRevisionId} revisionLabel={selectedRevision?.revisionLabel ?? ''} />
     </>
