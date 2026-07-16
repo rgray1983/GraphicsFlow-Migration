@@ -9,7 +9,7 @@ type Props = {
   revisionId: number | null;
   isOpen: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (revisionId: number, mode: Mode) => void;
 };
 
 type Mode = 'information' | 'artwork';
@@ -120,7 +120,8 @@ export function ApprovalRevisionEditModal({ graphicId, revisionId, isOpen, onClo
       });
       const body = await response.json().catch(() => null) as ApprovalRevisionDetailResponse | { error?: string } | null;
       if (!response.ok) throw new Error(body && 'error' in body ? body.error : 'The Approval revision could not be updated.');
-      onSaved(); onClose();
+      onSaved(revisionId, mode);
+      onClose();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The Approval revision could not be updated.');
     } finally {
