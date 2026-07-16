@@ -32,9 +32,10 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
   const [editOpen, setEditOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [editedRevisionId, setEditedRevisionId] = useState<number | null>(null);
+  const [savedChangeType, setSavedChangeType] = useState<'information' | 'artwork' | null>(null);
 
   useEffect(() => {
-    setHighQuality(false); setPreviewError(null); setPreviewReady(false); setEditOpen(false); setRegenerateOpen(false); setEditedRevisionId(null);
+    setHighQuality(false); setPreviewError(null); setPreviewReady(false); setEditOpen(false); setRegenerateOpen(false); setEditedRevisionId(null); setSavedChangeType(null);
   }, [record.graphicId]);
 
   useEffect(() => {
@@ -56,13 +57,15 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
   const selectedRevisionId = selectedRevision?.id ?? null;
   const regenerationNeeded = Boolean(selectedRevisionId && editedRevisionId === selectedRevisionId);
 
-  const handleRevisionSaved = () => {
-    setEditedRevisionId(selectedRevisionId);
+  const handleRevisionSaved = (savedRevisionId: number, mode: 'information' | 'artwork') => {
+    setEditedRevisionId(savedRevisionId);
+    setSavedChangeType(mode);
     onRevisionSaved();
   };
 
   const openRegenerate = () => {
     setEditedRevisionId(null);
+    setSavedChangeType(null);
     setRegenerateOpen(true);
   };
 
@@ -85,7 +88,7 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
           </DocumentCanvas>
         </div>
         {isHistorical && <div className="revision-workspace-notice"><strong>Revision {selectedRevision?.revisionLabel} selected</strong><span>This revision is stored in V3. Edit its metadata or regenerate a fresh temporary PDF without changing the PHP database or live Approval server.</span></div>}
-        {regenerationNeeded && <div className="revision-workspace-notice is-regeneration-needed"><strong>Revision changes saved</strong><span>Regenerate the Approval to create a fresh PDF with the updated information or artwork.</span></div>}
+        {regenerationNeeded && <div className="revision-workspace-notice is-regeneration-needed"><strong>{savedChangeType === 'artwork' ? 'Artwork change saved' : 'Revision changes saved'}</strong><span>Regenerate the Approval to create a fresh PDF with the updated information or artwork.</span></div>}
         {viewerError && <span className="revision-open-error">{viewerError}</span>}
         <div className="revision-primary-actions">
           <button className="primary" disabled={!selectedRevisionId} onClick={() => setEditOpen(true)} type="button">Edit Revision</button>
