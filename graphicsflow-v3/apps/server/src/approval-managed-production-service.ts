@@ -26,11 +26,14 @@ function isTemporaryApprovalPath(path: string): boolean {
   return path === temporaryRoot || path.startsWith(`${temporaryRoot}${sep}`);
 }
 
+async function removeTemporaryApproval(path: string, revisionId: number): Promise<void> {
+  if (path && isTemporaryApprovalPath(path)) await rm(path, { force: true });
+  graphicsStoreDatabase.prepare('UPDATE document_revisions SET rendered_relative_path=NULL WHERE id=?').run(revisionId);
+}
+
 function scheduleTemporaryApprovalRemoval(path: string, revisionId: number): void {
   const timer = setTimeout(() => {
-    void rm(path, { force: true }).finally(() => {
-      graphicsStoreDatabase.prepare('UPDATE document_revisions SET rendered_relative_path=NULL WHERE id=? AND rendered_relative_path IS NOT NULL').run(revisionId);
-    });
+    void removeTemporaryApproval(path, revisionId);
   }, TEMPORARY_PDF_LIFETIME_MS);
   timer.unref();
 }
@@ -140,6 +143,20 @@ export async function saveManagedApproval(graphicId: number, input: ApprovalPrev
     await rm(temporaryPath, { force: true });
     throw error;
   }
+}
+
+export async function discardManagedApprovalRevision(graphicId: number, revisionId: number): Promise<boolean> {
+  const row = graphicsStoreDatabase.prepare(`
+    SELECT r.rendered_relative_path
+    FROM graphics_documents d
+    INNER JOIN document_revisions r ON r.document_id=d.id
+    WHERE d.graphic_id=? AND d.document_type='approval' AND r.id=?
+  `).get(graphicId, revisionId) as { rendered_relative_path: string | null } | undefined;
+  if (!row) return false;
+
+  const path = row.rendered_relative_path ? resolve(managedRoot, row.rendered_relative_path) : '';
+  await removeTemporaryApproval(path, revisionId);
+  return true;
 }
 
 export async function readManagedApprovalRevision(graphicId: number, revisionId: number, consume = false): Promise<{ data: Buffer; fileName: string } | null> {
