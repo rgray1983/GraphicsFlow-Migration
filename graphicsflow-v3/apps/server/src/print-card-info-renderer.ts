@@ -45,21 +45,45 @@ function revisionedGNumber(gNumber: string, revision: string): string {
   return `G#${base}-${rev}`;
 }
 
+function revisionOrder(value: string): { numeric: number | null; text: string } {
+  const text = clean(value);
+  const match = text.match(/\d+/);
+  return { numeric: match ? Number(match[0]) : null, text };
+}
+
 function normalizedRevisions(revisions: PrintCardTemplateRevision[]): PrintCardTemplateRevision[] {
-  const rows = revisions.slice(-4).map((row) => ({
-    revisionLabel: fit(row.revisionLabel, 7),
-    revisionDate: fit(formatRevisionDate(row.revisionDate), 12),
-    description: fit(row.description, 42),
-    csr: fit(row.csr, 8),
-    designer: fit(row.designer, 8),
-  }));
+  const unique = new Map<string, PrintCardTemplateRevision>();
+  for (const row of revisions) {
+    const key = clean(row.revisionLabel);
+    if (!key) continue;
+    unique.set(key, row);
+  }
+
+  const rows = [...unique.values()]
+    .sort((a, b) => {
+      const left = revisionOrder(a.revisionLabel);
+      const right = revisionOrder(b.revisionLabel);
+      if (left.numeric !== null && right.numeric !== null && left.numeric !== right.numeric) return left.numeric - right.numeric;
+      if (left.numeric !== null && right.numeric === null) return -1;
+      if (left.numeric === null && right.numeric !== null) return 1;
+      return left.text.localeCompare(right.text);
+    })
+    .slice(-4)
+    .map((row) => ({
+      revisionLabel: fit(row.revisionLabel, 7),
+      revisionDate: fit(formatRevisionDate(row.revisionDate), 12),
+      description: fit(row.description, 42),
+      csr: fit(row.csr, 8),
+      designer: fit(row.designer, 8),
+    }));
+
   while (rows.length < 4) rows.push({ revisionLabel: '', revisionDate: '', description: '', csr: '', designer: '' });
   return rows;
 }
 
 function buildPostScript(data: PrintCardTemplateData): string {
   const rows = normalizedRevisions(data.revisions);
-  const latest = data.revisions.slice(-4).at(-1);
+  const latest = rows.filter((row) => row.revisionLabel).at(-1);
   const displayG = revisionedGNumber(data.gNumber, latest?.revisionLabel ?? '');
 
   const tableX = 22;
