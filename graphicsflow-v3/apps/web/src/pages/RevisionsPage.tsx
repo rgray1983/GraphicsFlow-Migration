@@ -134,12 +134,12 @@ export function RevisionsPage() {
       </form>
 
       {!search && <section className="revision-empty-state"><div className="revision-empty-mark"><span>↺</span></div><p className="eyebrow">Nothing to browse</p><h3>Search only when history matters.</h3><p>Choose the document type, then enter a {type === 'approval' ? 'G#' : 'Spec#'}.</p></section>}
-      {query.isFetching && <LoadingIndicator message="Collecting the current document and its revision journey…" size="panel" title="Searching Revision History" />}
+      {query.isFetching && !record && <LoadingIndicator message="Collecting the current document and its revision journey…" size="panel" title="Searching Revision History" />}
       {query.isError && <section className="revision-message is-error"><strong>Revision search failed.</strong><span>Confirm the server is running, then try the search again.</span></section>}
       {!query.isFetching && query.data && !record && !unregisteredPrintCard && <section className="revision-message"><strong>No history found.</strong><span>{query.data.message}</span></section>}
       {!query.isFetching && unregisteredPrintCard && <UnregisteredPrintCardOnboarding printCard={unregisteredPrintCard} onCreated={() => void query.refetch()} />}
 
-      {record && !query.isFetching && <div className="revision-workspace"><div className="revision-main-grid">
+      {record && <div className="revision-workspace"><div className="revision-main-grid">
         <div className="revision-history-column">
           <section className="revision-record-hero"><div><span className="revision-document-label">{record.documentType === 'approval' ? 'Approval' : 'Print Card'}</span><div className="revision-record-identifiers"><h3>{record.documentType === 'approval' ? formatGNumber(record.gNumber) : formatSpecNumber(record.specificationNumber)}</h3>{record.documentType === 'printCard' && <span className="revision-linked-g-number">{formatGNumber(record.gNumber)}</span>}</div><p><strong>{record.customerName}</strong><span aria-hidden="true"> · </span><span>{record.partNumber}</span></p></div><div className="revision-current-summary"><span>Current revision</span><strong>{record.currentRevision?.revisionLabel || '—'}</strong><small>{record.currentRevision ? displayDate(record.currentRevision.revisionDate || record.currentRevision.createdAt) : 'Not recorded'}</small></div></section>
           <section className="revision-journey"><header><div><p className="eyebrow">Revision journey</p><h3>The life of this {record.documentType === 'approval' ? 'Approval' : 'Print Card'}</h3></div><span>{record.journey.length} revision{record.journey.length === 1 ? '' : 's'}</span></header>
