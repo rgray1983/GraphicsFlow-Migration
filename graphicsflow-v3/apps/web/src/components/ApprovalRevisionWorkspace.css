@@ -1,0 +1,39 @@
+@keyframes approval-regenerate-attention {
+  0%, 100% {
+    border-color: rgba(45, 212, 191, .4);
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, .28);
+    transform: translateZ(0);
+  }
+  50% {
+    border-color: rgba(94, 234, 212, .9);
+    box-shadow: 0 0 0 7px rgba(45, 212, 191, 0), 0 0 24px rgba(45, 212, 191, .22);
+    transform: translateY(-1px);
+  }
+}
+
+.approval-revision-workspace .revision-primary-actions button.needs-attention {
+  color: #dffcf7;
+  border-color: rgba(45, 212, 191, .52);
+  background: rgba(20, 184, 166, .12);
+  animation: approval-regenerate-attention 1.65s ease-in-out infinite;
+}
+
+.approval-revision-workspace .revision-primary-actions button.needs-attention:hover {
+  background: rgba(20, 184, 166, .18);
+}
+
+.revision-workspace-notice.is-regeneration-needed {
+  border-left-color: #2dd4bf;
+  background: rgba(20, 184, 166, .08);
+}
+
+.revision-workspace-notice.is-regeneration-needed strong {
+  color: #99f6e4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .approval-revision-workspace .revision-primary-actions button.needs-attention {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(45, 212, 191, .18);
+  }
+}
