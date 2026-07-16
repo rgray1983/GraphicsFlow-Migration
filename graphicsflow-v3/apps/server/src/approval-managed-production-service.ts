@@ -37,6 +37,16 @@ function scheduleTemporaryApprovalRemoval(path: string, revisionId: number): voi
   timer.unref();
 }
 
+export async function clearApprovalTemporaryFiles(): Promise<void> {
+  await rm(temporaryRoot, { recursive: true, force: true });
+  await mkdir(temporaryRoot, { recursive: true });
+  graphicsStoreDatabase.prepare(`
+    UPDATE document_revisions
+    SET rendered_relative_path=NULL
+    WHERE rendered_relative_path LIKE 'temporary/%'
+  `).run();
+}
+
 async function regenerateTemporaryApproval(graphicId: number, revisionId: number): Promise<{ path: string; fileName: string } | null> {
   const graphic = getGraphicById(graphicId);
   const revision = getApprovalRevisionDetail(graphicId, revisionId);
