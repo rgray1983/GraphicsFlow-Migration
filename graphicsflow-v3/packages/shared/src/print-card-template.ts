@@ -58,10 +58,37 @@ function revisionedGNumber(gNumber: string, revision: string): string {
   return `G#${base}-${rev}`;
 }
 
+function revisionOrder(value: string): { numeric: number | null; text: string } {
+  const text = clean(value);
+  const match = text.match(/\d+/);
+  return { numeric: match ? Number(match[0]) : null, text };
+}
+
+function normalizedRevisions(revisions: PrintCardTemplateRevision[]): PrintCardTemplateRevision[] {
+  const unique = new Map<string, PrintCardTemplateRevision>();
+  for (const row of revisions) {
+    const key = clean(row.revisionLabel);
+    if (!key) continue;
+    unique.set(key, row);
+  }
+
+  const rows = [...unique.values()]
+    .sort((a, b) => {
+      const left = revisionOrder(a.revisionLabel);
+      const right = revisionOrder(b.revisionLabel);
+      if (left.numeric !== null && right.numeric !== null && left.numeric !== right.numeric) return left.numeric - right.numeric;
+      if (left.numeric !== null && right.numeric === null) return -1;
+      if (left.numeric === null && right.numeric !== null) return 1;
+      return left.text.localeCompare(right.text);
+    })
+    .slice(-4);
+
+  while (rows.length < 4) rows.push({ revisionLabel: '', revisionDate: '', description: '', csr: '', designer: '' });
+  return rows;
+}
+
 export function renderPrintCardSvg(data: PrintCardTemplateData): string {
-  const populatedRevisions = [...data.revisions].slice(-4);
-  const revisions = [...populatedRevisions];
-  while (revisions.length < 4) revisions.push({ revisionLabel: '', revisionDate: '', description: '', csr: '', designer: '' });
+  const revisions = normalizedRevisions(data.revisions);
 
   const tableX = 22;
   const tableY = 210;
@@ -90,7 +117,7 @@ export function renderPrintCardSvg(data: PrintCardTemplateData): string {
     </g>`;
   }).join('');
 
-  const latest = populatedRevisions.at(-1);
+  const latest = revisions.filter((revision) => clean(revision.revisionLabel)).at(-1);
   const displayG = revisionedGNumber(data.gNumber, latest?.revisionLabel ?? '');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
