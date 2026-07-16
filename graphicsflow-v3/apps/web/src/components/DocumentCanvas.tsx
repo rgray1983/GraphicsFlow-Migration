@@ -19,6 +19,8 @@ type DocumentCanvasProps = {
   className?: string;
   toolbarEnd?: ReactNode;
   onEscape?: () => void;
+  onScaleChange?: (scale: number) => void;
+  overlay?: ReactNode;
   renderAtLayoutScale?: boolean;
 };
 
@@ -38,6 +40,8 @@ export function DocumentCanvas({
   className = '',
   toolbarEnd,
   onEscape,
+  onScaleChange,
+  overlay,
   renderAtLayoutScale = true,
 }: DocumentCanvasProps) {
   const [scale, setScale] = useState(fitScale);
@@ -60,6 +64,10 @@ export function DocumentCanvas({
   useEffect(() => {
     if (isActive) reset();
   }, [isActive, fitScale]);
+
+  useEffect(() => {
+    onScaleChange?.(scale);
+  }, [onScaleChange, scale]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -206,6 +214,7 @@ export function DocumentCanvas({
         <div className="document-canvas-content" style={contentStyle}>
           {children}
         </div>
+        {overlay && <div className="document-canvas-overlay">{overlay}</div>}
       </div>
       <div className="document-canvas-help">
         <span>Scroll to zoom</span>

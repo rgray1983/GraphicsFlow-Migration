@@ -23,6 +23,7 @@ import { readCurrentPrintCard, readUnregisteredPrintCard } from './print-card-do
 import { createManagedPrintCard, getCurrentPrintCardDetails } from './print-card-managed-production-service.js';
 import { onboardPrintCard } from './print-card-onboarding-service.js';
 import { getApprovalHeaderMetadata, getApprovalRevisionAutofill, renderArtworkPreview, renderCompletePrintCardPreview } from './print-card-preview-service.js';
+import { registerPrintCardRevisionRoutes } from './print-card-revision-routes.js';
 import { getPrintCardDefaults } from './print-card-service.js';
 import { lookupRevisionWorkspace } from './revision-workspace-service.js';
 import { getCompanySettings, saveCompanySettings, settingsDatabasePath, validateStoragePaths } from './settings-store.js';
@@ -84,6 +85,7 @@ app.post('/api/settings/validate-paths', async (request, reply) => { const parse
 app.post('/api/file-index/refresh', async () => startLiveFileIndexJob());
 app.get('/api/file-index/status', async () => fileIndexJobStatusSchema.parse(getFileIndexJobStatus()));
 app.get('/api/live-file-sync/status', async () => getLiveFileSyncStatus());
+registerPrintCardRevisionRoutes(app);
 
 await app.listen({ host: '127.0.0.1', port: config.SERVER_PORT });
 initializeLiveFileSync();

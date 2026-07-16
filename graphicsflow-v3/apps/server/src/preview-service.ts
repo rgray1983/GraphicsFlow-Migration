@@ -18,7 +18,7 @@ const execFileAsync = promisify(execFile);
 const database = new DatabaseSync(settingsDatabasePath);
 const cacheRoot = resolve(dirname(settingsDatabasePath), 'preview-cache');
 const activeJobs = new Map<string, Promise<PreviewResponse>>();
-const PREVIEW_RENDER_VERSION = 'approval-preview-v2';
+const PREVIEW_RENDER_VERSION = 'approval-preview-v3-adaptive';
 
 await mkdir(cacheRoot, { recursive: true });
 
@@ -88,8 +88,8 @@ async function commandExists(command: string): Promise<boolean> {
 async function renderPdf(sourcePath: string, outputPath: string, variant: PreviewVariant): Promise<string | null> {
   const dimensions: Record<PreviewVariant, { maxPixels: number; density: number }> = {
     thumb: { maxPixels: 720, density: 150 },
-    medium: { maxPixels: 2400, density: 240 },
-    large: { maxPixels: 6000, density: 480 },
+    medium: { maxPixels: 3600, density: 300 },
+    large: { maxPixels: 7200, density: 600 },
   };
   const { maxPixels, density } = dimensions[variant];
 

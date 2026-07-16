@@ -33,24 +33,60 @@ function clean(value: string): string {
   return value.trim().toUpperCase();
 }
 
+function formatRevisionDate(value: string): string {
+  const text = value.trim();
+  if (!text) return '';
+  const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  const slash = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
+  if (iso) return `${Number(iso[2])}/${Number(iso[3])}/${iso[1].slice(-2)}`;
+  if (slash) return `${Number(slash[1])}/${Number(slash[2])}/${slash[3].slice(-2)}`;
+  const parsed = new Date(text.includes('T') ? text : text.replace(' ', 'T'));
+  if (Number.isNaN(parsed.getTime())) return clean(text);
+  return `${parsed.getMonth() + 1}/${parsed.getDate()}/${String(parsed.getFullYear()).slice(-2)}`;
+}
+
 function fit(value: string, max: number): string {
   const normalized = clean(value);
   return normalized.length > max ? normalized.slice(0, max) : normalized;
 }
 
-function revisionedGNumber(gNumber: string, revision: string): string {
-  const base = clean(gNumber).replace(/^G#?/, '').replace(/[^A-Z0-9_-]/g, '');
-  const rev = clean(revision);
-  if (!base) return '';
-  if (!rev || rev === '0' || base.endsWith(`-${rev}`)) return `G#${base}`;
-  return `G#${base}-${rev}`;
+function displayGNumber(value: string): string {
+  const cleaned = clean(value);
+  if (!cleaned) return '';
+  return cleaned.startsWith('G#') ? cleaned : `G#${cleaned.replace(/^G#?/, '')}`;
+}
+
+function revisionOrder(value: string): { numeric: number | null; text: string } {
+  const text = clean(value);
+  const match = text.match(/\d+/);
+  return { numeric: match ? Number(match[0]) : null, text };
+}
+
+function normalizedRevisions(revisions: PrintCardTemplateRevision[]): PrintCardTemplateRevision[] {
+  const unique = new Map<string, PrintCardTemplateRevision>();
+  for (const row of revisions) {
+    const key = clean(row.revisionLabel);
+    if (!key) continue;
+    unique.set(key, row);
+  }
+
+  const rows = [...unique.values()]
+    .sort((a, b) => {
+      const left = revisionOrder(a.revisionLabel);
+      const right = revisionOrder(b.revisionLabel);
+      if (left.numeric !== null && right.numeric !== null && left.numeric !== right.numeric) return left.numeric - right.numeric;
+      if (left.numeric !== null && right.numeric === null) return -1;
+      if (left.numeric === null && right.numeric !== null) return 1;
+      return left.text.localeCompare(right.text);
+    })
+    .slice(-4);
+
+  while (rows.length < 4) rows.push({ revisionLabel: '', revisionDate: '', description: '', csr: '', designer: '' });
+  return rows;
 }
 
 export function renderPrintCardSvg(data: PrintCardTemplateData): string {
-  const populatedRevisions = [...data.revisions].slice(-4);
-  const revisions = [...populatedRevisions];
-  while (revisions.length < 4) revisions.push({ revisionLabel: '', revisionDate: '', description: '', csr: '', designer: '' });
-
+  const revisions = normalizedRevisions(data.revisions);
   const tableX = 22;
   const tableY = 210;
   const tableW = 256;
@@ -71,15 +107,14 @@ export function renderPrintCardSvg(data: PrintCardTemplateData): string {
     const baseline = headerH + rowH * index + 32;
     return `<g font-family="${SVG_FONT}" font-size="22" font-weight="400">
       <text x="28" y="${baseline}">${xml(fit(revision.revisionLabel, 7))}</text>
-      <text x="90" y="${baseline}">${xml(fit(revision.revisionDate, 12))}</text>
+      <text x="90" y="${baseline}">${xml(fit(formatRevisionDate(revision.revisionDate), 12))}</text>
       <text x="242" y="${baseline}">${xml(fit(revision.description, 42))}</text>
       <text x="772" y="${baseline}">${xml(fit(revision.csr, 8))}</text>
       <text x="897" y="${baseline}">${xml(fit(revision.designer, 8))}</text>
     </g>`;
   }).join('');
 
-  const latest = populatedRevisions.at(-1);
-  const displayG = revisionedGNumber(data.gNumber, latest?.revisionLabel ?? '');
+  const displayG = displayGNumber(data.gNumber);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">

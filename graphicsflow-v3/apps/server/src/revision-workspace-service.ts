@@ -23,6 +23,38 @@ function legacyPrintCardRows(specificationNumber: string): Array<Record<string, 
   const spec = clean(specificationNumber).replace(/^F#?/, '').replace(/\s+/g, ''); if (!spec) return [];
   try { return legacyDatabase.prepare(`SELECT id, g_number, rev, rev_date, description, csr, des, f_number, d_number, created_at FROM print_card_revisions WHERE UPPER(REPLACE(REPLACE(COALESCE(f_number, ''), 'F#', ''), ' ', '')) = ? ORDER BY id`).all(spec) as Array<Record<string, unknown>>; } catch { return []; }
 }
+function ensureLegacyTrackingColumns(): void {
+  const columns = graphicsStoreDatabase.prepare('PRAGMA table_info(document_revisions)').all() as Array<{ name: string }>;
+  const names = new Set(columns.map((column) => column.name));
+  if (!names.has('legacy_source_table')) graphicsStoreDatabase.exec('ALTER TABLE document_revisions ADD COLUMN legacy_source_table TEXT');
+  if (!names.has('legacy_source_id')) graphicsStoreDatabase.exec('ALTER TABLE document_revisions ADD COLUMN legacy_source_id INTEGER');
+  graphicsStoreDatabase.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_document_revisions_legacy_source ON document_revisions(legacy_source_table, legacy_source_id) WHERE legacy_source_table IS NOT NULL AND legacy_source_id IS NOT NULL');
+}
+function importLegacyPrintCardRevisions(graphicId: number, specificationNumber: string, rows: Array<Record<string, unknown>>): void {
+  if (!rows.length) return;
+  ensureLegacyTrackingColumns();
+  const now = new Date().toISOString();
+  graphicsStoreDatabase.exec('BEGIN IMMEDIATE');
+  try {
+    graphicsStoreDatabase.prepare(`INSERT INTO graphics_documents (graphic_id, document_type, status, created_at, updated_at) VALUES (?, 'printCard', 'active', ?, ?) ON CONFLICT(graphic_id, document_type) DO UPDATE SET status='active', updated_at=excluded.updated_at`).run(graphicId, now, now);
+    const document = graphicsStoreDatabase.prepare(`SELECT id, current_revision_id FROM graphics_documents WHERE graphic_id=? AND document_type='printCard'`).get(graphicId) as { id: number; current_revision_id: number | null };
+    let latestRevisionId = document.current_revision_id;
+    for (const row of rows) {
+      const legacyId = Number(row.id);
+      const revisionLabel = clean(row.rev || '0');
+      const existing = graphicsStoreDatabase.prepare(`SELECT id FROM document_revisions WHERE document_id=? AND (legacy_source_table='print_card_revisions' AND legacy_source_id=? OR UPPER(TRIM(revision_label))=? AND UPPER(REPLACE(REPLACE(COALESCE(specification_number,''),'F#',''),' ',''))=?) ORDER BY id DESC LIMIT 1`).get(document.id, legacyId, revisionLabel, clean(specificationNumber).replace(/^F#?/, '').replace(/\s+/g, '')) as { id: number } | undefined;
+      if (existing) { latestRevisionId = existing.id; continue; }
+      const createdAt = safeDate(row.created_at) || now;
+      const result = graphicsStoreDatabase.prepare(`INSERT INTO document_revisions (document_id, revision_label, revision_date, description, specification_number, design_number, csr, designer, source, created_at, legacy_source_table, legacy_source_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'legacy-import', ?, 'print_card_revisions', ?)`).run(document.id, revisionLabel, clean(row.rev_date), clean(row.description), clean(row.f_number || specificationNumber), clean(row.d_number), clean(row.csr), clean(row.des), createdAt, legacyId);
+      latestRevisionId = Number(result.lastInsertRowid);
+    }
+    if (!document.current_revision_id && latestRevisionId) graphicsStoreDatabase.prepare('UPDATE graphics_documents SET current_revision_id=?, updated_at=? WHERE id=?').run(latestRevisionId, now, document.id);
+    graphicsStoreDatabase.exec('COMMIT');
+  } catch (error) {
+    graphicsStoreDatabase.exec('ROLLBACK');
+    throw error;
+  }
+}
 function revisionNumber(entry: RevisionJourneyEntry): number | null { const matched = clean(entry.revisionLabel).match(/\d+/)?.[0]; return matched == null ? null : Number(matched); }
 function revisionTime(entry: RevisionJourneyEntry): number { const candidate = entry.createdAt || entry.revisionDate; if (!candidate) return 0; const parsed = new Date(candidate).getTime(); return Number.isNaN(parsed) ? 0 : parsed; }
 function finalizeJourney(entries: RevisionJourneyEntry[]): { journey: RevisionJourneyEntry[]; current: RevisionJourneyEntry | null } {
@@ -56,6 +88,8 @@ export async function lookupRevisionWorkspace(query: RevisionLookupQuery): Promi
     if (live) return { query, record: null, unregisteredPrintCard: { specificationNumber, fileName: live.fileName, relativePath: live.relativePath, modifiedAt: live.modifiedAt, size: live.size }, message: 'Print Card found in live storage, but no GraphicsFlow record exists yet.' };
     return { query, record: null, unregisteredPrintCard: null, message: 'No Print Card record or live file was found for that Spec#.' };
   }
-  const legacyJourney = legacyRows.map((row) => mapEntry(row, 'legacy-import')); const { journey, current } = finalizeJourney([...legacyJourney, ...v3Journey(Number(graphic.id), 'printCard', specificationNumber)]);
-  return { query, unregisteredPrintCard: null, message: null, record: { documentType: 'printCard', graphicId: Number(graphic.id), gNumber: clean(graphic.g_number), specificationNumber, customerNumber: clean(graphic.customer_number), customerName: clean(graphic.customer_name), partNumber: clean(graphic.part_number), status: journey.length ? 'active' : 'record found', currentRevision: current, journey } };
+  const graphicId = Number(graphic.id);
+  importLegacyPrintCardRevisions(graphicId, specificationNumber, legacyRows);
+  const { journey, current } = finalizeJourney(v3Journey(graphicId, 'printCard', specificationNumber));
+  return { query, unregisteredPrintCard: null, message: null, record: { documentType: 'printCard', graphicId, gNumber: clean(graphic.g_number), specificationNumber, customerNumber: clean(graphic.customer_number), customerName: clean(graphic.customer_name), partNumber: clean(graphic.part_number), status: journey.length ? 'active' : 'record found', currentRevision: current, journey } };
 }
