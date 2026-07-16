@@ -50,12 +50,10 @@ function fit(value: string, max: number): string {
   return normalized.length > max ? normalized.slice(0, max) : normalized;
 }
 
-function revisionedGNumber(gNumber: string, revision: string): string {
-  const base = clean(gNumber).replace(/^G#?/, '').replace(/[^A-Z0-9_-]/g, '');
-  const rev = clean(revision);
-  if (!base) return '';
-  if (!rev || rev === '0' || base.endsWith(`-${rev}`)) return `G#${base}`;
-  return `G#${base}-${rev}`;
+function displayGNumber(value: string): string {
+  const cleaned = clean(value);
+  if (!cleaned) return '';
+  return cleaned.startsWith('G#') ? cleaned : `G#${cleaned.replace(/^G#?/, '')}`;
 }
 
 function revisionOrder(value: string): { numeric: number | null; text: string } {
@@ -89,7 +87,6 @@ function normalizedRevisions(revisions: PrintCardTemplateRevision[]): PrintCardT
 
 export function renderPrintCardSvg(data: PrintCardTemplateData): string {
   const revisions = normalizedRevisions(data.revisions);
-
   const tableX = 22;
   const tableY = 210;
   const tableW = 256;
@@ -117,8 +114,7 @@ export function renderPrintCardSvg(data: PrintCardTemplateData): string {
     </g>`;
   }).join('');
 
-  const latest = revisions.filter((revision) => clean(revision.revisionLabel)).at(-1);
-  const displayG = revisionedGNumber(data.gNumber, latest?.revisionLabel ?? '');
+  const displayG = displayGNumber(data.gNumber);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
