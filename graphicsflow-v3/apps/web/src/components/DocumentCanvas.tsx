@@ -18,8 +18,9 @@ type DocumentCanvasProps = {
   fitScale?: number;
   className?: string;
   toolbarEnd?: ReactNode;
-  overlay?: ReactNode;
   onEscape?: () => void;
+  onScaleChange?: (scale: number) => void;
+  overlay?: ReactNode;
   renderAtLayoutScale?: boolean;
 };
 
@@ -38,8 +39,9 @@ export function DocumentCanvas({
   fitScale = 1,
   className = '',
   toolbarEnd,
-  overlay,
   onEscape,
+  onScaleChange,
+  overlay,
   renderAtLayoutScale = true,
 }: DocumentCanvasProps) {
   const [scale, setScale] = useState(fitScale);
@@ -62,6 +64,10 @@ export function DocumentCanvas({
   useEffect(() => {
     if (isActive) reset();
   }, [isActive, fitScale]);
+
+  useEffect(() => {
+    onScaleChange?.(scale);
+  }, [onScaleChange, scale]);
 
   useEffect(() => {
     if (!isActive) return;
