@@ -12,6 +12,18 @@ function clean(value: unknown): string {
   return String(value ?? '').trim().toUpperCase();
 }
 
+function formatRevisionDate(value: unknown): string {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  const slash = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
+  if (iso) return `${Number(iso[2])}/${Number(iso[3])}/${iso[1].slice(-2)}`;
+  if (slash) return `${Number(slash[1])}/${Number(slash[2])}/${slash[3].slice(-2)}`;
+  const parsed = new Date(text.includes('T') ? text : text.replace(' ', 'T'));
+  if (Number.isNaN(parsed.getTime())) return clean(text);
+  return `${parsed.getMonth() + 1}/${parsed.getDate()}/${String(parsed.getFullYear()).slice(-2)}`;
+}
+
 function fit(value: unknown, max: number): string {
   const normalized = clean(value);
   return normalized.length > max ? normalized.slice(0, max) : normalized;
@@ -36,7 +48,7 @@ function revisionedGNumber(gNumber: string, revision: string): string {
 function normalizedRevisions(revisions: PrintCardTemplateRevision[]): PrintCardTemplateRevision[] {
   const rows = revisions.slice(-4).map((row) => ({
     revisionLabel: fit(row.revisionLabel, 7),
-    revisionDate: fit(row.revisionDate, 12),
+    revisionDate: fit(formatRevisionDate(row.revisionDate), 12),
     description: fit(row.description, 42),
     csr: fit(row.csr, 8),
     designer: fit(row.designer, 8),
