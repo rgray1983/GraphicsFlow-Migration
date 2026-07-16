@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatGNumber, type GraphicFileMatch, type GraphicRecord } from '@graphicsflow/shared';
 import { DocumentCanvas } from './DocumentCanvas';
 import { LoadingIndicator } from './LoadingIndicator';
@@ -34,6 +34,7 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
   const [highQuality, setHighQuality] = useState(false);
   const [qualityLoading, setQualityLoading] = useState(false);
   const [approvalSpecNumber, setApprovalSpecNumber] = useState('');
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const variant = highQuality ? 'large' : 'medium';
   const imageUrl = `/api/previews/${record.id}/${variant}/image`;
   const pdfUrl = `/api/graphics/${record.id}/approval.pdf`;
@@ -60,6 +61,16 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
 
     return () => controller.abort();
   }, [isOpen, record.id, record.specificationNumber]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setQualityLoading(true);
+    const frame = window.requestAnimationFrame(() => {
+      const image = imageRef.current;
+      if (image?.complete && image.naturalWidth > 0) setQualityLoading(false);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [imageUrl, isOpen]);
 
   const printApproval = () => {
     const iframe = document.createElement('iframe');
@@ -124,6 +135,7 @@ export function ApprovalViewer({ approval, isOpen, onClose, record }: ApprovalVi
                     setQualityLoading(false);
                   }}
                   onLoad={() => setQualityLoading(false)}
+                  ref={imageRef}
                   src={imageUrl}
                 />
               </div>
