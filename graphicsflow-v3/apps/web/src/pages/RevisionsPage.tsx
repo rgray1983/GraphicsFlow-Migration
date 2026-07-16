@@ -7,6 +7,7 @@ import {
   type GraphicFilesResponse,
   type GraphicRecord,
   type RevisionDocumentType,
+  type RevisionJourneyEntry,
   type RevisionLookupResponse,
 } from '@graphicsflow/shared';
 import { ApprovalRevisionWorkspace } from '../components/ApprovalRevisionWorkspace';
@@ -43,6 +44,7 @@ export function RevisionsPage() {
   const [search, setSearch] = useState('');
   const [viewerType, setViewerType] = useState<RevisionDocumentType | null>(null);
   const [viewerFile, setViewerFile] = useState<GraphicFileMatch | null>(null);
+  const [viewerRevision, setViewerRevision] = useState<RevisionJourneyEntry | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [selectedRevisionIndex, setSelectedRevisionIndex] = useState(-1);
@@ -53,7 +55,7 @@ export function RevisionsPage() {
   const selectedRevision = record && selectedRevisionIndex >= 0 ? record.journey[selectedRevisionIndex] ?? record.currentRevision : record?.currentRevision ?? null;
 
   const submit = (event: FormEvent) => { event.preventDefault(); const next = input.trim(); if (next) setSearch(next); };
-  const changeType = (next: RevisionDocumentType) => { setType(next); setInput(''); setSearch(''); setViewerType(null); setViewerError(null); setSelectedRevisionIndex(-1); };
+  const changeType = (next: RevisionDocumentType) => { setType(next); setInput(''); setSearch(''); setViewerType(null); setViewerRevision(null); setViewerError(null); setSelectedRevisionIndex(-1); };
   const selectRevision = (index: number) => { if (record) setSelectedRevisionIndex(index); };
   const handleRevisionCardKeyDown = (event: KeyboardEvent<HTMLElement>, index: number) => { if (event.key !== 'Enter' && event.key !== ' ') return; event.preventDefault(); selectRevision(index); };
 
@@ -69,7 +71,12 @@ export function RevisionsPage() {
   const openCurrent = async () => {
     if (!record || viewerLoading) return;
     setViewerLoading(true); setViewerError(null);
-    try { const files = await loadFiles(record.graphicId); setViewerFile(record.documentType === 'approval' ? files.approval.latest : files.printCard.latest); setViewerType(record.documentType); }
+    try {
+      const files = await loadFiles(record.graphicId);
+      setViewerFile(record.documentType === 'approval' ? files.approval.latest : files.printCard.latest);
+      setViewerRevision(record.documentType === 'printCard' ? selectedRevision : null);
+      setViewerType(record.documentType);
+    }
     catch (reason) { setViewerError(reason instanceof Error ? reason.message : 'The current document could not be opened.'); }
     finally { setViewerLoading(false); }
   };
@@ -99,7 +106,7 @@ export function RevisionsPage() {
           : <ApprovalRevisionWorkspace record={record} selectedRevision={selectedRevision} selectedRevisionIndex={selectedRevisionIndex} viewerError={viewerError} viewerLoading={viewerLoading} onOpenCurrent={() => void openCurrent()} onRevisionSaved={() => void query.refetch()} />}
       </div></div>}
       {viewerRecord && <ApprovalViewer approval={viewerFile} isOpen={viewerType === 'approval'} onClose={() => setViewerType(null)} record={viewerRecord} />}
-      {viewerRecord && <PrintCardViewer file={viewerFile} isOpen={viewerType === 'printCard'} onClose={() => setViewerType(null)} record={viewerRecord} />}
+      {viewerRecord && <PrintCardViewer file={viewerFile} isOpen={viewerType === 'printCard'} onClose={() => setViewerType(null)} record={viewerRecord} selectedRevision={viewerRevision} />}
     </section>
   );
 }
