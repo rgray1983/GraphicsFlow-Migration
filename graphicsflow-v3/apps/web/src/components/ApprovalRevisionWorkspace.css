@@ -1,25 +1,49 @@
 @keyframes approval-regenerate-attention {
   0%, 100% {
-    border-color: rgba(45, 212, 191, .4);
-    box-shadow: 0 0 0 0 rgba(45, 212, 191, .28);
-    transform: translateZ(0);
+    border-color: rgba(45, 212, 191, .55);
+    background: rgba(20, 184, 166, .14);
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, .42), 0 0 0 rgba(45, 212, 191, 0);
+    transform: scale(1);
   }
   50% {
-    border-color: rgba(94, 234, 212, .9);
-    box-shadow: 0 0 0 7px rgba(45, 212, 191, 0), 0 0 24px rgba(45, 212, 191, .22);
-    transform: translateY(-1px);
+    border-color: #5eead4;
+    background: rgba(20, 184, 166, .3);
+    box-shadow: 0 0 0 9px rgba(45, 212, 191, 0), 0 0 30px rgba(45, 212, 191, .5);
+    transform: scale(1.045);
   }
+}
+
+@keyframes approval-regenerate-dot {
+  0%, 100% { opacity: .55; transform: scale(.8); }
+  50% { opacity: 1; transform: scale(1.35); }
 }
 
 .approval-revision-workspace .revision-primary-actions button.needs-attention {
-  color: #dffcf7;
-  border-color: rgba(45, 212, 191, .52);
-  background: rgba(20, 184, 166, .12);
-  animation: approval-regenerate-attention 1.65s ease-in-out infinite;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ecfffb;
+  border-color: rgba(45, 212, 191, .55);
+  background: rgba(20, 184, 166, .14);
+  font-weight: 900;
+  animation: approval-regenerate-attention 1.15s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform, box-shadow, background-color;
 }
 
 .approval-revision-workspace .revision-primary-actions button.needs-attention:hover {
-  background: rgba(20, 184, 166, .18);
+  color: white;
+  background: rgba(20, 184, 166, .34);
+}
+
+.regenerate-attention-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #99f6e4;
+  box-shadow: 0 0 12px rgba(94, 234, 212, .8);
+  animation: approval-regenerate-dot 1.15s ease-in-out infinite;
 }
 
 .revision-workspace-notice.is-regeneration-needed {
@@ -32,8 +56,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .approval-revision-workspace .revision-primary-actions button.needs-attention {
+  .approval-revision-workspace .revision-primary-actions button.needs-attention,
+  .regenerate-attention-dot {
     animation: none;
-    box-shadow: 0 0 0 2px rgba(45, 212, 191, .18);
+  }
+
+  .approval-revision-workspace .revision-primary-actions button.needs-attention {
+    border-color: #5eead4;
+    background: rgba(20, 184, 166, .28);
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, .22), 0 0 24px rgba(45, 212, 191, .28);
   }
 }
