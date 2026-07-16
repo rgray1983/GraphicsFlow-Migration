@@ -30,9 +30,10 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
   const [previewReady, setPreviewReady] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
+  const [editedRevisionId, setEditedRevisionId] = useState<number | null>(null);
 
   useEffect(() => {
-    setHighQuality(false); setPreviewError(null); setPreviewReady(false); setEditOpen(false); setRegenerateOpen(false);
+    setHighQuality(false); setPreviewError(null); setPreviewReady(false); setEditOpen(false); setRegenerateOpen(false); setEditedRevisionId(null);
   }, [record.graphicId]);
 
   useEffect(() => {
@@ -52,6 +53,17 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
   const imageUrl = `/api/previews/${record.graphicId}/${highQuality ? 'large' : 'medium'}/image`;
   const isHistorical = Boolean(selectedRevision && !selectedRevision.isCurrent);
   const selectedRevisionId = selectedRevision?.id ?? null;
+  const regenerationNeeded = Boolean(selectedRevisionId && editedRevisionId === selectedRevisionId);
+
+  const handleRevisionSaved = () => {
+    setEditedRevisionId(selectedRevisionId);
+    onRevisionSaved();
+  };
+
+  const openRegenerate = () => {
+    setEditedRevisionId(null);
+    setRegenerateOpen(true);
+  };
 
   return (
     <>
@@ -72,14 +84,14 @@ export function ApprovalRevisionWorkspace({ record, selectedRevision, selectedRe
           </DocumentCanvas>
         </div>
         {isHistorical && <div className="revision-workspace-notice"><strong>Revision {selectedRevision?.revisionLabel} selected</strong><span>This revision is stored in V3. Edit its metadata or regenerate a fresh temporary PDF without changing the PHP database or live Approval server.</span></div>}
+        {regenerationNeeded && <div className="revision-workspace-notice is-regeneration-needed"><strong>Revision changes saved</strong><span>Regenerate the Approval to create a fresh PDF with the updated information or artwork.</span></div>}
         {viewerError && <span className="revision-open-error">{viewerError}</span>}
         <div className="revision-primary-actions">
-          <button className="primary" type="button">Create Revision</button>
-          <button disabled={!selectedRevisionId} onClick={() => setEditOpen(true)} type="button">Edit Revision</button>
-          <button disabled={!selectedRevisionId} onClick={() => setRegenerateOpen(true)} type="button">Regenerate Approval</button>
+          <button className="primary" disabled={!selectedRevisionId} onClick={() => setEditOpen(true)} type="button">Edit Revision</button>
+          <button className={regenerationNeeded ? 'needs-attention' : ''} disabled={!selectedRevisionId} onClick={openRegenerate} type="button">Regenerate Approval</button>
         </div>
       </aside>
-      <ApprovalRevisionEditModal graphicId={record.graphicId} isOpen={editOpen} onClose={() => setEditOpen(false)} onSaved={onRevisionSaved} revisionId={selectedRevisionId} />
+      <ApprovalRevisionEditModal graphicId={record.graphicId} isOpen={editOpen} onClose={() => setEditOpen(false)} onSaved={handleRevisionSaved} revisionId={selectedRevisionId} />
       <ApprovalRevisionRegenerateModal graphicId={record.graphicId} isOpen={regenerateOpen} onClose={() => setRegenerateOpen(false)} revisionId={selectedRevisionId} revisionLabel={selectedRevision?.revisionLabel ?? ''} />
     </>
   );
