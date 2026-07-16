@@ -11,6 +11,7 @@ const managedRoot = resolve(dirname(settingsDatabasePath), 'generated-documents'
 const temporaryRoot = resolve(managedRoot, 'temporary');
 const clean = (value: unknown) => String(value ?? '').trim().toUpperCase();
 const numberOnly = (value: unknown) => String(value ?? '').match(/\d+/g)?.join('') ?? '';
+const approvalFileName = (gNumber: unknown) => `${numberOnly(gNumber)}_APPROVAL.pdf`;
 
 export type SavedApprovalResult = {
   graphicId: number;
@@ -97,7 +98,7 @@ async function regenerateTemporaryApproval(graphicId: number, revisionId: number
   if (!isTemporaryApprovalPath(path)) throw new Error('The temporary Approval output path is invalid.');
   await writeFile(path, await renderHccApprovalPdf(input));
   graphicsStoreDatabase.prepare('UPDATE document_revisions SET rendered_relative_path=? WHERE id=?').run(`temporary/${temporaryName}`, revisionId);
-  return { path, fileName: `${cleanG}_REV_${cleanRevision.replace(/[^A-Z0-9_-]/g, '_')}_APPROVAL.pdf` };
+  return { path, fileName: approvalFileName(graphic.gNumber) };
 }
 
 export async function saveManagedApproval(graphicId: number, input: ApprovalPreviewInput): Promise<SavedApprovalResult> {
@@ -109,7 +110,7 @@ export async function saveManagedApproval(graphicId: number, input: ApprovalPrev
   const cleanRevision = clean(input.revisionLabel) || '0';
   if (!cleanG) throw new Error('The G# cannot be converted into a valid Approval filename.');
 
-  const fileName = `${cleanG}_REV_${cleanRevision.replace(/[^A-Z0-9_-]/g, '_')}_APPROVAL.pdf`;
+  const fileName = approvalFileName(graphic.gNumber);
   const token = `${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 10)}`;
   const temporaryName = `${cleanG}.${cleanRevision.replace(/[^A-Z0-9_-]/g, '_')}.${token}.pdf`;
   const temporaryPath = resolve(temporaryRoot, temporaryName);
@@ -181,9 +182,7 @@ export async function readManagedApprovalRevision(graphicId: number, revisionId:
 
   try {
     const data = await readFile(path);
-    const cleanG = numberOnly(row.g_number);
-    const revision = clean(row.revision_label) || '0';
-    const fileName = `${cleanG}_REV_${revision.replace(/[^A-Z0-9_-]/g, '_')}_APPROVAL.pdf`;
+    const fileName = approvalFileName(row.g_number);
     if (consume) scheduleTemporaryApprovalRemoval(path, revisionId);
     return { data, fileName: basename(fileName) };
   } catch {
