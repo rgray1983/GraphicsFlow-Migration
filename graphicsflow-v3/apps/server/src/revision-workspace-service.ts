@@ -1,9 +1,9 @@
 import type { RevisionJourneyEntry, RevisionLookupQuery, RevisionLookupResponse } from '@graphicsflow/shared';
 import type { SQLInputValue } from 'node:sqlite';
+import { importLegacyApprovalRevisions, syncOriginalApprovalRevisionRecords } from './approval-revision-service.js';
 import { database as legacyDatabase } from './database.js';
 import { graphicsStoreDatabase } from './graphics-store.js';
 import { findLivePrintCardBySpecification } from './print-card-document-service.js';
-import { getApprovalRevisionJourney } from './print-card-preview-service.js';
 
 function clean(value: unknown): string { return String(value ?? '').trim().toUpperCase(); }
 function digits(value: string): string { return value.match(/\d+/g)?.join('')?.replace(/^0+/, '') ?? ''; }
@@ -17,7 +17,7 @@ function v3Journey(graphicId: number, type: RevisionLookupQuery['type'], specifi
   const params: SQLInputValue[] = [graphicId, type]; let specClause = '';
   if (type === 'printCard' && specificationNumber) { specClause = ' AND UPPER(REPLACE(REPLACE(COALESCE(r.specification_number, \'\'), \'F#\', \'\'), \' \' , \'\')) = ?'; params.push(clean(specificationNumber).replace(/^F#?/, '').replace(/\s+/g, '')); }
   const rows = graphicsStoreDatabase.prepare(`SELECT r.* FROM graphics_documents d INNER JOIN document_revisions r ON r.document_id = d.id WHERE d.graphic_id = ? AND d.document_type = ?${specClause} ORDER BY COALESCE(r.created_at, ''), r.id`).all(...params) as Array<Record<string, unknown>>;
-  return rows.map((row) => mapEntry(row, 'graphicsflow'));
+  return rows.map((row) => mapEntry(row, row.source === 'legacy-import' ? 'legacy-import' : 'graphicsflow'));
 }
 function legacyPrintCardRows(specificationNumber: string): Array<Record<string, unknown>> {
   const spec = clean(specificationNumber).replace(/^F#?/, '').replace(/\s+/g, ''); if (!spec) return [];
@@ -36,7 +36,10 @@ export async function lookupRevisionWorkspace(query: RevisionLookupQuery): Promi
   if (query.type === 'approval') {
     const graphic = getGraphicByNormalizedG(query.identifier);
     if (!graphic) return { query, record: null, unregisteredPrintCard: null, message: 'No Approval history was found for that G#.' };
-    const graphicId = Number(graphic.id); const legacyJourney = await getApprovalRevisionJourney(graphicId); const { journey, current } = finalizeJourney([...legacyJourney, ...v3Journey(graphicId, 'approval')]);
+    const graphicId = Number(graphic.id);
+    importLegacyApprovalRevisions(graphicId, clean(graphic.g_number));
+    await syncOriginalApprovalRevisionRecords(graphicId);
+    const { journey, current } = finalizeJourney(v3Journey(graphicId, 'approval'));
     return { query, unregisteredPrintCard: null, message: null, record: { documentType: 'approval', graphicId, gNumber: clean(graphic.g_number), specificationNumber: '', customerNumber: clean(graphic.customer_number), customerName: clean(graphic.customer_name), partNumber: clean(graphic.part_number), status: journey.length ? 'active' : 'live file only', currentRevision: current, journey } };
   }
 

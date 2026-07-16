@@ -62,6 +62,24 @@ database.exec(`
     ON document_revisions(document_id, created_at DESC);
 `);
 
+const revisionColumns = new Set(
+  (database.prepare('PRAGMA table_info(document_revisions)').all() as Array<{ name: string }>).map((column) => column.name),
+);
+const approvalRevisionColumns: Record<string, string> = {
+  flute_test: 'TEXT',
+  sales_rep: 'TEXT',
+  digital_print: 'INTEGER NOT NULL DEFAULT 0',
+  digital_cut: 'INTEGER NOT NULL DEFAULT 0',
+  digital_die_cut: 'INTEGER NOT NULL DEFAULT 0',
+  label_die_cut: 'INTEGER NOT NULL DEFAULT 0',
+  label_4c_process: 'INTEGER NOT NULL DEFAULT 0',
+  artwork_name: 'TEXT',
+  artwork_relative_path: 'TEXT',
+};
+for (const [name, definition] of Object.entries(approvalRevisionColumns)) {
+  if (!revisionColumns.has(name)) database.exec(`ALTER TABLE document_revisions ADD COLUMN ${name} ${definition}`);
+}
+
 type LegacyGraphicRow = {
   id: number;
   g_number: string | null;

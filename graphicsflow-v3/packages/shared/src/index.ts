@@ -86,6 +86,30 @@ export const createPrintCardResponseSchema = z.object({
 });
 export const printCardDetailsResponseSchema = z.object({ graphicId: z.number().int().positive(), revision: printCardRevisionSchema.nullable(), canEdit: z.boolean() });
 
+const approvalRevisionEditableFields = {
+  revisionLabel: z.string().trim().min(1, 'Revision is required.').max(20),
+  revisionDate: z.string().trim().min(1, 'Revision date is required.').max(30),
+  description: z.string().trim().min(1, 'Description is required.').max(240),
+  specificationNumber: z.string().trim().max(80).default(''),
+  designNumber: z.string().trim().min(1, 'Design # is required.').max(80),
+  fluteTest: z.string().trim().min(1, 'Flute / Test is required.').max(80),
+  salesRep: z.string().trim().min(1, 'Sales Rep is required.').max(80),
+  csr: z.string().trim().min(1, 'CSR is required.').max(40),
+  designer: z.string().trim().min(1, 'Designer is required.').max(40),
+  digitalPrint: z.boolean().default(false), digitalCut: z.boolean().default(false), digitalDieCut: z.boolean().default(false),
+  labelDieCut: z.boolean().default(false), label4cProcess: z.boolean().default(false),
+  artworkName: z.string().trim().max(255).default(''), artworkRelativePath: z.string().trim().max(1000).default(''),
+};
+export const approvalRevisionUpdateSchema = z.object({
+  ...approvalRevisionEditableFields,
+  artworkPdfBase64: z.string().max(40_000_000).default(''),
+});
+export const approvalRevisionDetailSchema = z.object({
+  id: z.number().int().positive(), graphicId: z.number().int().positive(), ...approvalRevisionEditableFields,
+  source: z.enum(['legacy-import', 'graphicsflow']), legacyRevisionId: z.number().int().positive().nullable(), isCurrent: z.boolean(),
+});
+export const approvalRevisionDetailResponseSchema = z.object({ revision: approvalRevisionDetailSchema });
+
 export const graphicFileKindSchema = z.enum(['approval', 'printCard']);
 export const graphicFileMatchSchema = z.object({ kind: graphicFileKindSchema, name: z.string(), extension: z.string(), size: z.number().int().nonnegative(), modifiedAt: z.string().datetime(), relativePath: z.string() });
 const graphicFileGroupSchema = z.object({ latest: graphicFileMatchSchema.nullable(), matches: z.array(graphicFileMatchSchema) });
@@ -122,6 +146,9 @@ export type PrintCardDraft = z.infer<typeof printCardDraftSchema>;
 export type PrintCardDefaultsResponse = z.infer<typeof printCardDefaultsResponseSchema>;
 export type CreatePrintCardResponse = z.infer<typeof createPrintCardResponseSchema>;
 export type PrintCardDetailsResponse = z.infer<typeof printCardDetailsResponseSchema>;
+export type ApprovalRevisionUpdate = z.infer<typeof approvalRevisionUpdateSchema>;
+export type ApprovalRevisionDetail = z.infer<typeof approvalRevisionDetailSchema>;
+export type ApprovalRevisionDetailResponse = z.infer<typeof approvalRevisionDetailResponseSchema>;
 export type GraphicFileKind = z.infer<typeof graphicFileKindSchema>;
 export type GraphicFileMatch = z.infer<typeof graphicFileMatchSchema>;
 export type GraphicFilesResponse = z.infer<typeof graphicFilesResponseSchema>;

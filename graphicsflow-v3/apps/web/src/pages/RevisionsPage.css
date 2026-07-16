@@ -52,7 +52,11 @@
 .revision-journey li:not(:last-child)::before { content: ''; position: absolute; left: 16px; top: 30px; bottom: 0; width: 1px; background: rgba(45,212,191,.17); }
 .revision-node { position: relative; z-index: 1; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(148,163,184,.16); border-radius: 50%; color: #718096; background: #09111e; font-size: 8px; font-weight: 900; }
 .revision-journey li.is-current .revision-node { border-color: rgba(45,212,191,.42); color: #042f2e; background: #5eead4; box-shadow: 0 0 24px rgba(45,212,191,.18); }
-.revision-journey article { min-width: 0; padding: 12px; border: 1px solid rgba(148,163,184,.1); border-radius: 11px; background: rgba(10,18,31,.72); }
+.revision-journey article { min-width: 0; padding: 12px; border: 1px solid rgba(148,163,184,.1); border-radius: 11px; background: rgba(10,18,31,.72); transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease; }
+.revision-journey article[role="button"] { cursor: pointer; outline: none; }
+.revision-journey article[role="button"]:hover { border-color: rgba(45,212,191,.24); background: rgba(12,24,39,.88); transform: translateY(-1px); }
+.revision-journey article[role="button"]:focus-visible { border-color: rgba(94,234,212,.65); box-shadow: 0 0 0 2px rgba(45,212,191,.2); }
+.revision-journey li.is-selected article { border-color: rgba(45,212,191,.35); background: linear-gradient(135deg,rgba(20,184,166,.1),rgba(10,18,31,.82)); box-shadow: 0 12px 30px rgba(0,0,0,.18), inset 3px 0 0 rgba(45,212,191,.72); transform: none; }
 .revision-journey article > header, .revision-journey article > footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .revision-journey article > header > div { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .revision-journey article strong { color: #dbe7f2; font-size: 10px; }
@@ -60,11 +64,13 @@
 .revision-journey time { flex: 0 0 auto; color: #64748b; font-size: 8px; }
 .revision-journey article > p { margin: 8px 0 11px; color: #8797ac; font-size: 9px; line-height: 1.45; }
 .revision-journey article > footer { justify-content: flex-start; flex-wrap: wrap; color: #64748b; font-size: 8px; }
-.revision-journey article > footer button { margin-left: auto; padding: 0; border: 0; color: #5eead4; background: transparent; font-size: 8px; font-weight: 850; cursor: pointer; }
+.revision-card-action { margin-left: auto; color: #5eead4; font-size: 8px; font-weight: 850; }
+.revision-journey li.is-selected .revision-card-action { color: #99f6e4; }
 .revision-journey-empty { padding: 24px 16px; border: 1px dashed rgba(148,163,184,.14); border-radius: 11px; color: #64748b; text-align: center; font-size: 10px; }
-.revision-document-workspace { position: sticky; top: 18px; min-height: 680px; display: grid; grid-template-rows: auto minmax(470px,1fr) auto auto; gap: 14px; padding: 20px; border: 1px solid rgba(148,163,184,.12); border-radius: 15px; background: radial-gradient(circle at top right,rgba(20,184,166,.09),transparent 38%),rgba(3,9,19,.6); }
+.revision-document-workspace { position: sticky; top: 18px; min-height: 680px; display: grid; grid-template-rows: auto minmax(470px,1fr) auto auto auto; gap: 14px; padding: 20px; border: 1px solid rgba(148,163,184,.12); border-radius: 15px; background: radial-gradient(circle at top right,rgba(20,184,166,.09),transparent 38%),rgba(3,9,19,.6); }
 .revision-workspace-heading h3 { margin: 3px 0 5px; color: #dbe7f2; font-size: 18px; }
-.revision-workspace-heading > p:last-child { margin: 0; color: #718096; font-size: 10px; line-height: 1.55; }
+.revision-workspace-heading > p:last-of-type { margin: 0; color: #718096; font-size: 10px; line-height: 1.55; }
+.revision-workspace-mode { display: inline-flex; margin-top: 8px; padding: 5px 8px; border: 1px solid rgba(96,165,250,.18); border-radius: 999px; color: #bfdbfe; background: rgba(59,130,246,.08); font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
 .revision-embedded-viewer { min-height: 470px; overflow: hidden; border: 1px solid rgba(148,163,184,.14); border-radius: 12px; background: #070b12; box-shadow: inset 0 0 0 1px rgba(255,255,255,.015); }
 .revision-embedded-viewer .document-canvas { min-height: 470px; }
 .revision-document-stage { padding: 24px; }
@@ -75,6 +81,9 @@
 .revision-preview-message span { font-size: 9px; line-height: 1.5; }
 .revision-quality-toggle { min-height: 32px; display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid rgba(148,163,184,.15); border-radius: 7px; color: #94a3b8; background: rgba(15,23,42,.72); font-size: 9px; font-weight: 800; cursor: pointer; }
 .revision-quality-toggle input { accent-color: #14b8a6; }
+.revision-workspace-notice { display: grid; gap: 4px; padding: 10px 12px; border-left: 3px solid #60a5fa; border-radius: 0 8px 8px 0; background: rgba(59,130,246,.06); }
+.revision-workspace-notice strong { color: #dbeafe; font-size: 9px; }
+.revision-workspace-notice span { color: #718096; font-size: 8px; line-height: 1.45; }
 .revision-onboarding-grid { display: grid; grid-template-columns: minmax(240px,20%) minmax(0,80%); gap: 18px; align-items: start; }
 .revision-onboarding-info,.revision-onboarding-workspace { border: 1px solid rgba(148,163,184,.12); border-radius: 15px; background: rgba(3,9,19,.62); }
 .revision-onboarding-info { padding: 18px; }
@@ -104,5 +113,5 @@
 .revision-onboarding-row > button { min-width: 34px; padding: 0; color: #fca5a5; border-color: rgba(248,113,113,.16); background: rgba(127,29,29,.12); }
 .revision-onboarding-error { margin: 0; color: #fca5a5; font-size: 9px; }
 @media (max-width: 1180px) { .revision-main-grid,.revision-onboarding-grid { grid-template-columns: minmax(260px,30%) minmax(0,70%); } .revision-onboarding-fields { grid-template-columns: repeat(2,minmax(140px,1fr)); } .revision-onboarding-row { grid-template-columns: 70px 110px minmax(160px,1fr); } }
-@media (max-width: 900px) { .revision-main-grid,.revision-onboarding-grid { grid-template-columns: 1fr; } .revision-document-workspace { position: static; min-height: 0; grid-template-rows: auto minmax(400px,auto) auto auto; } .revision-embedded-viewer,.revision-embedded-viewer .document-canvas { min-height: 400px; } .revision-document-sheet img { max-height: 320px; } }
-@media (max-width: 760px) { .revisions-heading,.revision-record-hero,.revision-onboarding-form > header,.revision-onboarding-history > header { display: grid; } .revision-search { grid-template-columns: 1fr; } .revision-type { border-right: 0; border-bottom: 1px solid rgba(148,163,184,.12); } .revision-search > button { min-height: 42px; } .revision-current-summary { min-width: 0; padding: 14px 0 0; border-left: 0; border-top: 1px solid rgba(148,163,184,.12); } .revision-primary-actions { justify-content: flex-start; } .revision-journey > header,.revision-journey article > header,.revision-journey article > footer { display: grid; } .revision-journey article > footer button { margin-left: 0; } .revision-document-stage { padding: 12px; } .revision-document-sheet img { max-height: 280px; } .revision-onboarding-fields,.revision-onboarding-row { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .revision-main-grid,.revision-onboarding-grid { grid-template-columns: 1fr; } .revision-document-workspace { position: static; min-height: 0; grid-template-rows: auto minmax(400px,auto) auto auto auto; } .revision-embedded-viewer,.revision-embedded-viewer .document-canvas { min-height: 400px; } .revision-document-sheet img { max-height: 320px; } }
+@media (max-width: 760px) { .revisions-heading,.revision-record-hero,.revision-onboarding-form > header,.revision-onboarding-history > header { display: grid; } .revision-search { grid-template-columns: 1fr; } .revision-type { border-right: 0; border-bottom: 1px solid rgba(148,163,184,.12); } .revision-search > button { min-height: 42px; } .revision-current-summary { min-width: 0; padding: 14px 0 0; border-left: 0; border-top: 1px solid rgba(148,163,184,.12); } .revision-primary-actions { justify-content: flex-start; } .revision-journey > header,.revision-journey article > header,.revision-journey article > footer { display: grid; } .revision-card-action { margin-left: 0; } .revision-document-stage { padding: 12px; } .revision-document-sheet img { max-height: 280px; } .revision-onboarding-fields,.revision-onboarding-row { grid-template-columns: 1fr; } }

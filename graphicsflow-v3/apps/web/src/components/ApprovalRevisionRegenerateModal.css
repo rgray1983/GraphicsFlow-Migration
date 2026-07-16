@@ -1,0 +1,17 @@
+.approval-regenerate-result { min-width:min(620px,78vw); display:grid; gap:18px; }
+.approval-regenerate-success { display:flex; align-items:flex-start; gap:14px; padding:18px; border:1px solid rgba(45,212,191,.2); border-radius:12px; background:linear-gradient(135deg,rgba(20,184,166,.11),rgba(2,6,23,.34)); }
+.approval-regenerate-success > span { width:42px; height:42px; display:grid; place-items:center; flex:0 0 auto; border-radius:12px; color:#042f2e; background:#5eead4; font-size:20px; font-weight:900; }
+.approval-regenerate-success h3 { margin:4px 0 7px; color:#eef6ff; font-size:18px; overflow-wrap:anywhere; }
+.approval-regenerate-success p:last-child { margin:0; color:#8190a6; font-size:9px; line-height:1.55; }
+.approval-regenerate-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.approval-regenerate-actions button { display:grid; gap:5px; min-height:88px; padding:15px; border:1px solid rgba(148,163,184,.15); border-radius:11px; color:#cbd5e1; background:rgba(15,23,42,.7); text-align:left; cursor:pointer; }
+.approval-regenerate-actions button.primary { border-color:rgba(45,212,191,.3); color:white; background:linear-gradient(135deg,rgba(20,184,166,.95),rgba(13,148,136,.95)); }
+.approval-regenerate-actions strong { font-size:11px; }
+.approval-regenerate-actions span { color:#718096; font-size:8px; }
+.approval-regenerate-actions button.primary span { color:rgba(255,255,255,.72); }
+.approval-regenerate-error { display:grid; gap:6px; padding:20px; border:1px solid rgba(248,113,113,.22); border-radius:11px; color:#94a3b8; background:rgba(127,29,29,.08); text-align:center; }
+.approval-regenerate-error strong { color:#fecaca; }
+.approval-regenerate-error span { font-size:9px; }
+.approval-regenerate-result footer { display:flex; justify-content:flex-end; padding-top:4px; }
+.approval-regenerate-result footer button { min-height:38px; padding:8px 15px; border:1px solid rgba(148,163,184,.16); border-radius:8px; color:#cbd5e1; background:rgba(15,23,42,.78); font-size:9px; font-weight:850; cursor:pointer; }
+@media (max-width:650px) { .approval-regenerate-result { min-width:0; } .approval-regenerate-actions { grid-template-columns:1fr; } }
