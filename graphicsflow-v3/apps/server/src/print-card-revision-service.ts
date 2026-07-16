@@ -41,6 +41,20 @@ function clean(value: unknown): string { return String(value ?? '').trim().toUpp
 function safeName(value: string): string { const name = basename(value || 'artwork.pdf').replace(/[^a-zA-Z0-9._-]/g, '_'); return name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`; }
 function inside(root: string, path: string): boolean { return path === root || path.startsWith(`${root}${sep}`); }
 function numberOnly(value: string): string { return value.match(/\d+/g)?.join('') ?? ''; }
+function dateInputValue(value: unknown): string {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
+  const slash = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
+  if (slash) {
+    const year = slash[3].length === 2 ? `20${slash[3]}` : slash[3];
+    return `${year}-${slash[1].padStart(2, '0')}-${slash[2].padStart(2, '0')}`;
+  }
+  const parsed = new Date(text.includes('T') ? text : text.replace(' ', 'T'));
+  if (Number.isNaN(parsed.getTime())) return '';
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+}
 
 function mapRow(row: RevisionRow): PrintCardRevisionDetail {
   const sourcePath = String(row.source_relative_path ?? '');
@@ -48,7 +62,7 @@ function mapRow(row: RevisionRow): PrintCardRevisionDetail {
     id: Number(row.id),
     graphicId: Number(row.graphic_id),
     revisionLabel: clean(row.revision_label),
-    revisionDate: clean(row.revision_date),
+    revisionDate: dateInputValue(row.revision_date),
     description: clean(row.description),
     specificationNumber: clean(row.specification_number),
     designNumber: clean(row.design_number),
@@ -119,7 +133,7 @@ export async function updatePrintCardRevision(graphicId: number, revisionId: num
     UPDATE document_revisions
     SET revision_label=?, revision_date=?, description=?, specification_number=?, design_number=?, csr=?, designer=?, source_relative_path=?, artwork_source=?
     WHERE id=?
-  `).run(clean(input.revisionLabel), clean(input.revisionDate), clean(input.description), clean(input.specificationNumber), clean(input.designNumber), clean(input.csr), clean(input.designer), artworkRelativePath, artworkSource, revisionId);
+  `).run(clean(input.revisionLabel), dateInputValue(input.revisionDate), clean(input.description), clean(input.specificationNumber), clean(input.designNumber), clean(input.csr), clean(input.designer), artworkRelativePath, artworkSource, revisionId);
 
   const updated = getPrintCardRevisionDetail(graphicId, revisionId);
   if (!updated) throw new Error('Print Card revision not found after update.');
