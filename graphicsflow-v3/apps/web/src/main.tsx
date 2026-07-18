@@ -6,6 +6,7 @@ import { App } from './App';
 import './styles.css';
 import './live-files.css';
 import './approval-viewer.css';
+import './pages/DocumentStudioControls.css';
 
 const queryClient = new QueryClient();
 
