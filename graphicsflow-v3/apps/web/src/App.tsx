@@ -1,5 +1,6 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
 import type { FormEvent } from 'react';
+import { DocumentStudioPage } from './pages/DocumentStudioPage';
 import { GraphicsPage } from './pages/GraphicsPage';
 import { RevisionsPage } from './pages/RevisionsPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -7,6 +8,7 @@ import { SettingsPage } from './pages/SettingsPage';
 const navigation = [
   ['/', 'Dashboard'],
   ['/graphics', 'Graphics'],
+  ['/document-studio', 'Document Studio'],
   ['/vendor-art', 'Vendor Art'],
   ['/revisions', 'Revisions'],
   ['/reports', 'Reports'],
@@ -79,12 +81,13 @@ export function App() {
       </aside>
       <main className="main-area">
         <header className="topbar">
-          <div><p className="eyebrow">Hood Container · Sumter</p><h1>Good morning, Richie</h1></div>
+          <div><p className="eyebrow">Document workflow platform</p><h1>Good morning, Richie</h1></div>
           <div className="status-pill"><span /> Foundation connected</div>
         </header>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/graphics" element={<GraphicsPage />} />
+          <Route path="/document-studio" element={<DocumentStudioPage />} />
           <Route path="/revisions" element={<RevisionsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           {navigation.filter(([path]) => ['/vendor-art', '/reports'].includes(path)).map(([path, title]) => (
